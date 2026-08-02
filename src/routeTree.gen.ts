@@ -11,6 +11,8 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DzienRouteImport } from './routes/dzien'
+import { Route as SkupienieRouteImport } from './routes/skupienie'
+import { Route as UstawieniaRouteImport } from './routes/ustawienia'
 import { Route as ZadaniaRouteImport } from './routes/zadania'
 
 const IndexRoute = IndexRouteImport.update({
@@ -23,6 +25,16 @@ const DzienRoute = DzienRouteImport.update({
   path: '/dzien',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SkupienieRoute = SkupienieRouteImport.update({
+  id: '/skupienie',
+  path: '/skupienie',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const UstawieniaRoute = UstawieniaRouteImport.update({
+  id: '/ustawienia',
+  path: '/ustawienia',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ZadaniaRoute = ZadaniaRouteImport.update({
   id: '/zadania',
   path: '/zadania',
@@ -32,30 +44,38 @@ const ZadaniaRoute = ZadaniaRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/dzien': typeof DzienRoute
+  '/skupienie': typeof SkupienieRoute
+  '/ustawienia': typeof UstawieniaRoute
   '/zadania': typeof ZadaniaRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/dzien': typeof DzienRoute
+  '/skupienie': typeof SkupienieRoute
+  '/ustawienia': typeof UstawieniaRoute
   '/zadania': typeof ZadaniaRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/dzien': typeof DzienRoute
+  '/skupienie': typeof SkupienieRoute
+  '/ustawienia': typeof UstawieniaRoute
   '/zadania': typeof ZadaniaRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/dzien' | '/zadania'
+  fullPaths: '/' | '/dzien' | '/skupienie' | '/ustawienia' | '/zadania'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/dzien' | '/zadania'
-  id: '__root__' | '/' | '/dzien' | '/zadania'
+  to: '/' | '/dzien' | '/skupienie' | '/ustawienia' | '/zadania'
+  id: '__root__' | '/' | '/dzien' | '/skupienie' | '/ustawienia' | '/zadania'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DzienRoute: typeof DzienRoute
+  SkupienieRoute: typeof SkupienieRoute
+  UstawieniaRoute: typeof UstawieniaRoute
   ZadaniaRoute: typeof ZadaniaRoute
 }
 
@@ -75,6 +95,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DzienRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/skupienie': {
+      id: '/skupienie'
+      path: '/skupienie'
+      fullPath: '/skupienie'
+      preLoaderRoute: typeof SkupienieRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ustawienia': {
+      id: '/ustawienia'
+      path: '/ustawienia'
+      fullPath: '/ustawienia'
+      preLoaderRoute: typeof UstawieniaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/zadania': {
       id: '/zadania'
       path: '/zadania'
@@ -88,6 +122,8 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DzienRoute: DzienRoute,
+  SkupienieRoute: SkupienieRoute,
+  UstawieniaRoute: UstawieniaRoute,
   ZadaniaRoute: ZadaniaRoute,
 }
 export const routeTree = rootRouteImport
