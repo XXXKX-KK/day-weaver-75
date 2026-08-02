@@ -25,7 +25,7 @@ export type DayItem = {
   id: string;
   sourceType: "routine" | "task";
   title: string;
-  description?: string;
+  description?: string | undefined;
   block: DayBlock;
   priority: Priority;
   estimatedMinutes: number;
@@ -45,7 +45,7 @@ export type Routine = {
 export type Task = {
   id: string;
   title: string;
-  description?: string;
+  description?: string | undefined;
   block: DayBlock;
   priority: Priority;
   estimatedMinutes: number;
