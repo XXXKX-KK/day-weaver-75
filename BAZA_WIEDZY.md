@@ -439,7 +439,7 @@ Szacowany wolumen danych: ~30 pozycji dnia × 365 dni ≈ 11 tys. wierszy roczni
 
 | # | Decyzja | Opcje | Rekomendacja |
 |---|---|---|---|
-| D1 | Kolor akcentowy aplikacji | zgodny z Metriq / zgodny z Vital / nowy w tej samej rodzinie | Przejąć akcent z istniejącej rodziny aplikacji — potrzebna konkretna wartość HEX |
+| D1 | Kolor akcentowy aplikacji | **ZATWIERDZONE: #EE4261 (żywy malinowy róż)** na ciemnym tle | Zamknięte — token `--primary` w `src/styles.css` |
 | D2 | Nazwa aplikacji i ikona | do ustalenia | Wymagane przed konfiguracją Capacitora i Play |
 | D3 | Bloki dnia | 4 stałe (Poranek/Przedpołudnie/Popołudnie/Wieczór) / 3 / definiowane przez użytkownika | 4 stałe w MVP |
 | D4 | Zaległe zadania | automatycznie wpadają do nowego dnia / trafiają do „Do decyzji” na starcie dnia | Automatycznie, z możliwością pominięcia |
