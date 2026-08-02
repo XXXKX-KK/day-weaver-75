@@ -10,33 +10,53 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as DzienRouteImport } from './routes/dzien'
+import { Route as ZadaniaRouteImport } from './routes/zadania'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DzienRoute = DzienRouteImport.update({
+  id: '/dzien',
+  path: '/dzien',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ZadaniaRoute = ZadaniaRouteImport.update({
+  id: '/zadania',
+  path: '/zadania',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/dzien': typeof DzienRoute
+  '/zadania': typeof ZadaniaRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/dzien': typeof DzienRoute
+  '/zadania': typeof ZadaniaRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/dzien': typeof DzienRoute
+  '/zadania': typeof ZadaniaRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths: '/' | '/dzien' | '/zadania'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to: '/' | '/dzien' | '/zadania'
+  id: '__root__' | '/' | '/dzien' | '/zadania'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  DzienRoute: typeof DzienRoute
+  ZadaniaRoute: typeof ZadaniaRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +68,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/dzien': {
+      id: '/dzien'
+      path: '/dzien'
+      fullPath: '/dzien'
+      preLoaderRoute: typeof DzienRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/zadania': {
+      id: '/zadania'
+      path: '/zadania'
+      fullPath: '/zadania'
+      preLoaderRoute: typeof ZadaniaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  DzienRoute: DzienRoute,
+  ZadaniaRoute: ZadaniaRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
