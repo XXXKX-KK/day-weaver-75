@@ -11,9 +11,10 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DzienRouteImport } from './routes/dzien'
-import { Route as SkupienieRouteImport } from './routes/skupienie'
 import { Route as UstawieniaRouteImport } from './routes/ustawienia'
 import { Route as ZadaniaRouteImport } from './routes/zadania'
+import { Route as SkupienieIndexRouteImport } from './routes/skupienie/index'
+import { Route as SkupienieAplikacjeRouteImport } from './routes/skupienie/aplikacje'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -23,11 +24,6 @@ const IndexRoute = IndexRouteImport.update({
 const DzienRoute = DzienRouteImport.update({
   id: '/dzien',
   path: '/dzien',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SkupienieRoute = SkupienieRouteImport.update({
-  id: '/skupienie',
-  path: '/skupienie',
   getParentRoute: () => rootRouteImport,
 } as any)
 const UstawieniaRoute = UstawieniaRouteImport.update({
@@ -40,43 +36,76 @@ const ZadaniaRoute = ZadaniaRouteImport.update({
   path: '/zadania',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SkupienieIndexRoute = SkupienieIndexRouteImport.update({
+  id: '/skupienie/',
+  path: '/skupienie/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SkupienieAplikacjeRoute = SkupienieAplikacjeRouteImport.update({
+  id: '/skupienie/aplikacje',
+  path: '/skupienie/aplikacje',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/dzien': typeof DzienRoute
-  '/skupienie': typeof SkupienieRoute
   '/ustawienia': typeof UstawieniaRoute
   '/zadania': typeof ZadaniaRoute
+  '/skupienie/aplikacje': typeof SkupienieAplikacjeRoute
+  '/skupienie/': typeof SkupienieIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/dzien': typeof DzienRoute
-  '/skupienie': typeof SkupienieRoute
   '/ustawienia': typeof UstawieniaRoute
   '/zadania': typeof ZadaniaRoute
+  '/skupienie/aplikacje': typeof SkupienieAplikacjeRoute
+  '/skupienie': typeof SkupienieIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/dzien': typeof DzienRoute
-  '/skupienie': typeof SkupienieRoute
   '/ustawienia': typeof UstawieniaRoute
   '/zadania': typeof ZadaniaRoute
+  '/skupienie/aplikacje': typeof SkupienieAplikacjeRoute
+  '/skupienie/': typeof SkupienieIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/dzien' | '/skupienie' | '/ustawienia' | '/zadania'
+  fullPaths:
+    | '/'
+    | '/dzien'
+    | '/ustawienia'
+    | '/zadania'
+    | '/skupienie/aplikacje'
+    | '/skupienie/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/dzien' | '/skupienie' | '/ustawienia' | '/zadania'
-  id: '__root__' | '/' | '/dzien' | '/skupienie' | '/ustawienia' | '/zadania'
+  to:
+    | '/'
+    | '/dzien'
+    | '/ustawienia'
+    | '/zadania'
+    | '/skupienie/aplikacje'
+    | '/skupienie'
+  id:
+    | '__root__'
+    | '/'
+    | '/dzien'
+    | '/ustawienia'
+    | '/zadania'
+    | '/skupienie/aplikacje'
+    | '/skupienie/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DzienRoute: typeof DzienRoute
-  SkupienieRoute: typeof SkupienieRoute
   UstawieniaRoute: typeof UstawieniaRoute
   ZadaniaRoute: typeof ZadaniaRoute
+  SkupienieAplikacjeRoute: typeof SkupienieAplikacjeRoute
+  SkupienieIndexRoute: typeof SkupienieIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -95,13 +124,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DzienRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/skupienie': {
-      id: '/skupienie'
-      path: '/skupienie'
-      fullPath: '/skupienie'
-      preLoaderRoute: typeof SkupienieRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/ustawienia': {
       id: '/ustawienia'
       path: '/ustawienia'
@@ -116,16 +138,41 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ZadaniaRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/skupienie/': {
+      id: '/skupienie/'
+      path: '/skupienie'
+      fullPath: '/skupienie/'
+      preLoaderRoute: typeof SkupienieIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/skupienie/aplikacje': {
+      id: '/skupienie/aplikacje'
+      path: '/skupienie/aplikacje'
+      fullPath: '/skupienie/aplikacje'
+      preLoaderRoute: typeof SkupienieAplikacjeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DzienRoute: DzienRoute,
-  SkupienieRoute: SkupienieRoute,
   UstawieniaRoute: UstawieniaRoute,
   ZadaniaRoute: ZadaniaRoute,
+  SkupienieAplikacjeRoute: SkupienieAplikacjeRoute,
+  SkupienieIndexRoute: SkupienieIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

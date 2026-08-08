@@ -1,0 +1,183 @@
+package pl.dzienlepszy.app.blocker;
+
+import android.content.ComponentName;
+import android.content.Context;
+import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.content.pm.ResolveInfo;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.drawable.Drawable;
+import android.provider.Settings;
+import android.text.TextUtils;
+import android.util.Base64;
+
+import com.getcapacitor.JSArray;
+import com.getcapacitor.JSObject;
+import com.getcapacitor.Plugin;
+import com.getcapacitor.PluginCall;
+import com.getcapacitor.PluginMethod;
+import com.getcapacitor.annotation.CapacitorPlugin;
+
+import org.json.JSONException;
+
+import java.io.ByteArrayOutputStream;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+/**
+ * Native bridge for the app-blocking core:
+ *  - lists launchable installed apps (PackageManager),
+ *  - reads/writes the blocked list + enabled flag in SharedPreferences
+ *    (the same store the AccessibilityService reads),
+ *  - reports and opens the accessibility-service permission screen.
+ *
+ * No scheduling, breaks, or foreground-service logic lives here — that is
+ * intentionally out of scope for this milestone.
+ */
+@CapacitorPlugin(name = "Blocker")
+public class BlockerPlugin extends Plugin {
+
+    private static final int MAX_ICON_PX = 96;
+
+    @PluginMethod
+    public void getInstalledApps(PluginCall call) {
+        Context context = getContext();
+        PackageManager pm = context.getPackageManager();
+        boolean includeIcons = Boolean.TRUE.equals(call.getBoolean("includeIcons", false));
+        String self = context.getPackageName();
+
+        // Only apps the user can actually launch (they have a launcher activity).
+        Intent launcherIntent = new Intent(Intent.ACTION_MAIN);
+        launcherIntent.addCategory(Intent.CATEGORY_LAUNCHER);
+        List<ResolveInfo> resolved = pm.queryIntentActivities(launcherIntent, 0);
+
+        JSArray apps = new JSArray();
+        Set<String> seen = new HashSet<>();
+        for (ResolveInfo info : resolved) {
+            if (info.activityInfo == null) continue;
+            String pkg = info.activityInfo.packageName;
+            if (pkg == null || pkg.equals(self) || !seen.add(pkg)) continue;
+
+            JSObject app = new JSObject();
+            app.put("packageName", pkg);
+            app.put("appLabel", info.loadLabel(pm).toString());
+            if (includeIcons) {
+                String icon = encodeIcon(info.loadIcon(pm));
+                if (icon != null) app.put("icon", icon);
+            }
+            apps.put(app);
+        }
+
+        JSObject result = new JSObject();
+        result.put("apps", apps);
+        call.resolve(result);
+    }
+
+    @PluginMethod
+    public void getBlockedApps(PluginCall call) {
+        JSArray packages = new JSArray();
+        for (String pkg : BlockerPrefs.getBlockedPackages(getContext())) {
+            packages.put(pkg);
+        }
+        JSObject result = new JSObject();
+        result.put("packages", packages);
+        call.resolve(result);
+    }
+
+    @PluginMethod
+    public void setBlockedApps(PluginCall call) {
+        JSArray packages = call.getArray("packages");
+        Set<String> set = new HashSet<>();
+        if (packages != null) {
+            try {
+                List<String> list = packages.toList();
+                for (String pkg : list) {
+                    if (pkg != null && !pkg.isEmpty()) set.add(pkg);
+                }
+            } catch (JSONException e) {
+                call.reject("Invalid 'packages' array", e);
+                return;
+            }
+        }
+        BlockerPrefs.setBlockedPackages(getContext(), set);
+        call.resolve();
+    }
+
+    @PluginMethod
+    public void setBlockingEnabled(PluginCall call) {
+        Boolean enabled = call.getBoolean("enabled");
+        if (enabled == null) {
+            call.reject("Missing 'enabled' boolean");
+            return;
+        }
+        BlockerPrefs.setBlockingEnabled(getContext(), enabled);
+        JSObject result = new JSObject();
+        result.put("enabled", enabled);
+        call.resolve(result);
+    }
+
+    @PluginMethod
+    public void isBlockingEnabled(PluginCall call) {
+        JSObject result = new JSObject();
+        result.put("enabled", BlockerPrefs.isBlockingEnabled(getContext()));
+        call.resolve(result);
+    }
+
+    @PluginMethod
+    public void isAccessibilityEnabled(PluginCall call) {
+        JSObject result = new JSObject();
+        result.put("enabled", isAccessibilityServiceEnabled());
+        call.resolve(result);
+    }
+
+    @PluginMethod
+    public void openAccessibilitySettings(PluginCall call) {
+        Intent intent = new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS);
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        getContext().startActivity(intent);
+        call.resolve();
+    }
+
+    private boolean isAccessibilityServiceEnabled() {
+        Context context = getContext();
+        ComponentName expected = new ComponentName(context, BlockerService.class);
+        String enabled = Settings.Secure.getString(
+                context.getContentResolver(),
+                Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES);
+        if (TextUtils.isEmpty(enabled)) return false;
+
+        TextUtils.SimpleStringSplitter splitter = new TextUtils.SimpleStringSplitter(':');
+        splitter.setString(enabled);
+        while (splitter.hasNext()) {
+            ComponentName parsed = ComponentName.unflattenFromString(splitter.next());
+            if (expected.equals(parsed)) return true;
+        }
+        return false;
+    }
+
+    private String encodeIcon(Drawable drawable) {
+        if (drawable == null) return null;
+        try {
+            int width = clampSize(drawable.getIntrinsicWidth());
+            int height = clampSize(drawable.getIntrinsicHeight());
+            Bitmap bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+            Canvas canvas = new Canvas(bitmap);
+            drawable.setBounds(0, 0, width, height);
+            drawable.draw(canvas);
+
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            bitmap.compress(Bitmap.CompressFormat.PNG, 100, out);
+            bitmap.recycle();
+            return "data:image/png;base64," + Base64.encodeToString(out.toByteArray(), Base64.NO_WRAP);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private int clampSize(int intrinsic) {
+        if (intrinsic <= 0) return MAX_ICON_PX;
+        return Math.min(intrinsic, MAX_ICON_PX);
+    }
+}

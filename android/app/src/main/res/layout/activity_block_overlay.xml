@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:gravity="center"
+    android:background="#0B0B0F"
+    android:padding="32dp">
+
+    <View
+        android:layout_width="56dp"
+        android:layout_height="56dp"
+        android:layout_marginBottom="28dp"
+        android:background="@drawable/block_accent_dot" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp"
+        android:gravity="center"
+        android:text="@string/block_overlay_headline"
+        android:textColor="#FFFFFF"
+        android:textSize="26sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="28dp"
+        android:gravity="center"
+        android:lineSpacingMultiplier="1.3"
+        android:text="@string/block_overlay_motivation"
+        android:textColor="#B6B6C2"
+        android:textSize="16sp" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="36dp"
+        android:background="@drawable/block_task_card"
+        android:gravity="center"
+        android:padding="18dp"
+        android:text="@string/block_overlay_current_task_placeholder"
+        android:textColor="#EAEAF0"
+        android:textSize="15sp" />
+
+    <Button
+        android:id="@+id/block_return_button"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:background="@drawable/block_primary_button"
+        android:text="@string/block_overlay_return"
+        android:textAllCaps="false"
+        android:textColor="#FFFFFF"
+        android:textSize="16sp" />
+</LinearLayout>
