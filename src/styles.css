@@ -133,6 +133,18 @@
   );
   --shadow-card: 0 1px 0 0 oklch(1 0 0 / 5%) inset, 0 12px 30px -18px oklch(0 0 0 / 80%);
   --shadow-accent: 0 14px 34px -16px color-mix(in oklab, var(--primary) 60%, transparent);
+
+  /* Pływająca pastylka nawigacji — szkło lekko podbarwione akcentem */
+  --navpill: color-mix(in srgb, var(--primary) 15%, rgba(10, 10, 12, 0.6));
+  --navpill-border: color-mix(in srgb, var(--primary) 25%, rgba(255, 255, 255, 0.12));
+  --navpill-top: color-mix(in srgb, var(--primary) 20%, rgba(255, 255, 255, 0.18));
+}
+
+/* Wariant jasny (nieaktywny w MVP — apka jest ciemna; zostawione dla spójności) */
+:root[data-theme="light"] {
+  --navpill: color-mix(in srgb, var(--primary) 14%, rgba(255, 255, 255, 0.7));
+  --navpill-border: color-mix(in srgb, var(--primary) 18%, rgba(0, 0, 0, 0.06));
+  --navpill-top: color-mix(in srgb, var(--primary) 12%, rgba(255, 255, 255, 0.65));
 }
 
 /*
@@ -238,6 +250,6 @@
   width: 100%;
   max-width: 30rem;
   padding-inline: 1.25rem;
-  /* Room for the floating nav pill (expanded) + its bottom offset + safe area. */
-  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 8.5rem);
+  /* Room for the floating nav pill + its bottom offset + safe area. */
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 7rem);
 }
