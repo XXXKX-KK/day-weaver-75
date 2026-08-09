@@ -180,10 +180,10 @@
   }
 
   /*
-   * Miękka poświata akcentu wtopiona w ciemne tło — jeden duży, rozmyty blob
-   * nisko-środkowo (+ ledwo widoczny akcent u góry), spójny na wszystkich
-   * ekranach (siedzi na <body>, pod treścią). Kolor pochodzi z --primary,
-   * więc zmiana akcentu przemalowuje też poświatę.
+   * Poświata akcentu wtopiona w ciemne tło — dwa miękkie, wyśrodkowane bloby
+   * (górny za nagłówkiem, dolny w dolno-środkowej części), z dala od rogów.
+   * Delikatne, premium; spójne na wszystkich ekranach (siedzą na <body>, pod
+   * treścią). Kolor pochodzi z --primary, więc zmienia się z akcentem.
    */
   body::before {
     content: "";
@@ -193,15 +193,15 @@
     pointer-events: none;
     background:
       radial-gradient(
-        135% 72% at 50% 84%,
-        color-mix(in oklab, var(--primary) 26%, transparent) 0%,
-        color-mix(in oklab, var(--primary) 11%, transparent) 36%,
-        transparent 70%
+        86% 50% at 50% 22%,
+        color-mix(in oklab, var(--primary) 15%, transparent) 0%,
+        transparent 60%
       ),
       radial-gradient(
-        105% 55% at 50% 2%,
-        color-mix(in oklab, var(--primary) 9%, transparent) 0%,
-        transparent 58%
+        100% 56% at 50% 70%,
+        color-mix(in oklab, var(--primary) 20%, transparent) 0%,
+        color-mix(in oklab, var(--primary) 8%, transparent) 42%,
+        transparent 72%
       );
   }
 
