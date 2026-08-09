@@ -126,6 +126,22 @@ public class BlockerPlugin extends Plugin {
     }
 
     @PluginMethod
+    public void setCurrentTask(PluginCall call) {
+        String title = call.getString("title", "");
+        BlockerPrefs.setCurrentTask(getContext(), title);
+        JSObject result = new JSObject();
+        result.put("title", BlockerPrefs.getCurrentTask(getContext()));
+        call.resolve(result);
+    }
+
+    @PluginMethod
+    public void getCurrentTask(PluginCall call) {
+        JSObject result = new JSObject();
+        result.put("title", BlockerPrefs.getCurrentTask(getContext()));
+        call.resolve(result);
+    }
+
+    @PluginMethod
     public void isAccessibilityEnabled(PluginCall call) {
         JSObject result = new JSObject();
         result.put("enabled", isAccessibilityServiceEnabled());

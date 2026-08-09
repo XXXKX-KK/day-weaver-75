@@ -7,6 +7,7 @@
     <string name="blocker_service_description">Wykrywa otwarcie blokowanych aplikacji i pokazuje ekran skupienia, gdy blokada jest włączona.</string>
     <string name="block_overlay_headline">Chwila skupienia</string>
     <string name="block_overlay_motivation">Ten czas należy do Ciebie. Wróć do tego, co naprawdę ważne.</string>
-    <string name="block_overlay_current_task_placeholder">Wróć do tego, co teraz robisz</string>
+    <string name="block_overlay_current_task_prefix">Wróć do: %1$s</string>
+    <string name="block_overlay_current_task_fallback">Wróć do skupienia</string>
     <string name="block_overlay_return">Wróć do zadania</string>
 </resources>

@@ -19,6 +19,7 @@ public final class BlockerPrefs {
     public static final String PREFS_NAME = "dzienlepszy_blocker";
     public static final String KEY_BLOCKED_PACKAGES = "blocked_packages";
     public static final String KEY_BLOCKING_ENABLED = "blocking_enabled";
+    public static final String KEY_CURRENT_TASK = "current_task";
 
     private BlockerPrefs() {}
 
@@ -48,6 +49,21 @@ public final class BlockerPrefs {
     public static void setBlockingEnabled(Context context, boolean enabled) {
         prefs(context).edit()
                 .putBoolean(KEY_BLOCKING_ENABLED, enabled)
+                .apply();
+    }
+
+    /**
+     * The task the user is currently focusing on, set manually on the Skupienie
+     * screen. Shown by the overlay so the block points back to something
+     * concrete. Never null — empty string means "not set".
+     */
+    public static String getCurrentTask(Context context) {
+        return prefs(context).getString(KEY_CURRENT_TASK, "");
+    }
+
+    public static void setCurrentTask(Context context, String title) {
+        prefs(context).edit()
+                .putString(KEY_CURRENT_TASK, title == null ? "" : title.trim())
                 .apply();
     }
 }

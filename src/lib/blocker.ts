@@ -21,6 +21,9 @@ export interface BlockerPlugin {
   isBlockingEnabled(): Promise<{ enabled: boolean }>;
   isAccessibilityEnabled(): Promise<{ enabled: boolean }>;
   openAccessibilitySettings(): Promise<void>;
+  /** The task the user set manually on the Skupienie screen (shown by the overlay). */
+  setCurrentTask(options: { title: string }): Promise<{ title: string }>;
+  getCurrentTask(): Promise<{ title: string }>;
 }
 
 export const Blocker = registerPlugin<BlockerPlugin>("Blocker");

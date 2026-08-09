@@ -1,6 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
-import { ChevronRight, ShieldCheck, ShieldOff, Smartphone, TriangleAlert } from "lucide-react";
+import {
+  ChevronRight,
+  ShieldCheck,
+  ShieldOff,
+  Smartphone,
+  Target,
+  TriangleAlert,
+} from "lucide-react";
 import { Screen, ScreenHeader, Card } from "@/components/ui-kit";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
@@ -32,6 +39,9 @@ function FocusScreen() {
   const [accessibilityEnabled, setAccessibilityEnabled] = useState(false);
   const [blockedCount, setBlockedCount] = useState(0);
   const [busy, setBusy] = useState(false);
+  const [currentTask, setCurrentTask] = useState("");
+  const [taskInput, setTaskInput] = useState("");
+  const [savingTask, setSavingTask] = useState(false);
 
   const refresh = useCallback(async () => {
     if (!native) return;
@@ -58,6 +68,18 @@ function FocusScreen() {
     document.addEventListener("visibilitychange", onVisible);
     return () => document.removeEventListener("visibilitychange", onVisible);
   }, [refresh]);
+
+  // Seed the current-task field once on mount (kept out of refresh so a
+  // re-focus never clobbers what the user is typing).
+  useEffect(() => {
+    if (!native) return;
+    Blocker.getCurrentTask()
+      .then((r) => {
+        setCurrentTask(r.title);
+        setTaskInput(r.title);
+      })
+      .catch((e) => console.error("getCurrentTask failed", e));
+  }, [native]);
 
   const onToggleBlocking = async (next: boolean) => {
     if (!native) {
@@ -89,6 +111,25 @@ function FocusScreen() {
     } catch (e) {
       console.error(e);
       toast.error("Nie udało się otworzyć ustawień.");
+    }
+  };
+
+  const saveTask = async () => {
+    if (!native) {
+      toast.info("Zapis zadania działa tylko w aplikacji na telefonie.");
+      return;
+    }
+    setSavingTask(true);
+    try {
+      const r = await Blocker.setCurrentTask({ title: taskInput });
+      setCurrentTask(r.title);
+      setTaskInput(r.title);
+      toast.success("Zapisano bieżące zadanie.");
+    } catch (e) {
+      console.error(e);
+      toast.error("Nie udało się zapisać zadania.");
+    } finally {
+      setSavingTask(false);
     }
   };
 
@@ -156,6 +197,36 @@ function FocusScreen() {
           </p>
         </Card>
       )}
+
+      <Card className="mb-4 flex flex-col gap-3 py-5">
+        <div className="flex items-center gap-3">
+          <span className="accent-gradient flex h-10 w-10 items-center justify-center rounded-2xl">
+            <Target className="h-5 w-5 text-primary-foreground" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold">Na czym się teraz skupiasz?</p>
+            <p className="truncate text-xs text-muted-foreground">
+              {currentTask
+                ? `Nakładka pokaże: „Wróć do: ${currentTask}”`
+                : "Nakładka pokaże tekst zapasowy"}
+            </p>
+          </div>
+        </div>
+        <input
+          value={taskInput}
+          onChange={(e) => setTaskInput(e.target.value)}
+          placeholder="np. Dokończ raport"
+          maxLength={80}
+          className="h-12 w-full rounded-2xl border border-input bg-elevated px-4 text-sm outline-none focus:border-primary/40"
+        />
+        <button
+          onClick={saveTask}
+          disabled={savingTask || taskInput.trim() === currentTask}
+          className="accent-gradient h-12 w-full rounded-2xl font-semibold text-primary-foreground transition-opacity disabled:opacity-40"
+        >
+          Zapisz zadanie
+        </button>
+      </Card>
 
       <Link to="/skupienie/aplikacje" className="block">
         <Card className="flex items-center gap-4 py-4">
