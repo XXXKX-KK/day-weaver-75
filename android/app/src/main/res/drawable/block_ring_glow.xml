@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Soft halo around the ring. White→transparent alpha ramp, tinted to the
+     accent colour at runtime (SRC_IN tint keeps the soft falloff). -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="oval">
+    <gradient
+        android:type="radial"
+        android:gradientRadius="96dp"
+        android:startColor="#73FFFFFF"
+        android:centerColor="#30FFFFFF"
+        android:endColor="#00FFFFFF" />
+</shape>
