@@ -238,5 +238,6 @@
   width: 100%;
   max-width: 30rem;
   padding-inline: 1.25rem;
-  padding-bottom: 7rem;
+  /* Room for the floating nav pill (expanded) + its bottom offset + safe area. */
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 8.5rem);
 }
