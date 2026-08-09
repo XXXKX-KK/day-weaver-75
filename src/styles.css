@@ -76,10 +76,15 @@
   --popover: oklch(0.21 0.014 300);
   --popover-foreground: oklch(0.97 0.004 300);
 
-  /* Akcent #EE4261 */
+  /*
+   * Akcent — jedno źródło prawdy. Zmieniaj wyłącznie --primary
+   * (i wyjątkowo --primary-foreground); wszystko poniżej wynika z niego,
+   * łącznie z poświatą w tle. Warianty koloru: patrz [data-accent] niżej.
+   * Domyślnie różowy (#EE4261).
+   */
   --primary: oklch(0.635 0.202 13.5);
   --primary-foreground: oklch(0.99 0.005 13.5);
-  --primary-soft: oklch(0.635 0.202 13.5 / 14%);
+  --primary-soft: color-mix(in oklab, var(--primary) 14%, transparent);
 
   --secondary: oklch(0.26 0.016 300);
   --secondary-foreground: oklch(0.97 0.004 300);
@@ -98,9 +103,9 @@
 
   --border: oklch(1 0 0 / 8%);
   --input: oklch(1 0 0 / 12%);
-  --ring: oklch(0.635 0.202 13.5 / 55%);
+  --ring: color-mix(in oklab, var(--primary) 55%, transparent);
 
-  --chart-1: oklch(0.635 0.202 13.5);
+  --chart-1: var(--primary);
   --chart-2: oklch(0.72 0.11 158);
   --chart-3: oklch(0.79 0.11 78);
   --chart-4: oklch(0.68 0.09 250);
@@ -108,18 +113,18 @@
 
   --sidebar: oklch(0.19 0.013 300);
   --sidebar-foreground: oklch(0.97 0.004 300);
-  --sidebar-primary: oklch(0.635 0.202 13.5);
-  --sidebar-primary-foreground: oklch(0.99 0.005 13.5);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
   --sidebar-accent: oklch(0.26 0.016 300);
   --sidebar-accent-foreground: oklch(0.97 0.004 300);
   --sidebar-border: oklch(1 0 0 / 8%);
-  --sidebar-ring: oklch(0.635 0.202 13.5 / 55%);
+  --sidebar-ring: var(--ring);
 
-  /* Gradienty i cienie */
+  /* Gradienty i cienie — pochodne akcentu (--primary) */
   --gradient-primary: linear-gradient(
     135deg,
-    oklch(0.665 0.198 8) 0%,
-    oklch(0.6 0.2 20) 100%
+    color-mix(in oklab, var(--primary), white 8%) 0%,
+    color-mix(in oklab, var(--primary), black 12%) 100%
   );
   --gradient-surface: linear-gradient(
     160deg,
@@ -127,7 +132,32 @@
     oklch(0.19 0.013 300) 100%
   );
   --shadow-card: 0 1px 0 0 oklch(1 0 0 / 5%) inset, 0 12px 30px -18px oklch(0 0 0 / 80%);
-  --shadow-accent: 0 14px 34px -16px oklch(0.635 0.202 13.5 / 60%);
+  --shadow-accent: 0 14px 34px -16px color-mix(in oklab, var(--primary) 60%, transparent);
+
+  /* Poświata w tle — miękki glow w kolorze akcentu (zmienia się z akcentem) */
+  --glow-color: color-mix(in oklab, var(--primary) 22%, transparent);
+}
+
+/*
+ * Warianty akcentu. Wystarczy podmienić --primary (dla ciepłych kolorów
+ * także --primary-foreground na ciemny, dla kontrastu na przyciskach).
+ * Ustawiane przez atrybut data-accent na <html> (src/lib/accent.ts).
+ */
+:root[data-accent="pink"] {
+  --primary: oklch(0.635 0.202 13.5);
+  --primary-foreground: oklch(0.99 0.005 13.5);
+}
+:root[data-accent="orange"] {
+  --primary: oklch(0.72 0.162 55);
+  --primary-foreground: oklch(0.2 0.03 55);
+}
+:root[data-accent="blue"] {
+  --primary: oklch(0.62 0.18 255);
+  --primary-foreground: oklch(0.99 0.005 255);
+}
+:root[data-accent="green"] {
+  --primary: oklch(0.72 0.17 152);
+  --primary-foreground: oklch(0.2 0.03 152);
 }
 
 .dark {
@@ -150,6 +180,22 @@
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
     overscroll-behavior-y: none;
+  }
+
+  /*
+   * Miękka poświata akcentu wtopiona w ciemne tło — spójna na wszystkich
+   * ekranach (siedzi na <body>, pod treścią). Kolor pochodzi z --glow-color,
+   * więc zmiana akcentu przemalowuje też poświatę.
+   */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background:
+      radial-gradient(78% 42% at 50% -6%, var(--glow-color) 0%, transparent 60%),
+      radial-gradient(72% 40% at 50% 106%, var(--glow-color) 0%, transparent 62%);
   }
 
   h1,

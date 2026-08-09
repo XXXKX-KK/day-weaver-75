@@ -24,6 +24,11 @@ export interface BlockerPlugin {
   /** The task the user set manually on the Skupienie screen (shown by the overlay). */
   setCurrentTask(options: { title: string }): Promise<{ title: string }>;
   getCurrentTask(): Promise<{ title: string }>;
+  /**
+   * Mirror the chosen accent (key + sRGB hex) into native prefs so the block
+   * overlay can pick it up in a later brief. UI does not read this back.
+   */
+  setAccentColor(options: { key: string; hex: string }): Promise<void>;
 }
 
 export const Blocker = registerPlugin<BlockerPlugin>("Blocker");

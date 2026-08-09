@@ -1,11 +1,11 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { Bell, Clock, LogOut, ShieldCheck, User } from "lucide-react";
+import { Bell, ChevronRight, Clock, LogOut, Palette, ShieldCheck, User } from "lucide-react";
 import { Screen, ScreenHeader, Card } from "@/components/ui-kit";
 import { Switch } from "@/components/ui/switch";
 import { useStore } from "@/lib/store";
 
-export const Route = createFileRoute("/ustawienia")({
+export const Route = createFileRoute("/ustawienia/")({
   head: () => ({
     meta: [
       { title: "Ustawienia – godziny dnia i uprawnienia" },
@@ -41,6 +41,19 @@ function SettingsScreen() {
           <p className="text-xs text-muted-foreground">Konto prywatne</p>
         </div>
       </Card>
+
+      <Link to="/ustawienia/wyglad" className="mb-6 block">
+        <Card className="flex items-center gap-4 py-4">
+          <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-elevated">
+            <Palette className="h-4 w-4 text-muted-foreground" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold">Wygląd</p>
+            <p className="truncate text-xs text-muted-foreground">Kolor akcentu</p>
+          </div>
+          <ChevronRight className="h-5 w-5 shrink-0 text-muted-foreground" />
+        </Card>
+      </Link>
 
       <h2 className="mb-3 px-1 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
         Dzień
@@ -88,15 +101,7 @@ function SettingsScreen() {
   );
 }
 
-function Row({
-  icon,
-  label,
-  value,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-}) {
+function Row({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
     <div className="flex items-center justify-between px-5 py-4">
       <span className="flex items-center gap-3 text-sm">

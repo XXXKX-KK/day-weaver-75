@@ -20,6 +20,8 @@ public final class BlockerPrefs {
     public static final String KEY_BLOCKED_PACKAGES = "blocked_packages";
     public static final String KEY_BLOCKING_ENABLED = "blocking_enabled";
     public static final String KEY_CURRENT_TASK = "current_task";
+    public static final String KEY_ACCENT_KEY = "accent_key";
+    public static final String KEY_ACCENT_HEX = "accent_hex";
 
     private BlockerPrefs() {}
 
@@ -65,5 +67,25 @@ public final class BlockerPrefs {
         prefs(context).edit()
                 .putString(KEY_CURRENT_TASK, title == null ? "" : title.trim())
                 .apply();
+    }
+
+    /**
+     * The chosen accent, stored as both a key ("pink"/"orange"/…) and an sRGB
+     * hex ("#EE4261"). Written by the app when the user picks an accent; read by
+     * the block overlay in a later brief.
+     */
+    public static void setAccentColor(Context context, String key, String hex) {
+        prefs(context).edit()
+                .putString(KEY_ACCENT_KEY, key == null ? "" : key)
+                .putString(KEY_ACCENT_HEX, hex == null ? "" : hex)
+                .apply();
+    }
+
+    public static String getAccentHex(Context context) {
+        return prefs(context).getString(KEY_ACCENT_HEX, "#EE4261");
+    }
+
+    public static String getAccentKey(Context context) {
+        return prefs(context).getString(KEY_ACCENT_KEY, "pink");
     }
 }

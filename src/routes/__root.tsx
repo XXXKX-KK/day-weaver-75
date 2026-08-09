@@ -11,10 +11,10 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
+import { applyAccent, readAccent } from "@/lib/accent";
 import { StoreProvider } from "@/lib/store";
 import { BottomNav } from "@/components/bottom-nav";
 import { Toaster } from "@/components/ui/sonner";
-
 
 function NotFoundComponent() {
   return (
@@ -114,6 +114,13 @@ function RootShell({ children }: { children: ReactNode }) {
     <html lang="pl" className="dark">
       <head>
         <HeadContent />
+        {/* Apply the saved accent before first paint to avoid a color flash. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              "try{var a=localStorage.getItem('dl-accent');if(a==='orange'||a==='pink'||a==='blue'||a==='green'){document.documentElement.setAttribute('data-accent',a)}}catch(e){}",
+          }}
+        />
       </head>
       <body>
         {children}
@@ -126,6 +133,11 @@ function RootShell({ children }: { children: ReactNode }) {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
 
+  // Sync the accent on startup (also mirrors it into native prefs for the overlay).
+  useEffect(() => {
+    applyAccent(readAccent());
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <StoreProvider>
@@ -137,4 +149,3 @@ function RootComponent() {
     </QueryClientProvider>
   );
 }
-

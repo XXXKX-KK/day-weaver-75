@@ -11,10 +11,11 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DzienRouteImport } from './routes/dzien'
-import { Route as UstawieniaRouteImport } from './routes/ustawienia'
 import { Route as ZadaniaRouteImport } from './routes/zadania'
 import { Route as SkupienieIndexRouteImport } from './routes/skupienie/index'
 import { Route as SkupienieAplikacjeRouteImport } from './routes/skupienie/aplikacje'
+import { Route as UstawieniaIndexRouteImport } from './routes/ustawienia/index'
+import { Route as UstawieniaWygladRouteImport } from './routes/ustawienia/wyglad'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -24,11 +25,6 @@ const IndexRoute = IndexRouteImport.update({
 const DzienRoute = DzienRouteImport.update({
   id: '/dzien',
   path: '/dzien',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const UstawieniaRoute = UstawieniaRouteImport.update({
-  id: '/ustawienia',
-  path: '/ustawienia',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ZadaniaRoute = ZadaniaRouteImport.update({
@@ -46,66 +42,83 @@ const SkupienieAplikacjeRoute = SkupienieAplikacjeRouteImport.update({
   path: '/skupienie/aplikacje',
   getParentRoute: () => rootRouteImport,
 } as any)
+const UstawieniaIndexRoute = UstawieniaIndexRouteImport.update({
+  id: '/ustawienia/',
+  path: '/ustawienia/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const UstawieniaWygladRoute = UstawieniaWygladRouteImport.update({
+  id: '/ustawienia/wyglad',
+  path: '/ustawienia/wyglad',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/dzien': typeof DzienRoute
-  '/ustawienia': typeof UstawieniaRoute
   '/zadania': typeof ZadaniaRoute
   '/skupienie/aplikacje': typeof SkupienieAplikacjeRoute
+  '/ustawienia/wyglad': typeof UstawieniaWygladRoute
   '/skupienie/': typeof SkupienieIndexRoute
+  '/ustawienia/': typeof UstawieniaIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/dzien': typeof DzienRoute
-  '/ustawienia': typeof UstawieniaRoute
   '/zadania': typeof ZadaniaRoute
   '/skupienie/aplikacje': typeof SkupienieAplikacjeRoute
+  '/ustawienia/wyglad': typeof UstawieniaWygladRoute
   '/skupienie': typeof SkupienieIndexRoute
+  '/ustawienia': typeof UstawieniaIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/dzien': typeof DzienRoute
-  '/ustawienia': typeof UstawieniaRoute
   '/zadania': typeof ZadaniaRoute
   '/skupienie/aplikacje': typeof SkupienieAplikacjeRoute
+  '/ustawienia/wyglad': typeof UstawieniaWygladRoute
   '/skupienie/': typeof SkupienieIndexRoute
+  '/ustawienia/': typeof UstawieniaIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
     | '/dzien'
-    | '/ustawienia'
     | '/zadania'
     | '/skupienie/aplikacje'
+    | '/ustawienia/wyglad'
     | '/skupienie/'
+    | '/ustawienia/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/dzien'
-    | '/ustawienia'
     | '/zadania'
     | '/skupienie/aplikacje'
+    | '/ustawienia/wyglad'
     | '/skupienie'
+    | '/ustawienia'
   id:
     | '__root__'
     | '/'
     | '/dzien'
-    | '/ustawienia'
     | '/zadania'
     | '/skupienie/aplikacje'
+    | '/ustawienia/wyglad'
     | '/skupienie/'
+    | '/ustawienia/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DzienRoute: typeof DzienRoute
-  UstawieniaRoute: typeof UstawieniaRoute
   ZadaniaRoute: typeof ZadaniaRoute
   SkupienieAplikacjeRoute: typeof SkupienieAplikacjeRoute
+  UstawieniaWygladRoute: typeof UstawieniaWygladRoute
   SkupienieIndexRoute: typeof SkupienieIndexRoute
+  UstawieniaIndexRoute: typeof UstawieniaIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -122,13 +135,6 @@ declare module '@tanstack/react-router' {
       path: '/dzien'
       fullPath: '/dzien'
       preLoaderRoute: typeof DzienRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/ustawienia': {
-      id: '/ustawienia'
-      path: '/ustawienia'
-      fullPath: '/ustawienia'
-      preLoaderRoute: typeof UstawieniaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/zadania': {
@@ -152,16 +158,31 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SkupienieAplikacjeRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/ustawienia/': {
+      id: '/ustawienia/'
+      path: '/ustawienia'
+      fullPath: '/ustawienia/'
+      preLoaderRoute: typeof UstawieniaIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ustawienia/wyglad': {
+      id: '/ustawienia/wyglad'
+      path: '/ustawienia/wyglad'
+      fullPath: '/ustawienia/wyglad'
+      preLoaderRoute: typeof UstawieniaWygladRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DzienRoute: DzienRoute,
-  UstawieniaRoute: UstawieniaRoute,
   ZadaniaRoute: ZadaniaRoute,
   SkupienieAplikacjeRoute: SkupienieAplikacjeRoute,
+  UstawieniaWygladRoute: UstawieniaWygladRoute,
   SkupienieIndexRoute: SkupienieIndexRoute,
+  UstawieniaIndexRoute: UstawieniaIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

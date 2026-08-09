@@ -142,6 +142,14 @@ public class BlockerPlugin extends Plugin {
     }
 
     @PluginMethod
+    public void setAccentColor(PluginCall call) {
+        String key = call.getString("key", "");
+        String hex = call.getString("hex", "");
+        BlockerPrefs.setAccentColor(getContext(), key, hex);
+        call.resolve();
+    }
+
+    @PluginMethod
     public void isAccessibilityEnabled(PluginCall call) {
         JSObject result = new JSObject();
         result.put("enabled", isAccessibilityServiceEnabled());
