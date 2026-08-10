@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { Plus, Repeat, X } from "lucide-react";
+import { Check, Plus, Repeat, Trash2, X } from "lucide-react";
 import { Screen, ScreenHeader, Card, EmptyState } from "@/components/ui-kit";
 import {
   BLOCK_LABELS,
@@ -10,6 +10,13 @@ import {
   type DayBlock,
   type Priority,
 } from "@/lib/store";
+import {
+  useAddTask,
+  useDeleteTask,
+  useTasks,
+  useToggleTaskDone,
+  type NewTaskInput,
+} from "@/lib/tasks";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -34,7 +41,13 @@ export const Route = createFileRoute("/zadania")({
 });
 
 function TasksScreen() {
-  const { tasks, routines, toggleRoutine, addTask } = useStore();
+  // Routines still live in the in-memory store; only tasks move to Supabase.
+  const { routines, toggleRoutine } = useStore();
+  const { data: tasks, isLoading, isError, refetch } = useTasks();
+  const addTask = useAddTask();
+  const toggleDone = useToggleTaskDone();
+  const deleteTask = useDeleteTask();
+
   const [tab, setTab] = useState<"tasks" | "routines">("tasks");
   const [formOpen, setFormOpen] = useState(false);
 
@@ -59,40 +72,87 @@ function TasksScreen() {
 
       {tab === "tasks" ? (
         <div className="flex flex-col gap-3">
-          {tasks.length === 0 ? (
+          {isLoading ? (
+            <p className="px-1 text-sm text-muted-foreground">Wczytywanie zadań…</p>
+          ) : isError ? (
+            <Card className="flex flex-col items-center gap-3 py-8 text-center">
+              <p className="text-sm text-muted-foreground">Nie udało się wczytać zadań.</p>
+              <button
+                onClick={() => refetch()}
+                className="h-10 rounded-2xl bg-secondary px-4 text-sm font-semibold text-secondary-foreground"
+              >
+                Spróbuj ponownie
+              </button>
+            </Card>
+          ) : !tasks || tasks.length === 0 ? (
             <EmptyState
               title="Brak zadań"
               description="Dodaj pierwsze zadanie jednorazowe, a pojawi się w planie dnia."
             />
           ) : (
-            tasks.map((t) => (
-              <Card key={t.id} className="flex flex-col gap-2">
-                <div className="flex items-start justify-between gap-3">
-                  <h3 className="text-base font-semibold">{t.title}</h3>
-                  {t.priority === "high" ? (
-                    <span className="shrink-0 rounded-full bg-primary-soft px-2.5 py-1 text-[11px] font-semibold text-primary">
-                      Wysoki
-                    </span>
+            tasks.map((t) => {
+              const done = t.status === "done";
+              return (
+                <Card key={t.id} className="flex flex-col gap-2">
+                  <div className="flex items-start gap-3">
+                    <button
+                      onClick={() => toggleDone.mutate({ id: t.id, status: t.status })}
+                      aria-label={done ? "Oznacz jako niezrobione" : "Oznacz jako zrobione"}
+                      className={cn(
+                        "mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border transition-colors",
+                        done ? "border-primary bg-primary text-primary-foreground" : "border-input",
+                      )}
+                    >
+                      {done ? <Check className="h-4 w-4" /> : null}
+                    </button>
+                    <h3
+                      className={cn(
+                        "flex-1 text-base font-semibold",
+                        done && "text-muted-foreground line-through",
+                      )}
+                    >
+                      {t.title}
+                    </h3>
+                    {t.priority === "high" && !done ? (
+                      <span className="shrink-0 rounded-full bg-primary-soft px-2.5 py-1 text-[11px] font-semibold text-primary">
+                        Wysoki
+                      </span>
+                    ) : null}
+                    <button
+                      onClick={() =>
+                        deleteTask.mutate(t.id, {
+                          onSuccess: () => toast.success("Zadanie usunięte"),
+                          onError: () => toast.error("Nie udało się usunąć zadania."),
+                        })
+                      }
+                      aria-label="Usuń zadanie"
+                      className="shrink-0 text-muted-foreground transition-colors active:text-destructive"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                  {t.description ? (
+                    <p className="text-sm text-muted-foreground">{t.description}</p>
                   ) : null}
-                </div>
-                {t.description ? (
-                  <p className="text-sm text-muted-foreground">{t.description}</p>
-                ) : null}
-                {t.subtasks.length > 0 ? (
-                  <ul className="mt-1 flex flex-col gap-1">
-                    {t.subtasks.map((s) => (
-                      <li key={s} className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <span className="h-1.5 w-1.5 rounded-full bg-primary" />
-                        {s}
-                      </li>
-                    ))}
-                  </ul>
-                ) : null}
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {BLOCK_LABELS[t.block]} · {t.estimatedMinutes} min
-                </p>
-              </Card>
-            ))
+                  {t.task_subtasks.length > 0 ? (
+                    <ul className="mt-1 flex flex-col gap-1">
+                      {t.task_subtasks.map((s) => (
+                        <li
+                          key={s.id}
+                          className="flex items-center gap-2 text-sm text-muted-foreground"
+                        >
+                          <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+                          {s.title}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {BLOCK_LABELS[t.day_block]} · {t.estimated_minutes} min
+                  </p>
+                </Card>
+              );
+            })
           )}
         </div>
       ) : (
@@ -127,12 +187,17 @@ function TasksScreen() {
 
       {formOpen ? (
         <TaskForm
+          saving={addTask.isPending}
           onClose={() => setFormOpen(false)}
-          onSave={(task, addToday) => {
-            addTask(task, addToday);
-            setFormOpen(false);
-            toast.success("Zadanie dodane");
-          }}
+          onSave={(task) =>
+            addTask.mutate(task, {
+              onSuccess: () => {
+                setFormOpen(false);
+                toast.success("Zadanie dodane");
+              },
+              onError: () => toast.error("Nie udało się zapisać zadania."),
+            })
+          }
         />
       ) : null}
     </Screen>
@@ -140,21 +205,13 @@ function TasksScreen() {
 }
 
 function TaskForm({
+  saving,
   onClose,
   onSave,
 }: {
+  saving: boolean;
   onClose: () => void;
-  onSave: (
-    task: {
-      title: string;
-      description?: string | undefined;
-      block: DayBlock;
-      priority: Priority;
-      estimatedMinutes: number;
-      subtasks: string[];
-    },
-    addToday: boolean,
-  ) => void;
+  onSave: (task: NewTaskInput) => void;
 }) {
   const [title, setTitle] = useState("");
   const [block, setBlock] = useState<DayBlock>("forenoon");
@@ -162,7 +219,6 @@ function TaskForm({
   const [minutes, setMinutes] = useState(30);
   const [subtasks, setSubtasks] = useState<string[]>([]);
   const [subtaskDraft, setSubtaskDraft] = useState("");
-  const [addToday, setAddToday] = useState(true);
 
   return (
     <div className="fixed inset-0 z-50 flex items-end bg-background/80 backdrop-blur-sm">
@@ -193,9 +249,7 @@ function TaskForm({
               onClick={() => setBlock(b)}
               className={cn(
                 "h-11 rounded-2xl text-sm font-medium transition-colors",
-                block === b
-                  ? "bg-primary-soft text-primary"
-                  : "bg-elevated text-muted-foreground",
+                block === b ? "bg-primary-soft text-primary" : "bg-elevated text-muted-foreground",
               )}
             >
               {BLOCK_LABELS[b]}
@@ -269,28 +323,23 @@ function TaskForm({
           </ul>
         ) : null}
 
-        <div className="mb-5 flex items-center justify-between rounded-2xl bg-elevated px-4 py-3.5">
-          <span className="text-sm">Dodaj do dzisiejszego dnia</span>
-          <Switch checked={addToday} onCheckedChange={setAddToday} />
-        </div>
+        {/* TODO dzień: przełącznik „Dodaj do dzisiejszego dnia” wróci, gdy plan dnia
+            przejdzie na Supabase (dziś jest jeszcze w pamięci). */}
 
         <button
-          disabled={!title.trim()}
+          disabled={!title.trim() || saving}
           onClick={() =>
-            onSave(
-              {
-                title: title.trim(),
-                block,
-                priority,
-                estimatedMinutes: minutes,
-                subtasks,
-              },
-              addToday,
-            )
+            onSave({
+              title: title.trim(),
+              block,
+              priority,
+              estimatedMinutes: minutes,
+              subtasks,
+            })
           }
           className="accent-gradient mb-4 h-16 w-full rounded-3xl text-lg font-bold text-primary-foreground transition-opacity disabled:opacity-40"
         >
-          Zapisz zadanie
+          {saving ? "Zapisywanie…" : "Zapisz zadanie"}
         </button>
       </div>
     </div>
