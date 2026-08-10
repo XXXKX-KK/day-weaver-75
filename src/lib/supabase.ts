@@ -15,4 +15,12 @@ if (!url || !publishableKey) {
   );
 }
 
-export const supabase = createClient(url, publishableKey);
+export const supabase = createClient(url, publishableKey, {
+  auth: {
+    // Session persists in localStorage (survives app restart, incl. Capacitor WebView).
+    persistSession: true,
+    autoRefreshToken: true,
+    // Email/password flow — no magic-link URL to parse.
+    detectSessionInUrl: false,
+  },
+});

@@ -4,6 +4,7 @@ import { Bell, ChevronRight, Clock, LogOut, Palette, ShieldCheck, User } from "l
 import { Screen, ScreenHeader, Card } from "@/components/ui-kit";
 import { Switch } from "@/components/ui/switch";
 import { useStore } from "@/lib/store";
+import { useAuth } from "@/lib/auth";
 
 export const Route = createFileRoute("/ustawienia/")({
   head: () => ({
@@ -26,6 +27,7 @@ export const Route = createFileRoute("/ustawienia/")({
 
 function SettingsScreen() {
   const { resetDay } = useStore();
+  const { user, signOut } = useAuth();
   const [autostart, setAutostart] = useState(false);
 
   return (
@@ -36,9 +38,11 @@ function SettingsScreen() {
         <span className="accent-gradient flex h-12 w-12 items-center justify-center rounded-2xl">
           <User className="h-5 w-5 text-primary-foreground" />
         </span>
-        <div>
+        <div className="min-w-0">
           <p className="text-base font-semibold">Twój profil</p>
-          <p className="text-xs text-muted-foreground">Konto prywatne</p>
+          <p className="truncate text-xs text-muted-foreground">
+            {user?.email ?? "Konto prywatne"}
+          </p>
         </div>
       </Card>
 
@@ -92,7 +96,10 @@ function SettingsScreen() {
       >
         Zresetuj dzisiejszy dzień
       </button>
-      <button className="flex h-14 w-full items-center justify-center gap-2 rounded-3xl border border-border text-sm font-semibold text-muted-foreground">
+      <button
+        onClick={() => void signOut()}
+        className="flex h-14 w-full items-center justify-center gap-2 rounded-3xl border border-border text-sm font-semibold text-muted-foreground"
+      >
         <LogOut className="h-4 w-4" />
         Wyloguj się
       </button>

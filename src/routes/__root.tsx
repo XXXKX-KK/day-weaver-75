@@ -12,7 +12,8 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { applyAccent, readAccent } from "@/lib/accent";
-import { supabase } from "@/lib/supabase"; // TEMP
+import { AuthProvider, useAuth } from "@/lib/auth";
+import { AuthScreen } from "@/components/auth-screen";
 import { StoreProvider } from "@/lib/store";
 import { BottomNav } from "@/components/bottom-nav";
 import { Toaster } from "@/components/ui/sonner";
@@ -139,26 +140,36 @@ function RootComponent() {
     applyAccent(readAccent());
   }, []);
 
-  // TEMP: potwierdzenie połączenia z Supabase (tylko dev). Do usunięcia w kolejnym briefie.
-  useEffect(() => {
-    if (!import.meta.env.DEV || typeof window === "undefined") return;
-    supabase
-      .from("profiles")
-      .select("id", { head: true, count: "exact" })
-      .then(({ error }) => {
-        if (error) console.error("Supabase ERROR:", error.message);
-        else console.log("Supabase OK");
-      });
-  }, []);
-
   return (
     <QueryClientProvider client={queryClient}>
-      <StoreProvider>
-        {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-        <Outlet />
-        <BottomNav />
-        <Toaster position="top-center" />
-      </StoreProvider>
+      <AuthProvider>
+        <StoreProvider>
+          <AuthGate>
+            {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+            <Outlet />
+            <BottomNav />
+          </AuthGate>
+          <Toaster position="top-center" />
+        </StoreProvider>
+      </AuthProvider>
     </QueryClientProvider>
   );
+}
+
+/** Shows a loader while the session resolves, the auth screen when logged out,
+ *  and the app (with its nav) once a user is present. */
+function AuthGate({ children }: { children: ReactNode }) {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <p className="text-sm text-muted-foreground">Ładowanie…</p>
+      </div>
+    );
+  }
+
+  if (!user) return <AuthScreen />;
+
+  return <>{children}</>;
 }
