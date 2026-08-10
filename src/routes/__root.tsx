@@ -12,6 +12,7 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { applyAccent, readAccent } from "@/lib/accent";
+import { supabase } from "@/lib/supabase"; // TEMP
 import { StoreProvider } from "@/lib/store";
 import { BottomNav } from "@/components/bottom-nav";
 import { Toaster } from "@/components/ui/sonner";
@@ -136,6 +137,18 @@ function RootComponent() {
   // Sync the accent on startup (also mirrors it into native prefs for the overlay).
   useEffect(() => {
     applyAccent(readAccent());
+  }, []);
+
+  // TEMP: potwierdzenie połączenia z Supabase (tylko dev). Do usunięcia w kolejnym briefie.
+  useEffect(() => {
+    if (!import.meta.env.DEV || typeof window === "undefined") return;
+    supabase
+      .from("profiles")
+      .select("id", { head: true, count: "exact" })
+      .then(({ error }) => {
+        if (error) console.error("Supabase ERROR:", error.message);
+        else console.log("Supabase OK");
+      });
   }, []);
 
   return (
