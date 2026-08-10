@@ -139,17 +139,8 @@ function RootComponent() {
     applyAccent(readAccent());
   }, []);
 
-  // TEMP: potwierdzenie połączenia z Supabase (tylko dev). Do usunięcia w kolejnym briefie.
-  useEffect(() => {
-    if (!import.meta.env.DEV || typeof window === "undefined") return;
-    supabase
-      .from("profiles")
-      .select("id", { head: true, count: "exact" })
-      .then(({ error }) => {
-        if (error) console.error("Supabase ERROR:", error.message);
-        else console.log("Supabase OK");
-      });
-  }, []);
+
+
 
   return (
     <QueryClientProvider client={queryClient}>
