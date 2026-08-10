@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import type { Session, User } from "@supabase/supabase-js";
-import { supabase } from "@/lib/supabase";
+import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 type AuthContextValue = {
   user: User | null;
@@ -21,6 +21,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Without Supabase config there's no session to read — come up cleanly
+    // (the gate shows the login screen) instead of crashing.
+    if (!isSupabaseConfigured) {
+      setLoading(false);
+      return;
+    }
+
     let mounted = true;
 
     supabase.auth
@@ -46,6 +53,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signOut = async () => {
+    if (!isSupabaseConfigured) return;
     await supabase.auth.signOut();
   };
 
