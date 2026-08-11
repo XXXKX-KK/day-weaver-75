@@ -14,6 +14,7 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 import { applyAccent, readAccent } from "@/lib/accent";
 import { AuthProvider, useAuth } from "@/lib/auth";
 import { AuthScreen } from "@/components/auth-screen";
+import { BlockedAppsSync } from "@/components/blocked-apps-sync";
 import { StoreProvider } from "@/lib/store";
 import { BottomNav } from "@/components/bottom-nav";
 import { Toaster } from "@/components/ui/sonner";
@@ -171,5 +172,11 @@ function AuthGate({ children }: { children: ReactNode }) {
 
   if (!user) return <AuthScreen />;
 
-  return <>{children}</>;
+  return (
+    <>
+      {/* Keeps native prefs mirrored to the Supabase blocked-apps selection. */}
+      <BlockedAppsSync />
+      {children}
+    </>
+  );
 }
