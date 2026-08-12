@@ -1,10 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Bell, ChevronRight, Clock, LogOut, Palette, ShieldCheck, User } from "lucide-react";
 import { Screen, ScreenHeader, Card } from "@/components/ui-kit";
 import { Switch } from "@/components/ui/switch";
 import { useStore } from "@/lib/store";
 import { useAuth } from "@/lib/auth";
+import { useProfile, useUpdateProfile } from "@/lib/profile";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/ustawienia/")({
   head: () => ({
@@ -25,10 +27,29 @@ export const Route = createFileRoute("/ustawienia/")({
   component: SettingsScreen,
 });
 
+/** "HH:MM:SS" (or null) -> "HH:MM" for the time input. */
+const toTimeInput = (value: string | null | undefined) => (value ? value.slice(0, 5) : "");
+
 function SettingsScreen() {
   const { resetDay } = useStore();
   const { user, signOut } = useAuth();
-  const [autostart, setAutostart] = useState(false);
+  const { data: profile, isLoading, isError, refetch } = useProfile();
+  const updateProfile = useUpdateProfile();
+
+  // Local mirror for the time inputs, seeded from the profile.
+  const [dayStart, setDayStart] = useState("");
+  const [dayEnd, setDayEnd] = useState("");
+  useEffect(() => {
+    if (profile) {
+      setDayStart(toTimeInput(profile.day_start_time));
+      setDayEnd(toTimeInput(profile.day_end_time));
+    }
+  }, [profile]);
+
+  const save = (patch: Parameters<typeof updateProfile.mutate>[0]) =>
+    updateProfile.mutate(patch, {
+      onError: () => toast.error("Nie udało się zapisać ustawień."),
+    });
 
   return (
     <Screen>
@@ -59,20 +80,62 @@ function SettingsScreen() {
         </Card>
       </Link>
 
-      <h2 className="mb-3 px-1 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-        Dzień
-      </h2>
-      <Card className="mb-6 divide-y divide-border p-0">
-        <Row icon={<Clock className="h-4 w-4" />} label="Start dnia" value="07:00" />
-        <Row icon={<Clock className="h-4 w-4" />} label="Koniec dnia" value="22:00" />
-        <div className="flex items-center justify-between px-5 py-4">
-          <span className="flex items-center gap-3 text-sm">
-            <Bell className="h-4 w-4 text-muted-foreground" />
-            Autostart dnia
-          </span>
-          <Switch checked={autostart} onCheckedChange={setAutostart} />
-        </div>
-      </Card>
+      <div className="mb-3 flex items-center justify-between px-1">
+        <h2 className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+          Dzień
+        </h2>
+        {updateProfile.isPending ? (
+          <span className="text-xs text-muted-foreground">Zapisywanie…</span>
+        ) : null}
+      </div>
+
+      {isLoading ? (
+        <Card className="mb-6 py-6">
+          <p className="text-center text-sm text-muted-foreground">Wczytywanie ustawień…</p>
+        </Card>
+      ) : isError ? (
+        <Card className="mb-6 flex flex-col items-center gap-3 py-6 text-center">
+          <p className="text-sm text-muted-foreground">Nie udało się wczytać ustawień.</p>
+          <button
+            onClick={() => refetch()}
+            className="h-10 rounded-2xl bg-secondary px-4 text-sm font-semibold text-secondary-foreground"
+          >
+            Spróbuj ponownie
+          </button>
+        </Card>
+      ) : (
+        <Card className="mb-6 divide-y divide-border p-0">
+          <TimeRow
+            label="Start dnia"
+            value={dayStart}
+            onChange={(v) => {
+              setDayStart(v);
+              if (v) save({ day_start_time: v });
+            }}
+          />
+          <TimeRow
+            label="Koniec dnia"
+            value={dayEnd}
+            onChange={(v) => {
+              setDayEnd(v);
+              if (v) save({ day_end_time: v });
+            }}
+          />
+          <div className="flex items-center justify-between px-5 py-4">
+            <span className="flex items-center gap-3 text-sm">
+              <Bell className="h-4 w-4 text-muted-foreground" />
+              Autostart dnia
+            </span>
+            <Switch
+              checked={profile?.autostart_day ?? false}
+              onCheckedChange={(v) => save({ autostart_day: v })}
+            />
+          </div>
+        </Card>
+      )}
+
+      {/* TODO dzień: godziny są tu tylko zapisywane do profilu; podpięcie pod
+          generowanie dnia (startDay/buildDay) to osobny brief. */}
 
       <h2 className="mb-3 px-1 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
         Uprawnienia Androida
@@ -105,6 +168,31 @@ function SettingsScreen() {
       </button>
       <p className="mt-6 text-center text-xs text-muted-foreground">Wersja 0.1 · Faza 1</p>
     </Screen>
+  );
+}
+
+function TimeRow({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <div className="flex items-center justify-between px-5 py-3.5">
+      <span className="flex items-center gap-3 text-sm">
+        <Clock className="h-4 w-4 text-muted-foreground" />
+        {label}
+      </span>
+      <input
+        type="time"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="rounded-xl bg-elevated px-3 py-1.5 text-sm outline-none focus:ring-1 focus:ring-primary/40"
+      />
+    </div>
   );
 }
 
