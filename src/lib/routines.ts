@@ -40,6 +40,15 @@ export type NewRoutineInput = {
   subtasks: string[];
 };
 
+/** Same payload as adding, plus the id of the routine being edited. */
+export type UpdateRoutineInput = NewRoutineInput & { id: string };
+
+/** Dedup + clamp weekdays to 1..7, falling back to all seven if emptied. */
+function normalizeWeekdays(weekdays: number[]): number[] {
+  const cleaned = [...new Set(weekdays)].filter((d) => d >= 1 && d <= 7).sort((a, b) => a - b);
+  return cleaned.length > 0 ? cleaned : [1, 2, 3, 4, 5, 6, 7];
+}
+
 const ROUTINES_KEY = ["routines"] as const;
 
 const PRIORITY_WEIGHT: Record<Priority, number> = { high: 0, normal: 1, low: 2 };
@@ -83,9 +92,6 @@ export function useAddRoutine() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (input: NewRoutineInput) => {
-      const weekdays = [...new Set(input.weekdays)]
-        .filter((d) => d >= 1 && d <= 7)
-        .sort((a, b) => a - b);
       // user_id is filled by the DB (DEFAULT auth.uid()).
       const { data: routine, error } = await supabase
         .from("routines")
@@ -95,8 +101,7 @@ export function useAddRoutine() {
           day_block: input.block,
           priority: input.priority,
           estimated_minutes: input.estimatedMinutes,
-          // Fall back to all seven days if the form somehow cleared them.
-          weekdays: weekdays.length > 0 ? weekdays : [1, 2, 3, 4, 5, 6, 7],
+          weekdays: normalizeWeekdays(input.weekdays),
           is_active: true,
         })
         .select("id")
@@ -115,6 +120,50 @@ export function useAddRoutine() {
           })),
         );
         if (subError) throw subError;
+      }
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ROUTINES_KEY }),
+  });
+}
+
+export function useUpdateRoutine() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: UpdateRoutineInput) => {
+      // is_active stays untouched — that's the card toggle's job, not edit's.
+      const { error } = await supabase
+        .from("routines")
+        .update({
+          title: input.title,
+          description: input.description ?? null,
+          day_block: input.block,
+          priority: input.priority,
+          estimated_minutes: input.estimatedMinutes,
+          weekdays: normalizeWeekdays(input.weekdays),
+        })
+        .eq("id", input.id);
+      if (error) throw error;
+
+      // Subtasks are stateless templates, so the simplest reliable sync is to
+      // replace the whole set: delete all, then re-insert in the form's order.
+      const { error: delError } = await supabase
+        .from("routine_subtasks")
+        .delete()
+        .eq("routine_id", input.id);
+      if (delError) throw delError;
+
+      const subtasks = input.subtasks
+        .map((title) => title.trim())
+        .filter((title) => title.length > 0);
+      if (subtasks.length > 0) {
+        const { error: insError } = await supabase.from("routine_subtasks").insert(
+          subtasks.map((title, position) => ({
+            routine_id: input.id,
+            title,
+            position,
+          })),
+        );
+        if (insError) throw insError;
       }
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ROUTINES_KEY }),

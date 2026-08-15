@@ -21,7 +21,9 @@ import {
   useDeleteRoutine,
   useRoutines,
   useToggleRoutineActive,
+  useUpdateRoutine,
   type NewRoutineInput,
+  type RoutineRow,
 } from "@/lib/routines";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
@@ -82,12 +84,15 @@ function TasksScreen() {
     refetch: refetchRoutines,
   } = useRoutines();
   const addRoutine = useAddRoutine();
+  const updateRoutine = useUpdateRoutine();
   const toggleRoutineActive = useToggleRoutineActive();
   const deleteRoutine = useDeleteRoutine();
 
   const [tab, setTab] = useState<"tasks" | "routines">("tasks");
   const [formOpen, setFormOpen] = useState(false);
   const [routineFormOpen, setRoutineFormOpen] = useState(false);
+  // Holds the routine being edited; null means the edit sheet is closed.
+  const [editingRoutine, setEditingRoutine] = useState<RoutineRow | null>(null);
 
   return (
     <Screen>
@@ -215,26 +220,32 @@ function TasksScreen() {
           ) : (
             routines.map((r) => (
               <Card key={r.id} className="flex items-center gap-4 py-4">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-primary-soft">
-                  <Repeat className="h-4 w-4 text-primary" />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p
-                    className={cn(
-                      "truncate text-sm font-semibold",
-                      !r.is_active && "text-muted-foreground",
-                    )}
-                  >
-                    {r.title}
-                  </p>
-                  <p className="truncate text-xs text-muted-foreground">
-                    {BLOCK_LABELS[r.day_block]} · {r.estimated_minutes ?? 0} min ·{" "}
-                    {formatWeekdays(r.weekdays)}
-                    {r.routine_subtasks.length > 0
-                      ? ` · ${r.routine_subtasks.length} podzadań`
-                      : ""}
-                  </p>
-                </div>
+                <button
+                  onClick={() => setEditingRoutine(r)}
+                  aria-label={`Edytuj rutynę ${r.title}`}
+                  className="flex min-w-0 flex-1 items-center gap-4 text-left"
+                >
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-primary-soft">
+                    <Repeat className="h-4 w-4 text-primary" />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p
+                      className={cn(
+                        "truncate text-sm font-semibold",
+                        !r.is_active && "text-muted-foreground",
+                      )}
+                    >
+                      {r.title}
+                    </p>
+                    <p className="truncate text-xs text-muted-foreground">
+                      {BLOCK_LABELS[r.day_block]} · {r.estimated_minutes ?? 0} min ·{" "}
+                      {formatWeekdays(r.weekdays)}
+                      {r.routine_subtasks.length > 0
+                        ? ` · ${r.routine_subtasks.length} podzadań`
+                        : ""}
+                    </p>
+                  </div>
+                </button>
                 <div className="flex shrink-0 items-center gap-3">
                   <Switch
                     checked={r.is_active}
@@ -300,6 +311,31 @@ function TasksScreen() {
               },
               onError: () => toast.error("Nie udało się zapisać rutyny."),
             })
+          }
+        />
+      ) : null}
+
+      {editingRoutine ? (
+        <RoutineForm
+          saving={updateRoutine.isPending}
+          initial={editingRoutine}
+          onClose={() => setEditingRoutine(null)}
+          onSave={(routine) =>
+            updateRoutine.mutate(
+              // Keep the existing description — the form doesn't edit it.
+              {
+                id: editingRoutine.id,
+                ...routine,
+                description: editingRoutine.description ?? undefined,
+              },
+              {
+                onSuccess: () => {
+                  setEditingRoutine(null);
+                  toast.success("Zmiany zapisane");
+                },
+                onError: () => toast.error("Nie udało się zapisać zmian."),
+              },
+            )
           }
         />
       ) : null}
@@ -451,19 +487,24 @@ function TaskForm({
 
 function RoutineForm({
   saving,
+  initial,
   onClose,
   onSave,
 }: {
   saving: boolean;
+  initial?: RoutineRow | undefined;
   onClose: () => void;
   onSave: (routine: NewRoutineInput) => void;
 }) {
-  const [title, setTitle] = useState("");
-  const [block, setBlock] = useState<DayBlock>("morning");
-  const [priority, setPriority] = useState<Priority>("normal");
-  const [minutes, setMinutes] = useState(15);
-  const [weekdays, setWeekdays] = useState<number[]>(ALL_WEEKDAYS);
-  const [subtasks, setSubtasks] = useState<string[]>([]);
+  const isEdit = !!initial;
+  const [title, setTitle] = useState(initial?.title ?? "");
+  const [block, setBlock] = useState<DayBlock>(initial?.day_block ?? "morning");
+  const [priority, setPriority] = useState<Priority>(initial?.priority ?? "normal");
+  const [minutes, setMinutes] = useState(initial?.estimated_minutes ?? 15);
+  const [weekdays, setWeekdays] = useState<number[]>(initial?.weekdays ?? ALL_WEEKDAYS);
+  const [subtasks, setSubtasks] = useState<string[]>(
+    initial?.routine_subtasks.map((s) => s.title) ?? [],
+  );
   const [subtaskDraft, setSubtaskDraft] = useState("");
 
   const toggleDay = (n: number) =>
@@ -475,7 +516,7 @@ function RoutineForm({
     <div className="fixed inset-0 z-50 flex items-end bg-background/80 backdrop-blur-sm">
       <div className="card-surface safe-bottom max-h-[88vh] w-full overflow-y-auto rounded-b-none px-5 pt-5">
         <div className="mb-5 flex items-center justify-between">
-          <h2 className="text-xl font-bold">Nowa rutyna</h2>
+          <h2 className="text-xl font-bold">{isEdit ? "Edytuj rutynę" : "Nowa rutyna"}</h2>
           <button
             onClick={onClose}
             className="flex h-9 w-9 items-center justify-center rounded-full bg-secondary"
@@ -610,7 +651,7 @@ function RoutineForm({
           }
           className="accent-gradient mb-4 h-16 w-full rounded-3xl text-lg font-bold text-primary-foreground transition-opacity disabled:opacity-40"
         >
-          {saving ? "Zapisywanie…" : "Zapisz rutynę"}
+          {saving ? "Zapisywanie…" : isEdit ? "Zapisz zmiany" : "Zapisz rutynę"}
         </button>
       </div>
     </div>
