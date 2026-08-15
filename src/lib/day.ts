@@ -108,3 +108,109 @@ export function useStartDay() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: TODAY_KEY }),
   });
 }
+
+/** Snapshot of every ['today', ...] cache entry, for optimistic rollback. */
+type TodaySnapshot = [readonly unknown[], TodayData | undefined][];
+
+/** Toggle a day item between done and pending, writing completed_at to match.
+ *  days.completed_count is maintained by a DB trigger — never set it here. */
+export function useSetItemStatus() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (item: Pick<DayItemRow, "id" | "status">) => {
+      const next: DayItemStatus = item.status === "done" ? "pending" : "done";
+      const { error } = await supabase
+        .from("day_items")
+        .update({
+          status: next,
+          completed_at: next === "done" ? new Date().toISOString() : null,
+        })
+        .eq("id", item.id);
+      if (error) throw error;
+    },
+    onMutate: async (item) => {
+      await queryClient.cancelQueries({ queryKey: TODAY_KEY });
+      const previous = queryClient.getQueriesData<TodayData>({ queryKey: TODAY_KEY });
+      const next: DayItemStatus = item.status === "done" ? "pending" : "done";
+      queryClient.setQueriesData<TodayData>({ queryKey: TODAY_KEY }, (old) =>
+        old
+          ? { ...old, items: old.items.map((i) => (i.id === item.id ? { ...i, status: next } : i)) }
+          : old,
+      );
+      return { previous };
+    },
+    onError: (_err, _item, ctx) => rollback(queryClient, ctx?.previous),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: TODAY_KEY }),
+  });
+}
+
+/** Toggle a day item's subtask done-state, writing completed_at to match. */
+export function useToggleDayItemSubtask() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (subtask: Pick<DayItemSubtaskRow, "id" | "is_done">) => {
+      const next = !subtask.is_done;
+      const { error } = await supabase
+        .from("day_item_subtasks")
+        .update({
+          is_done: next,
+          completed_at: next ? new Date().toISOString() : null,
+        })
+        .eq("id", subtask.id);
+      if (error) throw error;
+    },
+    onMutate: async (subtask) => {
+      await queryClient.cancelQueries({ queryKey: TODAY_KEY });
+      const previous = queryClient.getQueriesData<TodayData>({ queryKey: TODAY_KEY });
+      queryClient.setQueriesData<TodayData>({ queryKey: TODAY_KEY }, (old) =>
+        old
+          ? {
+              ...old,
+              items: old.items.map((i) => ({
+                ...i,
+                day_item_subtasks: i.day_item_subtasks.map((s) =>
+                  s.id === subtask.id ? { ...s, is_done: !subtask.is_done } : s,
+                ),
+              })),
+            }
+          : old,
+      );
+      return { previous };
+    },
+    onError: (_err, _subtask, ctx) => rollback(queryClient, ctx?.previous),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: TODAY_KEY }),
+  });
+}
+
+/** Mark the day completed (status + completed_at). */
+export function useCompleteDay() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (dayId: string) => {
+      const { error } = await supabase
+        .from("days")
+        .update({ status: "completed", completed_at: new Date().toISOString() })
+        .eq("id", dayId);
+      if (error) throw error;
+    },
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: TODAY_KEY });
+      const previous = queryClient.getQueriesData<TodayData>({ queryKey: TODAY_KEY });
+      queryClient.setQueriesData<TodayData>({ queryKey: TODAY_KEY }, (old) =>
+        old && old.day
+          ? { ...old, status: "completed", day: { ...old.day, status: "completed" } }
+          : old,
+      );
+      return { previous };
+    },
+    onError: (_err, _dayId, ctx) => rollback(queryClient, ctx?.previous),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: TODAY_KEY }),
+  });
+}
+
+function rollback(
+  queryClient: ReturnType<typeof useQueryClient>,
+  previous: TodaySnapshot | undefined,
+) {
+  previous?.forEach(([key, data]) => queryClient.setQueryData(key, data));
+}

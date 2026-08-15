@@ -2,7 +2,14 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { Check, Clock, ListChecks, Play, Repeat, SkipForward } from "lucide-react";
 import { Screen, ScreenHeader, Card, ProgressBar, EmptyState } from "@/components/ui-kit";
 import { BLOCK_LABELS, BLOCK_ORDER } from "@/lib/store";
-import { useToday, useStartDay, type DayItemRow } from "@/lib/day";
+import {
+  useToday,
+  useStartDay,
+  useSetItemStatus,
+  useToggleDayItemSubtask,
+  useCompleteDay,
+  type DayItemRow,
+} from "@/lib/day";
 import { useRoutines } from "@/lib/routines";
 import { useTasks } from "@/lib/tasks";
 import { cn } from "@/lib/utils";
@@ -41,6 +48,7 @@ function todayIsoWeekday(): number {
 function Today() {
   const { data: today, isLoading, isError, refetch } = useToday();
   const startDay = useStartDay();
+  const completeDay = useCompleteDay();
 
   if (isLoading) {
     return (
@@ -83,9 +91,40 @@ function Today() {
   }
 
   const items = today.items;
+  // Progress is derived from item statuses so it moves with optimistic updates;
+  // it converges to days.completed_count (kept by a DB trigger) after refetch.
   const done = items.filter((i) => i.status === "done").length;
   const total = items.length;
   const percent = total ? Math.round((done / total) * 100) : 0;
+
+  // Day already closed → show a wind-down summary.
+  if (today.status === "completed") {
+    const unfinished = items.filter((i) => i.status !== "done");
+    return (
+      <Screen>
+        <ScreenHeader eyebrow="Podsumowanie" title="Dzień zakończony" />
+        <Card className="mb-4 flex flex-col items-center gap-3 py-8 text-center">
+          <p className="text-5xl font-bold text-primary">{percent}%</p>
+          <p className="text-sm text-muted-foreground">
+            {done} z {total} pozycji wykonanych
+          </p>
+          <ProgressBar percent={percent} />
+        </Card>
+        {unfinished.length > 0 ? (
+          <Card>
+            <p className="mb-3 text-sm font-semibold">Niewykonane ({unfinished.length})</p>
+            <ul className="flex flex-col gap-2">
+              {unfinished.map((i) => (
+                <li key={i.id} className="text-sm text-muted-foreground">
+                  {i.title}
+                </li>
+              ))}
+            </ul>
+          </Card>
+        ) : null}
+      </Screen>
+    );
+  }
 
   return (
     <Screen>
@@ -119,40 +158,64 @@ function Today() {
           description="Na dziś nie ma aktywnych rutyn ani zaplanowanych zadań."
         />
       ) : (
-        <div className="flex flex-col gap-6">
-          {BLOCK_ORDER.map((block) => {
-            const blockItems = items.filter((i) => i.day_block === block);
-            if (blockItems.length === 0) return null;
-            return (
-              <section key={block}>
-                <h2 className="mb-3 px-1 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                  {BLOCK_LABELS[block]}
-                </h2>
-                <div className="flex flex-col gap-2">
-                  {blockItems.map((item) => (
-                    <DayItemCard key={item.id} item={item} />
-                  ))}
-                </div>
-              </section>
-            );
-          })}
-        </div>
-      )}
+        <>
+          <div className="flex flex-col gap-6">
+            {BLOCK_ORDER.map((block) => {
+              const blockItems = items.filter((i) => i.day_block === block);
+              if (blockItems.length === 0) return null;
+              return (
+                <section key={block}>
+                  <h2 className="mb-3 px-1 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                    {BLOCK_LABELS[block]}
+                  </h2>
+                  <div className="flex flex-col gap-2">
+                    {blockItems.map((item) => (
+                      <DayItemCard key={item.id} item={item} />
+                    ))}
+                  </div>
+                </section>
+              );
+            })}
+          </div>
 
-      {/* TODO brief #2: odhaczanie pozycji/podzadań i zakończenie dnia (zapis do bazy). */}
+          <button
+            onClick={() => {
+              if (!today.day) return;
+              completeDay.mutate(today.day.id, {
+                onError: () => toast.error("Nie udało się zakończyć dnia."),
+              });
+            }}
+            disabled={completeDay.isPending}
+            className="accent-gradient accent-glow mt-8 h-16 w-full rounded-3xl text-lg font-bold text-primary-foreground transition-transform active:scale-[0.98] disabled:opacity-50"
+          >
+            {completeDay.isPending ? "Kończenie…" : "Zakończ dzień"}
+          </button>
+        </>
+      )}
     </Screen>
   );
 }
 
-/** Read-only day item — interactions (checking off) land in brief #2. */
+/** One day item; tapping the row toggles done<->pending, subtasks toggle too. */
 function DayItemCard({ item }: { item: DayItemRow }) {
+  const setItemStatus = useSetItemStatus();
+  const toggleSubtask = useToggleDayItemSubtask();
   const doneSubtasks = item.day_item_subtasks.filter((s) => s.is_done).length;
+
   return (
     <div className="card-surface flex flex-col gap-2 px-4 py-4">
-      <div className="flex items-center gap-3">
+      <button
+        onClick={() =>
+          setItemStatus.mutate(
+            { id: item.id, status: item.status },
+            { onError: () => toast.error("Nie udało się zapisać zmiany.") },
+          )
+        }
+        className="flex items-center gap-3 text-left transition-transform active:scale-[0.99]"
+      >
         <span
           className={cn(
-            "flex h-7 w-7 shrink-0 items-center justify-center rounded-full border",
+            "flex h-7 w-7 shrink-0 items-center justify-center rounded-full border transition-all duration-200",
             item.status === "done" ? "accent-gradient border-transparent" : "border-input",
           )}
         >
@@ -182,19 +245,33 @@ function DayItemCard({ item }: { item: DayItemRow }) {
           </span>
         </span>
         {item.priority === "high" ? <span className="h-2 w-2 rounded-full bg-primary" /> : null}
-      </div>
+      </button>
 
       {item.day_item_subtasks.length > 0 ? (
         <ul className="ml-10 flex flex-col gap-1">
           {item.day_item_subtasks.map((s) => (
-            <li key={s.id} className="flex items-center gap-2 text-sm text-muted-foreground">
-              <span
-                className={cn(
-                  "h-1.5 w-1.5 rounded-full",
-                  s.is_done ? "bg-muted-foreground" : "bg-primary",
-                )}
-              />
-              <span className={cn(s.is_done && "line-through")}>{s.title}</span>
+            <li key={s.id}>
+              <button
+                onClick={() =>
+                  toggleSubtask.mutate(
+                    { id: s.id, is_done: s.is_done },
+                    { onError: () => toast.error("Nie udało się zapisać zmiany.") },
+                  )
+                }
+                className="flex w-full items-center gap-2 text-left text-sm text-muted-foreground"
+              >
+                <span
+                  className={cn(
+                    "flex h-4 w-4 shrink-0 items-center justify-center rounded-full border transition-all duration-200",
+                    s.is_done ? "accent-gradient border-transparent" : "border-input",
+                  )}
+                >
+                  {s.is_done ? (
+                    <Check className="h-2.5 w-2.5 text-primary-foreground" strokeWidth={3} />
+                  ) : null}
+                </span>
+                <span className={cn(s.is_done && "line-through")}>{s.title}</span>
+              </button>
             </li>
           ))}
         </ul>
