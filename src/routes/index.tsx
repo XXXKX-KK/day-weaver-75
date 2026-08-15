@@ -1,9 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
-import { Check, ChevronRight, Clock, ListChecks, Play, SkipForward, Timer } from "lucide-react";
-import { Screen, ScreenHeader, Card, ProgressBar } from "@/components/ui-kit";
-import { BLOCK_LABELS, useDayProgress, useStore } from "@/lib/store";
+import { Check, Clock, ListChecks, Play, Repeat, SkipForward } from "lucide-react";
+import { Screen, ScreenHeader, Card, ProgressBar, EmptyState } from "@/components/ui-kit";
+import { BLOCK_LABELS, BLOCK_ORDER } from "@/lib/store";
+import { useToday, useStartDay, type DayItemRow } from "@/lib/day";
+import { useRoutines } from "@/lib/routines";
+import { useTasks } from "@/lib/tasks";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -29,51 +32,66 @@ const dateLabel = () =>
     new Date(),
   );
 
+/** Today's ISO weekday, 1=Mon .. 7=Sun (matches routines.weekdays). */
+function todayIsoWeekday(): number {
+  const jsDay = new Date().getDay(); // 0=Sun .. 6=Sat
+  return jsDay === 0 ? 7 : jsDay;
+}
+
 function Today() {
-  const { dayStatus, items, routines, tasks, startDay, setItemStatus, toggleSubtask, postponeItem } =
-    useStore();
-  const progress = useDayProgress();
-  const [justDone, setJustDone] = useState<string | null>(null);
+  const { data: today, isLoading, isError, refetch } = useToday();
+  const startDay = useStartDay();
 
-  if (dayStatus === "planned") {
-    const plannedRoutines = routines.filter((r) => r.isActive).length;
-    const plannedTasks = tasks.filter((t) => !t.isDone).length;
-    const minutes =
-      routines.filter((r) => r.isActive).reduce((s, r) => s + r.estimatedMinutes, 0) +
-      tasks.filter((t) => !t.isDone).reduce((s, t) => s + t.estimatedMinutes, 0);
-
+  if (isLoading) {
     return (
       <Screen>
-        <ScreenHeader eyebrow={dateLabel()} title="Gotowy na dziś?" />
-        <Card className="flex flex-col gap-6 py-8">
-          <div className="grid grid-cols-3 gap-3 text-center">
-            <Stat value={plannedRoutines} label="Rutyny" />
-            <Stat value={plannedTasks} label="Zadania" />
-            <Stat value={`${Math.round(minutes / 60)}h`} label="Czas" />
-          </div>
-          <p className="text-center text-sm text-muted-foreground">
-            Poprowadzę Cię przez dzień krok po kroku. Zobaczysz zawsze jedno zadanie.
-          </p>
+        <ScreenHeader eyebrow={dateLabel()} title="Dziś" />
+        <p className="px-1 text-sm text-muted-foreground">Wczytywanie dnia…</p>
+      </Screen>
+    );
+  }
+
+  if (isError) {
+    return (
+      <Screen>
+        <ScreenHeader eyebrow={dateLabel()} title="Dziś" />
+        <Card className="flex flex-col items-center gap-3 py-8 text-center">
+          <p className="text-sm text-muted-foreground">Nie udało się wczytać dnia.</p>
           <button
-            onClick={startDay}
-            className="accent-gradient accent-glow flex h-16 w-full items-center justify-center gap-2 rounded-3xl text-lg font-bold text-primary-foreground transition-transform active:scale-[0.98]"
+            onClick={() => refetch()}
+            className="h-10 rounded-2xl bg-secondary px-4 text-sm font-semibold text-secondary-foreground"
           >
-            <Play className="h-5 w-5" fill="currentColor" />
-            Rozpocznij dzień
+            Spróbuj ponownie
           </button>
         </Card>
       </Screen>
     );
   }
 
-  const current = items.find((i) => i.status === "pending");
-  const next = items.filter((i) => i.status === "pending")[1];
+  // No day row yet (status "planned") → not started.
+  if (!today || today.status === "planned") {
+    return (
+      <NotStarted
+        starting={startDay.isPending}
+        onStart={() =>
+          startDay.mutate(undefined, {
+            onError: () => toast.error("Nie udało się rozpocząć dnia."),
+          })
+        }
+      />
+    );
+  }
+
+  const items = today.items;
+  const done = items.filter((i) => i.status === "done").length;
+  const total = items.length;
+  const percent = total ? Math.round((done / total) * 100) : 0;
 
   return (
     <Screen>
       <ScreenHeader
         eyebrow={dateLabel()}
-        title={current ? "Teraz" : "Dzień wykonany"}
+        title="Plan dnia"
         action={
           <Link
             to="/dzien"
@@ -85,120 +103,142 @@ function Today() {
         }
       />
 
-      <Card className="mb-4 flex flex-col gap-3 py-4">
+      <Card className="mb-6 flex flex-col gap-3 py-4">
         <div className="flex items-baseline justify-between">
           <span className="text-sm text-muted-foreground">Postęp dnia</span>
           <span className="text-sm font-semibold">
-            {progress.done}/{progress.total}
+            {done}/{total}
           </span>
         </div>
-        <ProgressBar percent={progress.percent} />
+        <ProgressBar percent={percent} />
       </Card>
 
-      {current ? (
-        <Card
-          className={cn(
-            "flex flex-col gap-5 transition-all duration-300",
-            justDone === current.id && "scale-[0.97] opacity-40",
-          )}
-        >
-          <div className="flex flex-wrap items-center gap-2">
-            <Badge>{BLOCK_LABELS[current.block]}</Badge>
-            <Badge>
-              <Clock className="mr-1 inline h-3 w-3" />
-              {current.estimatedMinutes} min
-            </Badge>
-            {current.priority === "high" ? <Badge accent>Priorytet</Badge> : null}
-          </div>
-
-          <div>
-            <h2 className="text-2xl font-bold leading-snug">{current.title}</h2>
-            {current.description ? (
-              <p className="mt-2 text-sm text-muted-foreground">{current.description}</p>
-            ) : null}
-          </div>
-
-          {current.subtasks.length > 0 ? (
-            <ul className="flex flex-col gap-2">
-              {current.subtasks.map((s) => (
-                <li key={s.id}>
-                  <button
-                    onClick={() => toggleSubtask(current.id, s.id)}
-                    className="flex w-full items-center gap-3 rounded-2xl bg-elevated px-4 py-3 text-left transition-colors"
-                  >
-                    <span
-                      className={cn(
-                        "flex h-6 w-6 shrink-0 items-center justify-center rounded-full border transition-all duration-200",
-                        s.isDone ? "accent-gradient border-transparent" : "border-input",
-                      )}
-                    >
-                      {s.isDone ? <Check className="h-3.5 w-3.5 text-primary-foreground" /> : null}
-                    </span>
-                    <span
-                      className={cn(
-                        "text-sm",
-                        s.isDone && "text-muted-foreground line-through",
-                      )}
-                    >
-                      {s.title}
-                    </span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          ) : null}
-
-          <button
-            onClick={() => {
-              setJustDone(current.id);
-              setTimeout(() => {
-                setItemStatus(current.id, "done");
-                setJustDone(null);
-              }, 280);
-            }}
-            className="accent-gradient accent-glow flex h-16 w-full items-center justify-center gap-2 rounded-3xl text-lg font-bold text-primary-foreground transition-transform active:scale-[0.98]"
-          >
-            <Check className="h-5 w-5" strokeWidth={3} />
-            Zrobione
-          </button>
-
-          <div className="grid grid-cols-2 gap-3">
-            <SecondaryButton onClick={() => postponeItem(current.id)}>
-              <Timer className="h-4 w-4" />
-              Odłóż
-            </SecondaryButton>
-            <SecondaryButton onClick={() => setItemStatus(current.id, "skipped")}>
-              <SkipForward className="h-4 w-4" />
-              Pomiń
-            </SecondaryButton>
-          </div>
-        </Card>
+      {total === 0 ? (
+        <EmptyState
+          title="Pusty dzień"
+          description="Na dziś nie ma aktywnych rutyn ani zaplanowanych zadań."
+        />
       ) : (
-        <Card className="flex flex-col items-center gap-4 py-10 text-center">
-          <p className="text-lg font-semibold">Wszystko odhaczone</p>
-          <p className="text-sm text-muted-foreground">
-            Zamknij dzień i zobacz podsumowanie.
-          </p>
-          <Link
-            to="/dzien"
-            className="accent-gradient flex h-14 w-full items-center justify-center rounded-3xl font-bold text-primary-foreground"
-          >
-            Zakończ dzień
-          </Link>
-        </Card>
+        <div className="flex flex-col gap-6">
+          {BLOCK_ORDER.map((block) => {
+            const blockItems = items.filter((i) => i.day_block === block);
+            if (blockItems.length === 0) return null;
+            return (
+              <section key={block}>
+                <h2 className="mb-3 px-1 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                  {BLOCK_LABELS[block]}
+                </h2>
+                <div className="flex flex-col gap-2">
+                  {blockItems.map((item) => (
+                    <DayItemCard key={item.id} item={item} />
+                  ))}
+                </div>
+              </section>
+            );
+          })}
+        </div>
       )}
 
-      {next ? (
-        <Link
-          to="/dzien"
-          className="mt-4 flex items-center justify-between rounded-2xl border border-border px-4 py-3"
+      {/* TODO brief #2: odhaczanie pozycji/podzadań i zakończenie dnia (zapis do bazy). */}
+    </Screen>
+  );
+}
+
+/** Read-only day item — interactions (checking off) land in brief #2. */
+function DayItemCard({ item }: { item: DayItemRow }) {
+  const doneSubtasks = item.day_item_subtasks.filter((s) => s.is_done).length;
+  return (
+    <div className="card-surface flex flex-col gap-2 px-4 py-4">
+      <div className="flex items-center gap-3">
+        <span
+          className={cn(
+            "flex h-7 w-7 shrink-0 items-center justify-center rounded-full border",
+            item.status === "done" ? "accent-gradient border-transparent" : "border-input",
+          )}
         >
-          <span className="text-sm text-muted-foreground">
-            Następnie: <span className="text-foreground">{next.title}</span>
+          {item.status === "done" ? (
+            <Check className="h-4 w-4 text-primary-foreground" strokeWidth={3} />
+          ) : null}
+          {item.status === "skipped" ? (
+            <SkipForward className="h-3.5 w-3.5 text-muted-foreground" />
+          ) : null}
+        </span>
+        <span className="min-w-0 flex-1">
+          <span
+            className={cn(
+              "block truncate text-sm font-semibold",
+              item.status !== "pending" && "text-muted-foreground line-through",
+            )}
+          >
+            {item.title}
           </span>
-          <ChevronRight className="h-4 w-4 text-muted-foreground" />
-        </Link>
+          <span className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
+            {item.source_type === "routine" ? <Repeat className="h-3 w-3" /> : null}
+            <Clock className="h-3 w-3" />
+            {item.estimated_minutes ?? 0} min
+            {item.day_item_subtasks.length > 0
+              ? ` · ${doneSubtasks}/${item.day_item_subtasks.length}`
+              : ""}
+          </span>
+        </span>
+        {item.priority === "high" ? <span className="h-2 w-2 rounded-full bg-primary" /> : null}
+      </div>
+
+      {item.day_item_subtasks.length > 0 ? (
+        <ul className="ml-10 flex flex-col gap-1">
+          {item.day_item_subtasks.map((s) => (
+            <li key={s.id} className="flex items-center gap-2 text-sm text-muted-foreground">
+              <span
+                className={cn(
+                  "h-1.5 w-1.5 rounded-full",
+                  s.is_done ? "bg-muted-foreground" : "bg-primary",
+                )}
+              />
+              <span className={cn(s.is_done && "line-through")}>{s.title}</span>
+            </li>
+          ))}
+        </ul>
       ) : null}
+    </div>
+  );
+}
+
+/** Pre-start screen: previews what start_day will generate, then starts it. */
+function NotStarted({ starting, onStart }: { starting: boolean; onStart: () => void }) {
+  const { data: routines } = useRoutines();
+  const { data: tasks } = useTasks();
+
+  const isoDow = todayIsoWeekday();
+  const todaysRoutines = (routines ?? []).filter((r) => r.is_active && r.weekdays.includes(isoDow));
+  const openTasks = (tasks ?? []).filter((t) => t.status === "open");
+
+  const plannedRoutines = todaysRoutines.length;
+  const plannedTasks = openTasks.length;
+  const minutes =
+    todaysRoutines.reduce((s, r) => s + (r.estimated_minutes ?? 0), 0) +
+    openTasks.reduce((s, t) => s + (t.estimated_minutes ?? 0), 0);
+
+  return (
+    <Screen>
+      <ScreenHeader eyebrow={dateLabel()} title="Gotowy na dziś?" />
+      <Card className="flex flex-col gap-6 py-8">
+        <div className="grid grid-cols-3 gap-3 text-center">
+          <Stat value={plannedRoutines} label="Rutyny" />
+          <Stat value={plannedTasks} label="Zadania" />
+          <Stat value={`${Math.round(minutes / 60)}h`} label="Czas" />
+        </div>
+        <p className="text-center text-sm text-muted-foreground">
+          Poprowadzę Cię przez dzień krok po kroku — z rutyn na dziś i zaplanowanych zadań.
+        </p>
+        <button
+          onClick={onStart}
+          disabled={starting}
+          className="accent-gradient accent-glow flex h-16 w-full items-center justify-center gap-2 rounded-3xl text-lg font-bold text-primary-foreground transition-transform active:scale-[0.98] disabled:opacity-50"
+        >
+          <Play className="h-5 w-5" fill="currentColor" />
+          {starting ? "Rozpoczynanie…" : "Rozpocznij dzień"}
+        </button>
+      </Card>
     </Screen>
   );
 }
@@ -209,35 +249,5 @@ function Stat({ value, label }: { value: string | number; label: string }) {
       <p className="text-2xl font-bold">{value}</p>
       <p className="text-xs text-muted-foreground">{label}</p>
     </div>
-  );
-}
-
-function Badge({ children, accent }: { children: React.ReactNode; accent?: boolean }) {
-  return (
-    <span
-      className={cn(
-        "rounded-full px-3 py-1 text-xs font-semibold",
-        accent ? "bg-primary-soft text-primary" : "bg-elevated text-muted-foreground",
-      )}
-    >
-      {children}
-    </span>
-  );
-}
-
-function SecondaryButton({
-  children,
-  onClick,
-}: {
-  children: React.ReactNode;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className="flex h-12 items-center justify-center gap-2 rounded-2xl bg-secondary text-sm font-semibold text-secondary-foreground transition-transform active:scale-[0.98]"
-    >
-      {children}
-    </button>
   );
 }

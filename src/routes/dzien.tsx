@@ -1,7 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowLeft, Check, Repeat, SkipForward } from "lucide-react";
+import { ArrowLeft, Check, Clock, Repeat, SkipForward } from "lucide-react";
 import { Screen, ScreenHeader, Card, ProgressBar, EmptyState } from "@/components/ui-kit";
-import { BLOCK_LABELS, BLOCK_ORDER, useDayProgress, useStore } from "@/lib/store";
+import { BLOCK_LABELS, BLOCK_ORDER } from "@/lib/store";
+import { useToday, type DayItemRow } from "@/lib/day";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/dzien")({
@@ -24,61 +25,56 @@ export const Route = createFileRoute("/dzien")({
 });
 
 function DayPlan() {
-  const { dayStatus, items, setItemStatus, completeDay, resetDay } = useStore();
-  const progress = useDayProgress();
+  const { data: today, isLoading, isError, refetch } = useToday();
 
-  if (dayStatus === "planned") {
+  if (isLoading) {
+    return (
+      <Screen>
+        <ScreenHeader eyebrow="Plan dnia" title="Dziś" />
+        <p className="px-1 text-sm text-muted-foreground">Wczytywanie planu…</p>
+      </Screen>
+    );
+  }
+
+  if (isError) {
+    return (
+      <Screen>
+        <ScreenHeader eyebrow="Plan dnia" title="Dziś" />
+        <Card className="flex flex-col items-center gap-3 py-8 text-center">
+          <p className="text-sm text-muted-foreground">Nie udało się wczytać planu.</p>
+          <button
+            onClick={() => refetch()}
+            className="h-10 rounded-2xl bg-secondary px-4 text-sm font-semibold text-secondary-foreground"
+          >
+            Spróbuj ponownie
+          </button>
+        </Card>
+      </Screen>
+    );
+  }
+
+  if (!today || today.status === "planned") {
     return (
       <Screen>
         <ScreenHeader eyebrow="Plan dnia" title="Dzień nierozpoczęty" />
         <EmptyState
           title="Najpierw rozpocznij dzień"
-          description="Plan powstaje w momencie rozpoczęcia dnia — z aktywnych rutyn i zaplanowanych zadań."
+          description="Plan powstaje w momencie rozpoczęcia dnia — na ekranie „Dziś”."
         />
       </Screen>
     );
   }
 
-  if (dayStatus === "completed") {
-    const done = items.filter((i) => i.status === "done");
-    const skipped = items.filter((i) => i.status !== "done");
-    return (
-      <Screen>
-        <ScreenHeader eyebrow="Podsumowanie" title="Dzień zamknięty" />
-        <Card className="mb-4 flex flex-col items-center gap-3 py-8 text-center">
-          <p className="text-5xl font-bold text-primary">{progress.percent}%</p>
-          <p className="text-sm text-muted-foreground">
-            {done.length} z {items.length} pozycji wykonanych
-          </p>
-          <ProgressBar percent={progress.percent} />
-        </Card>
-        {skipped.length > 0 ? (
-          <Card className="mb-4">
-            <p className="mb-3 text-sm font-semibold">Niewykonane ({skipped.length})</p>
-            <ul className="flex flex-col gap-2">
-              {skipped.map((i) => (
-                <li key={i.id} className="text-sm text-muted-foreground">
-                  {i.title}
-                </li>
-              ))}
-            </ul>
-          </Card>
-        ) : null}
-        <button
-          onClick={resetDay}
-          className="h-14 w-full rounded-3xl bg-secondary font-semibold text-secondary-foreground"
-        >
-          Zacznij nowy dzień
-        </button>
-      </Screen>
-    );
-  }
+  const items = today.items;
+  const done = items.filter((i) => i.status === "done").length;
+  const total = items.length;
+  const percent = total ? Math.round((done / total) * 100) : 0;
 
   return (
     <Screen>
       <ScreenHeader
         eyebrow="Plan dnia"
-        title={`${progress.done}/${progress.total} wykonane`}
+        title={`${done}/${total} wykonane`}
         action={
           <Link
             to="/"
@@ -91,78 +87,77 @@ function DayPlan() {
       />
 
       <div className="mb-6">
-        <ProgressBar percent={progress.percent} />
+        <ProgressBar percent={percent} />
       </div>
 
-      <div className="flex flex-col gap-6">
-        {BLOCK_ORDER.map((block) => {
-          const blockItems = items.filter((i) => i.block === block);
-          if (blockItems.length === 0) return null;
-          return (
-            <section key={block}>
-              <h2 className="mb-3 px-1 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                {BLOCK_LABELS[block]}
-              </h2>
-              <div className="flex flex-col gap-2">
-                {blockItems.map((item) => (
-                  <button
-                    key={item.id}
-                    onClick={() =>
-                      setItemStatus(item.id, item.status === "done" ? "pending" : "done")
-                    }
-                    className="card-surface flex items-center gap-3 px-4 py-4 text-left transition-transform active:scale-[0.99]"
-                  >
-                    <span
-                      className={cn(
-                        "flex h-7 w-7 shrink-0 items-center justify-center rounded-full border transition-all duration-200",
-                        item.status === "done"
-                          ? "accent-gradient border-transparent"
-                          : "border-input",
-                      )}
-                    >
-                      {item.status === "done" ? (
-                        <Check className="h-4 w-4 text-primary-foreground" strokeWidth={3} />
-                      ) : null}
-                      {item.status === "skipped" ? (
-                        <SkipForward className="h-3.5 w-3.5 text-muted-foreground" />
-                      ) : null}
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span
-                        className={cn(
-                          "block truncate text-sm font-medium",
-                          item.status !== "pending" && "text-muted-foreground line-through",
-                        )}
-                      >
-                        {item.title}
-                      </span>
-                      <span className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
-                        {item.sourceType === "routine" ? (
-                          <Repeat className="h-3 w-3" />
-                        ) : null}
-                        {item.estimatedMinutes} min
-                        {item.subtasks.length > 0
-                          ? ` · ${item.subtasks.filter((s) => s.isDone).length}/${item.subtasks.length}`
-                          : ""}
-                      </span>
-                    </span>
-                    {item.priority === "high" ? (
-                      <span className="h-2 w-2 rounded-full bg-primary" />
-                    ) : null}
-                  </button>
-                ))}
-              </div>
-            </section>
-          );
-        })}
-      </div>
+      {total === 0 ? (
+        <EmptyState
+          title="Pusty dzień"
+          description="Na dziś nie ma aktywnych rutyn ani zaplanowanych zadań."
+        />
+      ) : (
+        <div className="flex flex-col gap-6">
+          {BLOCK_ORDER.map((block) => {
+            const blockItems = items.filter((i) => i.day_block === block);
+            if (blockItems.length === 0) return null;
+            return (
+              <section key={block}>
+                <h2 className="mb-3 px-1 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                  {BLOCK_LABELS[block]}
+                </h2>
+                <div className="flex flex-col gap-2">
+                  {blockItems.map((item) => (
+                    <PlanItem key={item.id} item={item} />
+                  ))}
+                </div>
+              </section>
+            );
+          })}
+        </div>
+      )}
 
-      <button
-        onClick={completeDay}
-        className="accent-gradient accent-glow mt-8 h-16 w-full rounded-3xl text-lg font-bold text-primary-foreground transition-transform active:scale-[0.98]"
-      >
-        Zakończ dzień
-      </button>
+      {/* TODO brief #2: odhaczanie pozycji i zakończenie dnia (zapis do bazy). */}
     </Screen>
+  );
+}
+
+/** Read-only plan row — checking off / completing the day is brief #2. */
+function PlanItem({ item }: { item: DayItemRow }) {
+  const doneSubtasks = item.day_item_subtasks.filter((s) => s.is_done).length;
+  return (
+    <div className="card-surface flex items-center gap-3 px-4 py-4">
+      <span
+        className={cn(
+          "flex h-7 w-7 shrink-0 items-center justify-center rounded-full border",
+          item.status === "done" ? "accent-gradient border-transparent" : "border-input",
+        )}
+      >
+        {item.status === "done" ? (
+          <Check className="h-4 w-4 text-primary-foreground" strokeWidth={3} />
+        ) : null}
+        {item.status === "skipped" ? (
+          <SkipForward className="h-3.5 w-3.5 text-muted-foreground" />
+        ) : null}
+      </span>
+      <span className="min-w-0 flex-1">
+        <span
+          className={cn(
+            "block truncate text-sm font-medium",
+            item.status !== "pending" && "text-muted-foreground line-through",
+          )}
+        >
+          {item.title}
+        </span>
+        <span className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
+          {item.source_type === "routine" ? <Repeat className="h-3 w-3" /> : null}
+          <Clock className="h-3 w-3" />
+          {item.estimated_minutes ?? 0} min
+          {item.day_item_subtasks.length > 0
+            ? ` · ${doneSubtasks}/${item.day_item_subtasks.length}`
+            : ""}
+        </span>
+      </span>
+      {item.priority === "high" ? <span className="h-2 w-2 rounded-full bg-primary" /> : null}
+    </div>
   );
 }
