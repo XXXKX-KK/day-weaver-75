@@ -6,7 +6,6 @@ import {
   BLOCK_LABELS,
   BLOCK_ORDER,
   PRIORITY_LABELS,
-  useStore,
   type DayBlock,
   type Priority,
 } from "@/lib/store";
@@ -17,9 +16,38 @@ import {
   useToggleTaskDone,
   type NewTaskInput,
 } from "@/lib/tasks";
+import {
+  useAddRoutine,
+  useDeleteRoutine,
+  useRoutines,
+  useToggleRoutineActive,
+  type NewRoutineInput,
+} from "@/lib/routines";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+
+/** ISO weekday order 1=Mon .. 7=Sun, with short PL labels. */
+const WEEKDAYS: { n: number; short: string }[] = [
+  { n: 1, short: "Pn" },
+  { n: 2, short: "Wt" },
+  { n: 3, short: "Śr" },
+  { n: 4, short: "Cz" },
+  { n: 5, short: "Pt" },
+  { n: 6, short: "So" },
+  { n: 7, short: "Nd" },
+];
+
+const ALL_WEEKDAYS = WEEKDAYS.map((d) => d.n);
+
+/** "Codziennie" for all seven, otherwise the short day labels in order. */
+function formatWeekdays(days: number[]): string {
+  if (days.length >= 7) return "Codziennie";
+  if (days.length === 0) return "Brak dni";
+  return WEEKDAYS.filter((d) => days.includes(d.n))
+    .map((d) => d.short)
+    .join(", ");
+}
 
 export const Route = createFileRoute("/zadania")({
   head: () => ({
@@ -41,15 +69,25 @@ export const Route = createFileRoute("/zadania")({
 });
 
 function TasksScreen() {
-  // Routines still live in the in-memory store; only tasks move to Supabase.
-  const { routines, toggleRoutine } = useStore();
   const { data: tasks, isLoading, isError, refetch } = useTasks();
   const addTask = useAddTask();
   const toggleDone = useToggleTaskDone();
   const deleteTask = useDeleteTask();
 
+  // Routines now live in Supabase too (same pattern as tasks).
+  const {
+    data: routines,
+    isLoading: routinesLoading,
+    isError: routinesError,
+    refetch: refetchRoutines,
+  } = useRoutines();
+  const addRoutine = useAddRoutine();
+  const toggleRoutineActive = useToggleRoutineActive();
+  const deleteRoutine = useDeleteRoutine();
+
   const [tab, setTab] = useState<"tasks" | "routines">("tasks");
   const [formOpen, setFormOpen] = useState(false);
+  const [routineFormOpen, setRoutineFormOpen] = useState(false);
 
   return (
     <Screen>
@@ -157,33 +195,82 @@ function TasksScreen() {
         </div>
       ) : (
         <div className="flex flex-col gap-3">
-          {routines.map((r) => (
-            <Card key={r.id} className="flex items-center gap-4 py-4">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-primary-soft">
-                <Repeat className="h-4 w-4 text-primary" />
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-semibold">{r.title}</p>
-                <p className="text-xs text-muted-foreground">
-                  {BLOCK_LABELS[r.block]} · {r.estimatedMinutes} min
-                  {r.subtasks.length > 0 ? ` · ${r.subtasks.length} podzadań` : ""}
-                </p>
-              </div>
-              <Switch checked={r.isActive} onCheckedChange={() => toggleRoutine(r.id)} />
+          {routinesLoading ? (
+            <p className="px-1 text-sm text-muted-foreground">Wczytywanie rutyn…</p>
+          ) : routinesError ? (
+            <Card className="flex flex-col items-center gap-3 py-8 text-center">
+              <p className="text-sm text-muted-foreground">Nie udało się wczytać rutyn.</p>
+              <button
+                onClick={() => refetchRoutines()}
+                className="h-10 rounded-2xl bg-secondary px-4 text-sm font-semibold text-secondary-foreground"
+              >
+                Spróbuj ponownie
+              </button>
             </Card>
-          ))}
+          ) : !routines || routines.length === 0 ? (
+            <EmptyState
+              title="Brak rutyn"
+              description="Dodaj pierwszą rutynę, a będzie wracać w wybrane dni tygodnia."
+            />
+          ) : (
+            routines.map((r) => (
+              <Card key={r.id} className="flex items-center gap-4 py-4">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-primary-soft">
+                  <Repeat className="h-4 w-4 text-primary" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p
+                    className={cn(
+                      "truncate text-sm font-semibold",
+                      !r.is_active && "text-muted-foreground",
+                    )}
+                  >
+                    {r.title}
+                  </p>
+                  <p className="truncate text-xs text-muted-foreground">
+                    {BLOCK_LABELS[r.day_block]} · {r.estimated_minutes ?? 0} min ·{" "}
+                    {formatWeekdays(r.weekdays)}
+                    {r.routine_subtasks.length > 0
+                      ? ` · ${r.routine_subtasks.length} podzadań`
+                      : ""}
+                  </p>
+                </div>
+                <div className="flex shrink-0 items-center gap-3">
+                  <Switch
+                    checked={r.is_active}
+                    onCheckedChange={() =>
+                      toggleRoutineActive.mutate(
+                        { id: r.id, is_active: r.is_active },
+                        { onError: () => toast.error("Nie udało się zmienić rutyny.") },
+                      )
+                    }
+                  />
+                  <button
+                    onClick={() =>
+                      deleteRoutine.mutate(r.id, {
+                        onSuccess: () => toast.success("Rutyna usunięta"),
+                        onError: () => toast.error("Nie udało się usunąć rutyny."),
+                      })
+                    }
+                    aria-label="Usuń rutynę"
+                    className="text-muted-foreground transition-colors active:text-destructive"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              </Card>
+            ))
+          )}
         </div>
       )}
 
-      {tab === "tasks" ? (
-        <button
-          onClick={() => setFormOpen(true)}
-          className="accent-gradient accent-glow fixed bottom-28 left-1/2 z-40 flex h-14 -translate-x-1/2 items-center gap-2 rounded-full px-6 font-bold text-primary-foreground transition-transform active:scale-95"
-        >
-          <Plus className="h-5 w-5" strokeWidth={3} />
-          Nowe zadanie
-        </button>
-      ) : null}
+      <button
+        onClick={() => (tab === "tasks" ? setFormOpen(true) : setRoutineFormOpen(true))}
+        className="accent-gradient accent-glow fixed bottom-28 left-1/2 z-40 flex h-14 -translate-x-1/2 items-center gap-2 rounded-full px-6 font-bold text-primary-foreground transition-transform active:scale-95"
+      >
+        <Plus className="h-5 w-5" strokeWidth={3} />
+        {tab === "tasks" ? "Nowe zadanie" : "Nowa rutyna"}
+      </button>
 
       {formOpen ? (
         <TaskForm
@@ -196,6 +283,22 @@ function TasksScreen() {
                 toast.success("Zadanie dodane");
               },
               onError: () => toast.error("Nie udało się zapisać zadania."),
+            })
+          }
+        />
+      ) : null}
+
+      {routineFormOpen ? (
+        <RoutineForm
+          saving={addRoutine.isPending}
+          onClose={() => setRoutineFormOpen(false)}
+          onSave={(routine) =>
+            addRoutine.mutate(routine, {
+              onSuccess: () => {
+                setRoutineFormOpen(false);
+                toast.success("Rutyna dodana");
+              },
+              onError: () => toast.error("Nie udało się zapisać rutyny."),
             })
           }
         />
@@ -340,6 +443,174 @@ function TaskForm({
           className="accent-gradient mb-4 h-16 w-full rounded-3xl text-lg font-bold text-primary-foreground transition-opacity disabled:opacity-40"
         >
           {saving ? "Zapisywanie…" : "Zapisz zadanie"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function RoutineForm({
+  saving,
+  onClose,
+  onSave,
+}: {
+  saving: boolean;
+  onClose: () => void;
+  onSave: (routine: NewRoutineInput) => void;
+}) {
+  const [title, setTitle] = useState("");
+  const [block, setBlock] = useState<DayBlock>("morning");
+  const [priority, setPriority] = useState<Priority>("normal");
+  const [minutes, setMinutes] = useState(15);
+  const [weekdays, setWeekdays] = useState<number[]>(ALL_WEEKDAYS);
+  const [subtasks, setSubtasks] = useState<string[]>([]);
+  const [subtaskDraft, setSubtaskDraft] = useState("");
+
+  const toggleDay = (n: number) =>
+    setWeekdays((prev) =>
+      prev.includes(n) ? prev.filter((d) => d !== n) : [...prev, n].sort((a, b) => a - b),
+    );
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end bg-background/80 backdrop-blur-sm">
+      <div className="card-surface safe-bottom max-h-[88vh] w-full overflow-y-auto rounded-b-none px-5 pt-5">
+        <div className="mb-5 flex items-center justify-between">
+          <h2 className="text-xl font-bold">Nowa rutyna</h2>
+          <button
+            onClick={onClose}
+            className="flex h-9 w-9 items-center justify-center rounded-full bg-secondary"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <label className="mb-1 block text-xs font-semibold text-muted-foreground">Tytuł</label>
+        <input
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="np. Poranna medytacja"
+          className="mb-4 h-13 w-full rounded-2xl border border-input bg-elevated px-4 py-3.5 text-sm outline-none focus:border-primary"
+        />
+
+        <label className="mb-2 block text-xs font-semibold text-muted-foreground">Blok dnia</label>
+        <div className="mb-4 grid grid-cols-2 gap-2">
+          {BLOCK_ORDER.map((b) => (
+            <button
+              key={b}
+              onClick={() => setBlock(b)}
+              className={cn(
+                "h-11 rounded-2xl text-sm font-medium transition-colors",
+                block === b ? "bg-primary-soft text-primary" : "bg-elevated text-muted-foreground",
+              )}
+            >
+              {BLOCK_LABELS[b]}
+            </button>
+          ))}
+        </div>
+
+        <label className="mb-2 block text-xs font-semibold text-muted-foreground">
+          Dni tygodnia
+        </label>
+        <div className="mb-4 grid grid-cols-7 gap-1.5">
+          {WEEKDAYS.map((d) => {
+            const on = weekdays.includes(d.n);
+            return (
+              <button
+                key={d.n}
+                onClick={() => toggleDay(d.n)}
+                aria-pressed={on}
+                className={cn(
+                  "h-11 rounded-2xl text-sm font-semibold transition-colors",
+                  on ? "bg-primary-soft text-primary" : "bg-elevated text-muted-foreground",
+                )}
+              >
+                {d.short}
+              </button>
+            );
+          })}
+        </div>
+
+        <label className="mb-2 block text-xs font-semibold text-muted-foreground">Priorytet</label>
+        <div className="mb-4 grid grid-cols-3 gap-2">
+          {(["low", "normal", "high"] as const).map((p) => (
+            <button
+              key={p}
+              onClick={() => setPriority(p)}
+              className={cn(
+                "h-11 rounded-2xl text-sm font-medium transition-colors",
+                priority === p
+                  ? "bg-primary-soft text-primary"
+                  : "bg-elevated text-muted-foreground",
+              )}
+            >
+              {PRIORITY_LABELS[p]}
+            </button>
+          ))}
+        </div>
+
+        <label className="mb-2 block text-xs font-semibold text-muted-foreground">
+          Szacowany czas: {minutes} min
+        </label>
+        <input
+          type="range"
+          min={5}
+          max={180}
+          step={5}
+          value={minutes}
+          onChange={(e) => setMinutes(Number(e.target.value))}
+          className="mb-5 w-full accent-[oklch(0.635_0.202_13.5)]"
+        />
+
+        <label className="mb-2 block text-xs font-semibold text-muted-foreground">Podzadania</label>
+        <div className="mb-2 flex gap-2">
+          <input
+            value={subtaskDraft}
+            onChange={(e) => setSubtaskDraft(e.target.value)}
+            placeholder="np. Rozgrzewka"
+            className="h-12 flex-1 rounded-2xl border border-input bg-elevated px-4 text-sm outline-none focus:border-primary"
+          />
+          <button
+            onClick={() => {
+              if (!subtaskDraft.trim()) return;
+              setSubtasks((p) => [...p, subtaskDraft.trim()]);
+              setSubtaskDraft("");
+            }}
+            className="flex h-12 w-12 items-center justify-center rounded-2xl bg-secondary"
+          >
+            <Plus className="h-5 w-5" />
+          </button>
+        </div>
+        {subtasks.length > 0 ? (
+          <ul className="mb-4 flex flex-col gap-1">
+            {subtasks.map((s, idx) => (
+              <li
+                key={`${s}-${idx}`}
+                className="flex items-center justify-between rounded-xl bg-elevated px-4 py-2.5 text-sm"
+              >
+                {s}
+                <button onClick={() => setSubtasks((p) => p.filter((_, i) => i !== idx))}>
+                  <X className="h-4 w-4 text-muted-foreground" />
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+
+        <button
+          disabled={!title.trim() || weekdays.length === 0 || saving}
+          onClick={() =>
+            onSave({
+              title: title.trim(),
+              block,
+              priority,
+              estimatedMinutes: minutes,
+              weekdays,
+              subtasks,
+            })
+          }
+          className="accent-gradient mb-4 h-16 w-full rounded-3xl text-lg font-bold text-primary-foreground transition-opacity disabled:opacity-40"
+        >
+          {saving ? "Zapisywanie…" : "Zapisz rutynę"}
         </button>
       </div>
     </div>
