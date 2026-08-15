@@ -5,6 +5,7 @@ import { Screen } from "@/components/ui-kit";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { Blocker, isNativeBlocker, type InstalledApp } from "@/lib/blocker";
+import { enabledPackagesOf, useBlockedApps, useSetAppBlocked } from "@/lib/blocked-apps";
 
 export const Route = createFileRoute("/skupienie/aplikacje")({
   head: () => ({
@@ -37,33 +38,36 @@ const SUGGESTED = new Set<string>([
 function AppPickerScreen() {
   const native = isNativeBlocker();
   const [apps, setApps] = useState<InstalledApp[]>([]);
-  const [blocked, setBlocked] = useState<Set<string>>(new Set());
   const [query, setQuery] = useState("");
-  const [loading, setLoading] = useState(true);
+  const [appsLoading, setAppsLoading] = useState(true);
 
+  // Blocked selection now comes from Supabase (source of truth).
+  const {
+    data: blockedRows,
+    isLoading: blockedLoading,
+    isError: blockedError,
+    refetch,
+  } = useBlockedApps();
+  const setAppBlocked = useSetAppBlocked();
+  const blockedSet = useMemo(() => new Set(enabledPackagesOf(blockedRows)), [blockedRows]);
+
+  // Installed apps still come from the native plugin.
   useEffect(() => {
     let cancelled = false;
     (async () => {
       if (!native) {
-        setLoading(false);
+        setAppsLoading(false);
         return;
       }
       try {
-        const [installed, current] = await Promise.all([
-          Blocker.getInstalledApps({ includeIcons: true }),
-          Blocker.getBlockedApps(),
-        ]);
+        const installed = await Blocker.getInstalledApps({ includeIcons: true });
         if (cancelled) return;
-        const sorted = [...installed.apps].sort((a, b) =>
-          a.appLabel.localeCompare(b.appLabel, "pl"),
-        );
-        setApps(sorted);
-        setBlocked(new Set(current.packages));
+        setApps([...installed.apps].sort((a, b) => a.appLabel.localeCompare(b.appLabel, "pl")));
       } catch (e) {
         console.error("getInstalledApps failed", e);
         if (!cancelled) toast.error("Nie udało się wczytać listy aplikacji.");
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) setAppsLoading(false);
       }
     })();
     return () => {
@@ -71,18 +75,15 @@ function AppPickerScreen() {
     };
   }, [native]);
 
-  const toggle = async (pkg: string) => {
-    const next = new Set(blocked);
-    if (next.has(pkg)) next.delete(pkg);
-    else next.add(pkg);
-    setBlocked(next);
-    try {
-      await Blocker.setBlockedApps({ packages: [...next] });
-    } catch (e) {
-      console.error(e);
-      setBlocked(blocked); // revert on failure
-      toast.error("Nie udało się zapisać wyboru.");
-    }
+  const toggle = (app: InstalledApp) => {
+    setAppBlocked.mutate(
+      {
+        packageName: app.packageName,
+        appLabel: app.appLabel,
+        blocked: !blockedSet.has(app.packageName),
+      },
+      { onError: () => toast.error("Nie udało się zapisać wyboru.") },
+    );
   };
 
   const filtered = useMemo(() => {
@@ -101,6 +102,8 @@ function AppPickerScreen() {
     () => (query ? filtered : filtered.filter((a) => !SUGGESTED.has(a.packageName))),
     [filtered, query],
   );
+
+  const loading = appsLoading || blockedLoading;
 
   return (
     <Screen>
@@ -133,17 +136,32 @@ function AppPickerScreen() {
             na Androidzie.
           </p>
         </div>
+      ) : blockedError ? (
+        <div className="card-surface flex flex-col items-center gap-3 px-6 py-10 text-center">
+          <p className="text-sm text-muted-foreground">Nie udało się wczytać wyboru z konta.</p>
+          <button
+            onClick={() => refetch()}
+            className="h-10 rounded-2xl bg-secondary px-4 text-sm font-semibold text-secondary-foreground"
+          >
+            Spróbuj ponownie
+          </button>
+        </div>
       ) : loading ? (
         <p className="px-1 text-sm text-muted-foreground">Wczytywanie aplikacji…</p>
       ) : (
         <div className="flex flex-col gap-6">
           {suggested.length > 0 && (
-            <AppSection title="Sugerowane" apps={suggested} blocked={blocked} onToggle={toggle} />
+            <AppSection
+              title="Sugerowane"
+              apps={suggested}
+              blocked={blockedSet}
+              onToggle={toggle}
+            />
           )}
           <AppSection
             title={query ? "Wyniki" : "Wszystkie aplikacje"}
             apps={rest}
-            blocked={blocked}
+            blocked={blockedSet}
             onToggle={toggle}
           />
         </div>
@@ -161,7 +179,7 @@ function AppSection({
   title: string;
   apps: InstalledApp[];
   blocked: Set<string>;
-  onToggle: (pkg: string) => void;
+  onToggle: (app: InstalledApp) => void;
 }) {
   if (apps.length === 0) {
     return (
@@ -188,10 +206,7 @@ function AppSection({
               <p className="truncate text-sm font-semibold">{app.appLabel}</p>
               <p className="truncate text-xs text-muted-foreground">{app.packageName}</p>
             </div>
-            <Switch
-              checked={blocked.has(app.packageName)}
-              onCheckedChange={() => onToggle(app.packageName)}
-            />
+            <Switch checked={blocked.has(app.packageName)} onCheckedChange={() => onToggle(app)} />
           </div>
         ))}
       </div>
