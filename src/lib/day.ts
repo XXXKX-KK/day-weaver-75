@@ -1,6 +1,8 @@
+import { useEffect, useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth";
+import { Blocker, isNativeBlocker } from "@/lib/blocker";
 import { BLOCK_ORDER, type DayBlock, type Priority } from "@/lib/store";
 
 /** day_item_subtasks row (per-day copy of a subtask; has its own done-state). */
@@ -213,4 +215,38 @@ function rollback(
   previous: TodaySnapshot | undefined,
 ) {
   previous?.forEach(([key, data]) => queryClient.setQueryData(key, data));
+}
+
+/**
+ * Mirrors the day's current focus into native prefs (current_task) so the block
+ * overlay shows the first not-done plan item — same pattern as
+ * useBlockedAppsNativeSync. It reacts to start_day, item toggles and app entry
+ * because it reads useToday (invalidated on each of those).
+ *
+ * Source of truth: the day plan wins while the day is IN PROGRESS and still has
+ * an unfinished item — then current_task is overwritten with that item's title.
+ * When the day is not started, is completed, or every item is done, the sync
+ * writes nothing, leaving whatever the manual "Na czym się teraz skupiasz?"
+ * field last set (or the generic overlay fallback) untouched.
+ *
+ * Web (isNativeBlocker() === false) is a no-op.
+ */
+export function useCurrentTaskNativeSync() {
+  const { data } = useToday();
+  const native = isNativeBlocker();
+
+  const firstUndoneTitle = useMemo(() => {
+    if (!data || data.status !== "in_progress") return null;
+    // items are already ordered by day_block + position in useToday.
+    const next = data.items.find((i) => i.status !== "done");
+    return next ? next.title : null;
+  }, [data]);
+
+  useEffect(() => {
+    if (!native || data === undefined) return; // wait until the day is loaded
+    if (firstUndoneTitle === null) return; // not in progress / all done → keep fallback
+    Blocker.setCurrentTask({ title: firstUndoneTitle }).catch((e) =>
+      console.error("sync current task -> prefs failed", e),
+    );
+  }, [native, data, firstUndoneTitle]);
 }
