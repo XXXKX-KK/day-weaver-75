@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from "react";
-import { ShieldCheck } from "lucide-react";
+import { Eye, EyeOff, ShieldCheck } from "lucide-react";
+import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
 
@@ -26,6 +27,7 @@ export function AuthScreen() {
   const [mode, setMode] = useState<Mode>("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -89,14 +91,25 @@ export function AuthScreen() {
           placeholder="E-mail"
           className="h-12 w-full rounded-2xl border border-input bg-elevated px-4 text-sm outline-none focus:border-primary/40"
         />
-        <input
-          type="password"
-          autoComplete={mode === "signin" ? "current-password" : "new-password"}
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          placeholder="Hasło"
-          className="h-12 w-full rounded-2xl border border-input bg-elevated px-4 text-sm outline-none focus:border-primary/40"
-        />
+        <div className="relative">
+          <input
+            type={showPassword ? "text" : "password"}
+            autoComplete={mode === "signin" ? "current-password" : "new-password"}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Hasło"
+            className="h-12 w-full rounded-2xl border border-input bg-elevated pl-4 pr-12 text-sm outline-none focus:border-primary/40"
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword((v) => !v)}
+            aria-label={showPassword ? "Ukryj hasło" : "Pokaż hasło"}
+            aria-pressed={showPassword}
+            className="absolute right-1 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-xl text-muted-foreground transition-colors active:text-foreground"
+          >
+            {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+          </button>
+        </div>
 
         {error ? (
           <p className="rounded-2xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-xs text-destructive">
@@ -112,6 +125,17 @@ export function AuthScreen() {
           {loading ? "Chwila…" : mode === "signin" ? "Zaloguj się" : "Utwórz konto"}
         </button>
       </form>
+
+      {mode === "signin" ? (
+        <button
+          type="button"
+          // TODO reset hasła: prawdziwy reset (mail + strona ustawienia) to osobny brief.
+          onClick={() => toast("Reset hasła będzie dostępny wkrótce.")}
+          className="mt-4 text-center text-xs font-medium text-muted-foreground transition-colors active:text-foreground"
+        >
+          Nie pamiętasz hasła?
+        </button>
+      ) : null}
 
       <p className="mt-6 text-center text-xs text-muted-foreground">
         {mode === "signin" ? "Nie masz konta? " : "Masz już konto? "}
