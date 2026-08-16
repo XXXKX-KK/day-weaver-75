@@ -22,6 +22,7 @@ import com.getcapacitor.annotation.CapacitorPlugin;
 import org.json.JSONException;
 
 import java.io.ByteArrayOutputStream;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -139,6 +140,24 @@ public class BlockerPlugin extends Plugin {
         JSObject result = new JSObject();
         result.put("title", BlockerPrefs.getCurrentTask(getContext()));
         call.resolve(result);
+    }
+
+    @PluginMethod
+    public void setDayTasks(PluginCall call) {
+        JSArray titles = call.getArray("titles");
+        List<String> list = new ArrayList<>();
+        if (titles != null) {
+            try {
+                for (String title : titles.<String>toList()) {
+                    if (title != null && !title.trim().isEmpty()) list.add(title.trim());
+                }
+            } catch (JSONException e) {
+                call.reject("Invalid 'titles' array", e);
+                return;
+            }
+        }
+        BlockerPrefs.setDayTasks(getContext(), list);
+        call.resolve();
     }
 
     @PluginMethod

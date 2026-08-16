@@ -14,6 +14,9 @@ import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import java.util.Collections;
+import java.util.List;
+
 import pl.dzienlepszy.app.MainActivity;
 import pl.dzienlepszy.app.R;
 
@@ -28,16 +31,26 @@ public class BlockOverlayActivity extends Activity {
     public static final String EXTRA_BLOCKED_PACKAGE = "blocked_package";
     private static final int DEFAULT_ACCENT = 0xFFEE4261;
 
+    /** Ordered not-done day-plan titles, loaded once when the overlay appears. */
+    private List<String> dayTasks = Collections.emptyList();
+    /** Which task is currently shown. In-memory only — a fresh overlay launch
+     *  always starts at 0 (first not-done), and "Nie teraz" never persists. */
+    private int taskIndex = 0;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         setContentView(R.layout.activity_block_overlay);
 
+        dayTasks = BlockerPrefs.getDayTasks(this);
+        taskIndex = 0;
+
         applyAccent(resolveAccent());
-        bindCurrentTask();
+        bindTaskView();
         startBreathing();
         findViewById(R.id.block_return_button).setOnClickListener(v -> returnToApp());
+        findViewById(R.id.block_skip_button).setOnClickListener(v -> skipToNext());
     }
 
     /** Parse the accent hex from prefs; any bad/empty value falls back to pink. */
@@ -65,6 +78,10 @@ public class BlockOverlayActivity extends Activity {
         // Keep the button label readable whether the accent is light or dark.
         Button button = findViewById(R.id.block_return_button);
         button.setTextColor(contrastColorFor(accent));
+
+        // Ghost secondary button — accent-tinted text on the dark background.
+        Button skip = findViewById(R.id.block_skip_button);
+        skip.setTextColor(accent);
     }
 
     private void tintBackground(int viewId, int color) {
@@ -81,9 +98,28 @@ public class BlockOverlayActivity extends Activity {
         return luminance > 0.6 ? 0xFF12131A : 0xFFFFFFFF;
     }
 
-    private void bindCurrentTask() {
+    /**
+     * Renders the current task. When the day plan has items, shows the one at
+     * taskIndex and offers "Nie teraz" to move on (only if there's more than one
+     * left). With no plan, falls back to the manual current_task / generic
+     * string and hides the skip button.
+     */
+    private void bindTaskView() {
         TextView eyebrow = findViewById(R.id.block_task_eyebrow);
         TextView title = findViewById(R.id.block_task_title);
+        Button skip = findViewById(R.id.block_skip_button);
+
+        if (!dayTasks.isEmpty()) {
+            if (taskIndex < 0 || taskIndex >= dayTasks.size()) taskIndex = 0;
+            eyebrow.setVisibility(View.VISIBLE);
+            title.setText(dayTasks.get(taskIndex));
+            // Skipping only makes sense when there's somewhere to skip to.
+            skip.setVisibility(dayTasks.size() > 1 ? View.VISIBLE : View.GONE);
+            return;
+        }
+
+        // No day plan → keep the previous behaviour (manual field / fallback).
+        skip.setVisibility(View.GONE);
         String task = BlockerPrefs.getCurrentTask(this);
         if (TextUtils.isEmpty(task)) {
             eyebrow.setVisibility(View.GONE);
@@ -92,6 +128,14 @@ public class BlockOverlayActivity extends Activity {
             eyebrow.setVisibility(View.VISIBLE);
             title.setText(task);
         }
+    }
+
+    /** "Nie teraz": advance to the next task, wrapping around after the last.
+     *  Purely in-memory — nothing is written to prefs or the database. */
+    private void skipToNext() {
+        if (dayTasks.size() < 2) return;
+        taskIndex = (taskIndex + 1) % dayTasks.size();
+        bindTaskView();
     }
 
     private void startBreathing() {

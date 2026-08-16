@@ -25,6 +25,12 @@ export interface BlockerPlugin {
   setCurrentTask(options: { title: string }): Promise<{ title: string }>;
   getCurrentTask(): Promise<{ title: string }>;
   /**
+   * The ordered list of not-done day-plan titles (day_block + position). The
+   * overlay reads it to let the user skip ("Nie teraz") to the next one. Passing
+   * an empty array clears it, so the overlay falls back to current_task.
+   */
+  setDayTasks(options: { titles: string[] }): Promise<void>;
+  /**
    * Mirror the chosen accent (key + sRGB hex) into native prefs so the block
    * overlay can pick it up in a later brief. UI does not read this back.
    */

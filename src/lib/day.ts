@@ -218,16 +218,22 @@ function rollback(
 }
 
 /**
- * Mirrors the day's current focus into native prefs (current_task) so the block
- * overlay shows the first not-done plan item — same pattern as
+ * Mirrors the day plan into native prefs so the block overlay can show the
+ * first not-done item and let the user skip through the rest — same pattern as
  * useBlockedAppsNativeSync. It reacts to start_day, item toggles and app entry
  * because it reads useToday (invalidated on each of those).
  *
+ * Writes two keys:
+ *  - day_tasks: the ordered list of not-done titles (day_block + position),
+ *    which the overlay scrolls through with "Nie teraz". Empty when the day
+ *    isn't in progress or everything is done.
+ *  - current_task: kept for compatibility, always the first of that list.
+ *
  * Source of truth: the day plan wins while the day is IN PROGRESS and still has
- * an unfinished item — then current_task is overwritten with that item's title.
- * When the day is not started, is completed, or every item is done, the sync
- * writes nothing, leaving whatever the manual "Na czym się teraz skupiasz?"
- * field last set (or the generic overlay fallback) untouched.
+ * an unfinished item. When the day is not started, is completed, or every item
+ * is done, day_tasks is cleared and current_task is left untouched — so the
+ * overlay falls back to the manual "Na czym się teraz skupiasz?" field (or the
+ * generic fallback string).
  *
  * Web (isNativeBlocker() === false) is a no-op.
  */
@@ -235,18 +241,26 @@ export function useCurrentTaskNativeSync() {
   const { data } = useToday();
   const native = isNativeBlocker();
 
-  const firstUndoneTitle = useMemo(() => {
-    if (!data || data.status !== "in_progress") return null;
+  const undoneTitles = useMemo<string[]>(() => {
+    if (!data || data.status !== "in_progress") return [];
     // items are already ordered by day_block + position in useToday.
-    const next = data.items.find((i) => i.status !== "done");
-    return next ? next.title : null;
+    return data.items.filter((i) => i.status !== "done").map((i) => i.title);
   }, [data]);
 
   useEffect(() => {
     if (!native || data === undefined) return; // wait until the day is loaded
-    if (firstUndoneTitle === null) return; // not in progress / all done → keep fallback
-    Blocker.setCurrentTask({ title: firstUndoneTitle }).catch((e) =>
-      console.error("sync current task -> prefs failed", e),
+    // Always mirror the (possibly empty) list; empty tells the overlay to fall
+    // back to current_task and hide the skip button.
+    Blocker.setDayTasks({ titles: undoneTitles }).catch((e) =>
+      console.error("sync day tasks -> prefs failed", e),
     );
-  }, [native, data, firstUndoneTitle]);
+    // Keep current_task in step with the first item; when the list is empty we
+    // leave it alone so the manual field / fallback survives.
+    const first = undoneTitles[0];
+    if (first) {
+      Blocker.setCurrentTask({ title: first }).catch((e) =>
+        console.error("sync current task -> prefs failed", e),
+      );
+    }
+  }, [native, data, undoneTitles]);
 }

@@ -104,5 +104,20 @@
             android:textColor="#FFFFFF"
             android:textSize="16sp"
             android:textStyle="bold" />
+
+        <!-- Secondary, ghost action: skip to the next not-done task. Shown only
+             when the day plan has more than one remaining item. -->
+        <Button
+            android:id="@+id/block_skip_button"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:layout_marginTop="12dp"
+            android:background="@android:color/transparent"
+            android:text="@string/block_overlay_skip"
+            android:textAllCaps="false"
+            android:textColor="#9A9AAA"
+            android:textSize="15sp"
+            android:textStyle="bold"
+            android:visibility="gone" />
     </LinearLayout>
 </FrameLayout>

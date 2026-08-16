@@ -10,4 +10,5 @@
     <string name="block_overlay_return_to">Wróć do:</string>
     <string name="block_overlay_current_task_fallback">Wróć do skupienia</string>
     <string name="block_overlay_return">Wróć do zadania</string>
+    <string name="block_overlay_skip">Nie teraz</string>
 </resources>

@@ -3,8 +3,12 @@ package pl.dzienlepszy.app.blocker;
 import android.content.Context;
 import android.content.SharedPreferences;
 
+import org.json.JSONArray;
+
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -20,6 +24,7 @@ public final class BlockerPrefs {
     public static final String KEY_BLOCKED_PACKAGES = "blocked_packages";
     public static final String KEY_BLOCKING_ENABLED = "blocking_enabled";
     public static final String KEY_CURRENT_TASK = "current_task";
+    public static final String KEY_DAY_TASKS = "day_tasks";
     public static final String KEY_ACCENT_KEY = "accent_key";
     public static final String KEY_ACCENT_HEX = "accent_hex";
 
@@ -67,6 +72,41 @@ public final class BlockerPrefs {
         prefs(context).edit()
                 .putString(KEY_CURRENT_TASK, title == null ? "" : title.trim())
                 .apply();
+    }
+
+    /**
+     * The ordered list of not-done day-plan titles (day_block + position),
+     * written by the React sync as a JSON array. The overlay reads it to let the
+     * user skip ("Nie teraz") to the next task. Empty means "no active plan" —
+     * the overlay then falls back to {@link #getCurrentTask}.
+     */
+    public static void setDayTasks(Context context, List<String> titles) {
+        JSONArray array = new JSONArray();
+        if (titles != null) {
+            for (String title : titles) {
+                if (title != null && !title.trim().isEmpty()) array.put(title.trim());
+            }
+        }
+        prefs(context).edit()
+                .putString(KEY_DAY_TASKS, array.toString())
+                .apply();
+    }
+
+    /** Returns the stored day-plan titles in order (never null; empty on none). */
+    public static List<String> getDayTasks(Context context) {
+        List<String> titles = new ArrayList<>();
+        String stored = prefs(context).getString(KEY_DAY_TASKS, "");
+        if (stored == null || stored.isEmpty()) return titles;
+        try {
+            JSONArray array = new JSONArray(stored);
+            for (int i = 0; i < array.length(); i++) {
+                String title = array.optString(i, "");
+                if (!title.isEmpty()) titles.add(title);
+            }
+        } catch (org.json.JSONException ignored) {
+            // Corrupt value → treat as empty.
+        }
+        return titles;
     }
 
     /**
