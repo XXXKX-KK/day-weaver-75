@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DzienRouteImport } from './routes/dzien'
+import { Route as WioskaRouteImport } from './routes/wioska'
 import { Route as ZadaniaRouteImport } from './routes/zadania'
 import { Route as SkupienieIndexRouteImport } from './routes/skupienie/index'
 import { Route as SkupienieAplikacjeRouteImport } from './routes/skupienie/aplikacje'
@@ -25,6 +26,11 @@ const IndexRoute = IndexRouteImport.update({
 const DzienRoute = DzienRouteImport.update({
   id: '/dzien',
   path: '/dzien',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WioskaRoute = WioskaRouteImport.update({
+  id: '/wioska',
+  path: '/wioska',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ZadaniaRoute = ZadaniaRouteImport.update({
@@ -56,6 +62,7 @@ const UstawieniaWygladRoute = UstawieniaWygladRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/dzien': typeof DzienRoute
+  '/wioska': typeof WioskaRoute
   '/zadania': typeof ZadaniaRoute
   '/skupienie/aplikacje': typeof SkupienieAplikacjeRoute
   '/ustawienia/wyglad': typeof UstawieniaWygladRoute
@@ -65,6 +72,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/dzien': typeof DzienRoute
+  '/wioska': typeof WioskaRoute
   '/zadania': typeof ZadaniaRoute
   '/skupienie/aplikacje': typeof SkupienieAplikacjeRoute
   '/ustawienia/wyglad': typeof UstawieniaWygladRoute
@@ -75,6 +83,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/dzien': typeof DzienRoute
+  '/wioska': typeof WioskaRoute
   '/zadania': typeof ZadaniaRoute
   '/skupienie/aplikacje': typeof SkupienieAplikacjeRoute
   '/ustawienia/wyglad': typeof UstawieniaWygladRoute
@@ -86,6 +95,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/dzien'
+    | '/wioska'
     | '/zadania'
     | '/skupienie/aplikacje'
     | '/ustawienia/wyglad'
@@ -95,6 +105,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/dzien'
+    | '/wioska'
     | '/zadania'
     | '/skupienie/aplikacje'
     | '/ustawienia/wyglad'
@@ -104,6 +115,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/dzien'
+    | '/wioska'
     | '/zadania'
     | '/skupienie/aplikacje'
     | '/ustawienia/wyglad'
@@ -114,6 +126,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DzienRoute: typeof DzienRoute
+  WioskaRoute: typeof WioskaRoute
   ZadaniaRoute: typeof ZadaniaRoute
   SkupienieAplikacjeRoute: typeof SkupienieAplikacjeRoute
   UstawieniaWygladRoute: typeof UstawieniaWygladRoute
@@ -135,6 +148,13 @@ declare module '@tanstack/react-router' {
       path: '/dzien'
       fullPath: '/dzien'
       preLoaderRoute: typeof DzienRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/wioska': {
+      id: '/wioska'
+      path: '/wioska'
+      fullPath: '/wioska'
+      preLoaderRoute: typeof WioskaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/zadania': {
@@ -178,6 +198,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DzienRoute: DzienRoute,
+  WioskaRoute: WioskaRoute,
   ZadaniaRoute: ZadaniaRoute,
   SkupienieAplikacjeRoute: SkupienieAplikacjeRoute,
   UstawieniaWygladRoute: UstawieniaWygladRoute,

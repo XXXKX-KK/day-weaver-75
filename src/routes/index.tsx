@@ -10,6 +10,7 @@ import {
   useCompleteDay,
   type DayItemRow,
 } from "@/lib/day";
+import { XpBar } from "@/components/xp-bar";
 import { useRoutines } from "@/lib/routines";
 import { useTasks } from "@/lib/tasks";
 import { cn } from "@/lib/utils";
@@ -102,6 +103,7 @@ function Today() {
     const unfinished = items.filter((i) => i.status !== "done");
     return (
       <Screen>
+        <XpBar />
         <ScreenHeader eyebrow="Podsumowanie" title="Dzień zakończony" />
         <Card className="mb-4 flex flex-col items-center gap-3 py-8 text-center">
           <p className="text-5xl font-bold text-primary">{percent}%</p>
@@ -128,6 +130,7 @@ function Today() {
 
   return (
     <Screen>
+      <XpBar />
       <ScreenHeader
         eyebrow={dateLabel()}
         title="Plan dnia"
@@ -206,10 +209,9 @@ function DayItemCard({ item }: { item: DayItemRow }) {
     <div className="card-surface flex flex-col gap-2 px-4 py-4">
       <button
         onClick={() =>
-          setItemStatus.mutate(
-            { id: item.id, status: item.status },
-            { onError: () => toast.error("Nie udało się zapisać zmiany.") },
-          )
+          setItemStatus.mutate(item, {
+            onError: () => toast.error("Nie udało się zapisać zmiany."),
+          })
         }
         className="flex items-center gap-3 text-left transition-transform active:scale-[0.99]"
       >
@@ -254,7 +256,7 @@ function DayItemCard({ item }: { item: DayItemRow }) {
               <button
                 onClick={() =>
                   toggleSubtask.mutate(
-                    { id: s.id, is_done: s.is_done },
+                    { item, subtask: s },
                     { onError: () => toast.error("Nie udało się zapisać zmiany.") },
                   )
                 }
@@ -297,6 +299,7 @@ function NotStarted({ starting, onStart }: { starting: boolean; onStart: () => v
 
   return (
     <Screen>
+      <XpBar />
       <ScreenHeader eyebrow={dateLabel()} title="Gotowy na dziś?" />
       <Card className="flex flex-col gap-6 py-8">
         <div className="grid grid-cols-3 gap-3 text-center">

@@ -12,6 +12,10 @@ export type ProfileRow = {
   autostart_day: boolean;
   break_daily_limit: number;
   break_delay_seconds: number;
+  // Gamification (updated live from day interactions).
+  total_xp: number;
+  streak_count: number;
+  last_completed_date: string | null; // "YYYY-MM-DD"
 };
 
 /** Fields the settings screen may write (room left for break_* etc.). */
@@ -30,7 +34,7 @@ export type ProfileUpdate = Partial<
 const PROFILE_KEY = ["profile"] as const;
 
 const PROFILE_COLUMNS =
-  "id, display_name, timezone, day_start_time, day_end_time, autostart_day, break_daily_limit, break_delay_seconds";
+  "id, display_name, timezone, day_start_time, day_end_time, autostart_day, break_daily_limit, break_delay_seconds, total_xp, streak_count, last_completed_date";
 
 export function useProfile() {
   const { user } = useAuth();
