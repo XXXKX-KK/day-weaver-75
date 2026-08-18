@@ -35,14 +35,10 @@ export function levelFromXp(totalXp: number): LevelInfo {
 
 const PRIORITY_XP: Record<Priority, number> = { high: 10, normal: 5, low: 0 };
 
-/** What a day item is worth: base 10 + priority + a length bonus. */
-export function xpValueForItem(item: {
-  priority: Priority;
-  estimated_minutes: number | null;
-}): number {
-  let xp = 10 + PRIORITY_XP[item.priority];
-  if ((item.estimated_minutes ?? 0) > 60) xp += 5;
-  return xp;
+/** What a day item is worth: base 10 + priority. (Time/length no longer part of
+ *  the model — planning is manual order now, not estimated minutes.) */
+export function xpValueForItem(item: { priority: Priority }): number {
+  return 10 + PRIORITY_XP[item.priority];
 }
 
 /**
@@ -65,7 +61,7 @@ export function subtaskXpShares(xpValue: number, n: number): number[] {
 
 /** XP a specific subtask is worth, by its position in the item's subtask list. */
 export function shareForSubtask(
-  item: { priority: Priority; estimated_minutes: number | null },
+  item: { priority: Priority },
   subtasks: { id: string }[],
   subtaskId: string,
 ): number {

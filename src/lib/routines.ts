@@ -1,7 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth";
-import type { DayBlock, Priority } from "@/lib/store";
+import { reorderByIds } from "@/lib/reorder";
+import type { Priority } from "@/lib/store";
 
 /** A routine's subtask template (routine_subtasks). No done-state — routines
  *  are recurring templates; the per-day "done" lives on day items, not here. */
@@ -16,11 +17,10 @@ export type RoutineRow = {
   id: string;
   title: string;
   description: string | null;
-  day_block: DayBlock;
   /** ISO weekday numbers, 1=Mon .. 7=Sun. */
   weekdays: number[];
+  /** Manual order shared across all routines (drag-and-drop). Nulls sort last. */
   position: number | null;
-  estimated_minutes: number | null;
   priority: Priority;
   is_active: boolean;
   archived_at: string | null;
@@ -28,13 +28,12 @@ export type RoutineRow = {
   routine_subtasks: RoutineSubtaskRow[];
 };
 
-/** Payload from the routine form (mirrors the task form + weekdays). */
+/** Payload from the routine form. Day block + estimated time were dropped when
+ *  the model moved to manual ordering. */
 export type NewRoutineInput = {
   title: string;
   description?: string | undefined;
-  block: DayBlock;
   priority: Priority;
-  estimatedMinutes: number;
   /** 1=Mon .. 7=Sun; at least one, defaults to all seven in the form. */
   weekdays: number[];
   subtasks: string[];
@@ -51,8 +50,6 @@ function normalizeWeekdays(weekdays: number[]): number[] {
 
 const ROUTINES_KEY = ["routines"] as const;
 
-const PRIORITY_WEIGHT: Record<Priority, number> = { high: 0, normal: 1, low: 2 };
-
 function sortRoutines(rows: RoutineRow[]): RoutineRow[] {
   return [...rows]
     .map((r) => ({
@@ -61,11 +58,11 @@ function sortRoutines(rows: RoutineRow[]): RoutineRow[] {
       routine_subtasks: [...(r.routine_subtasks ?? [])].sort((a, b) => a.position - b.position),
     }))
     .sort((a, b) => {
-      // Active before inactive, then priority, then newest first.
-      if (a.is_active !== b.is_active) return a.is_active ? -1 : 1;
-      if (a.priority !== b.priority)
-        return PRIORITY_WEIGHT[a.priority] - PRIORITY_WEIGHT[b.priority];
-      return b.created_at.localeCompare(a.created_at);
+      // One shared manual order: by position (nulls last), then oldest first.
+      const pa = a.position ?? Number.POSITIVE_INFINITY;
+      const pb = b.position ?? Number.POSITIVE_INFINITY;
+      if (pa !== pb) return pa - pb;
+      return a.created_at.localeCompare(b.created_at);
     });
 }
 
@@ -79,13 +76,25 @@ export function useRoutines() {
       const { data, error } = await supabase
         .from("routines")
         .select(
-          "id, title, description, day_block, weekdays, position, estimated_minutes, priority, is_active, archived_at, created_at, routine_subtasks(id, title, position)",
+          "id, title, description, weekdays, position, priority, is_active, archived_at, created_at, routine_subtasks(id, title, position)",
         )
         .is("archived_at", null);
       if (error) throw error;
       return sortRoutines((data ?? []) as RoutineRow[]);
     },
   });
+}
+
+/** Next position for a new routine = current max + 1 (lands at the end). */
+async function nextRoutinePosition(): Promise<number> {
+  const { data } = await supabase
+    .from("routines")
+    .select("position")
+    .is("archived_at", null)
+    .order("position", { ascending: false, nullsFirst: false })
+    .limit(1)
+    .maybeSingle();
+  return ((data?.position as number | null) ?? -1) + 1;
 }
 
 export function useAddRoutine() {
@@ -98,10 +107,9 @@ export function useAddRoutine() {
         .insert({
           title: input.title,
           description: input.description ?? null,
-          day_block: input.block,
           priority: input.priority,
-          estimated_minutes: input.estimatedMinutes,
           weekdays: normalizeWeekdays(input.weekdays),
+          position: await nextRoutinePosition(),
           is_active: true,
         })
         .select("id")
@@ -130,15 +138,13 @@ export function useUpdateRoutine() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (input: UpdateRoutineInput) => {
-      // is_active stays untouched — that's the card toggle's job, not edit's.
+      // is_active and position stay untouched — those are the toggle's / drag's job.
       const { error } = await supabase
         .from("routines")
         .update({
           title: input.title,
           description: input.description ?? null,
-          day_block: input.block,
           priority: input.priority,
-          estimated_minutes: input.estimatedMinutes,
           weekdays: normalizeWeekdays(input.weekdays),
         })
         .eq("id", input.id);
@@ -198,5 +204,31 @@ export function useDeleteRoutine() {
       if (error) throw error;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ROUTINES_KEY }),
+  });
+}
+
+/** Persist a new shared order (routine ids top-to-bottom). Optimistic. */
+export function useReorderRoutines() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (orderedIds: string[]) => {
+      await Promise.all(
+        orderedIds.map(async (id, position) => {
+          const { error } = await supabase.from("routines").update({ position }).eq("id", id);
+          if (error) throw error;
+        }),
+      );
+    },
+    onMutate: async (orderedIds) => {
+      await queryClient.cancelQueries({ queryKey: ROUTINES_KEY });
+      const previous = queryClient.getQueriesData<RoutineRow[]>({ queryKey: ROUTINES_KEY });
+      queryClient.setQueriesData<RoutineRow[]>({ queryKey: ROUTINES_KEY }, (old) =>
+        old ? reorderByIds(old, orderedIds) : old,
+      );
+      return { previous };
+    },
+    onError: (_err, _ids, ctx) =>
+      ctx?.previous.forEach(([key, data]) => queryClient.setQueryData(key, data)),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ROUTINES_KEY }),
   });
 }

@@ -2,29 +2,27 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { Check, Plus, Repeat, Trash2, X } from "lucide-react";
 import { Screen, ScreenHeader, Card, EmptyState } from "@/components/ui-kit";
-import {
-  BLOCK_LABELS,
-  BLOCK_ORDER,
-  PRIORITY_LABELS,
-  type DayBlock,
-  type Priority,
-} from "@/lib/store";
+import { PRIORITY_LABELS, type Priority } from "@/lib/store";
 import {
   useAddTask,
   useDeleteTask,
+  useReorderTasks,
   useTasks,
   useToggleTaskDone,
   type NewTaskInput,
+  type TaskRow,
 } from "@/lib/tasks";
 import {
   useAddRoutine,
   useDeleteRoutine,
+  useReorderRoutines,
   useRoutines,
   useToggleRoutineActive,
   useUpdateRoutine,
   type NewRoutineInput,
   type RoutineRow,
 } from "@/lib/routines";
+import { SortableList } from "@/components/sortable-list";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -75,8 +73,8 @@ function TasksScreen() {
   const addTask = useAddTask();
   const toggleDone = useToggleTaskDone();
   const deleteTask = useDeleteTask();
+  const reorderTasks = useReorderTasks();
 
-  // Routines now live in Supabase too (same pattern as tasks).
   const {
     data: routines,
     isLoading: routinesLoading,
@@ -87,11 +85,11 @@ function TasksScreen() {
   const updateRoutine = useUpdateRoutine();
   const toggleRoutineActive = useToggleRoutineActive();
   const deleteRoutine = useDeleteRoutine();
+  const reorderRoutines = useReorderRoutines();
 
   const [tab, setTab] = useState<"tasks" | "routines">("tasks");
   const [formOpen, setFormOpen] = useState(false);
   const [routineFormOpen, setRoutineFormOpen] = useState(false);
-  // Holds the routine being edited; null means the edit sheet is closed.
   const [editingRoutine, setEditingRoutine] = useState<RoutineRow | null>(null);
 
   return (
@@ -114,165 +112,73 @@ function TasksScreen() {
       </div>
 
       {tab === "tasks" ? (
-        <div className="flex flex-col gap-3">
-          {isLoading ? (
-            <p className="px-1 text-sm text-muted-foreground">Wczytywanie zadań…</p>
-          ) : isError ? (
-            <Card className="flex flex-col items-center gap-3 py-8 text-center">
-              <p className="text-sm text-muted-foreground">Nie udało się wczytać zadań.</p>
-              <button
-                onClick={() => refetch()}
-                className="h-10 rounded-2xl bg-secondary px-4 text-sm font-semibold text-secondary-foreground"
-              >
-                Spróbuj ponownie
-              </button>
-            </Card>
-          ) : !tasks || tasks.length === 0 ? (
-            <EmptyState
-              title="Brak zadań"
-              description="Dodaj pierwsze zadanie jednorazowe, a pojawi się w planie dnia."
-            />
-          ) : (
-            tasks.map((t) => {
-              const done = t.status === "done";
-              return (
-                <Card key={t.id} className="flex flex-col gap-2">
-                  <div className="flex items-start gap-3">
-                    <button
-                      onClick={() => toggleDone.mutate({ id: t.id, status: t.status })}
-                      aria-label={done ? "Oznacz jako niezrobione" : "Oznacz jako zrobione"}
-                      className={cn(
-                        "mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border transition-colors",
-                        done ? "border-primary bg-primary text-primary-foreground" : "border-input",
-                      )}
-                    >
-                      {done ? <Check className="h-4 w-4" /> : null}
-                    </button>
-                    <h3
-                      className={cn(
-                        "flex-1 text-base font-semibold",
-                        done && "text-muted-foreground line-through",
-                      )}
-                    >
-                      {t.title}
-                    </h3>
-                    {t.priority === "high" && !done ? (
-                      <span className="shrink-0 rounded-full bg-primary-soft px-2.5 py-1 text-[11px] font-semibold text-primary">
-                        Wysoki
-                      </span>
-                    ) : null}
-                    <button
-                      onClick={() =>
-                        deleteTask.mutate(t.id, {
-                          onSuccess: () => toast.success("Zadanie usunięte"),
-                          onError: () => toast.error("Nie udało się usunąć zadania."),
-                        })
-                      }
-                      aria-label="Usuń zadanie"
-                      className="shrink-0 text-muted-foreground transition-colors active:text-destructive"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
-                  {t.description ? (
-                    <p className="text-sm text-muted-foreground">{t.description}</p>
-                  ) : null}
-                  {t.task_subtasks.length > 0 ? (
-                    <ul className="mt-1 flex flex-col gap-1">
-                      {t.task_subtasks.map((s) => (
-                        <li
-                          key={s.id}
-                          className="flex items-center gap-2 text-sm text-muted-foreground"
-                        >
-                          <span className="h-1.5 w-1.5 rounded-full bg-primary" />
-                          {s.title}
-                        </li>
-                      ))}
-                    </ul>
-                  ) : null}
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {BLOCK_LABELS[t.day_block]} · {t.estimated_minutes} min
-                  </p>
-                </Card>
-              );
-            })
-          )}
-        </div>
+        isLoading ? (
+          <p className="px-1 text-sm text-muted-foreground">Wczytywanie zadań…</p>
+        ) : isError ? (
+          <RetryCard label="Nie udało się wczytać zadań." onRetry={() => refetch()} />
+        ) : !tasks || tasks.length === 0 ? (
+          <EmptyState
+            title="Brak zadań"
+            description="Dodaj pierwsze zadanie jednorazowe, a pojawi się w planie dnia."
+          />
+        ) : (
+          <SortableList
+            items={tasks}
+            onReorder={(ids) =>
+              reorderTasks.mutate(ids, {
+                onError: () => toast.error("Nie udało się zapisać kolejności."),
+              })
+            }
+            renderItem={(t) => (
+              <TaskCard
+                task={t}
+                onToggle={() => toggleDone.mutate({ id: t.id, status: t.status })}
+                onDelete={() =>
+                  deleteTask.mutate(t.id, {
+                    onSuccess: () => toast.success("Zadanie usunięte"),
+                    onError: () => toast.error("Nie udało się usunąć zadania."),
+                  })
+                }
+              />
+            )}
+          />
+        )
+      ) : routinesLoading ? (
+        <p className="px-1 text-sm text-muted-foreground">Wczytywanie rutyn…</p>
+      ) : routinesError ? (
+        <RetryCard label="Nie udało się wczytać rutyn." onRetry={() => refetchRoutines()} />
+      ) : !routines || routines.length === 0 ? (
+        <EmptyState
+          title="Brak rutyn"
+          description="Dodaj pierwszą rutynę, a będzie wracać w wybrane dni tygodnia."
+        />
       ) : (
-        <div className="flex flex-col gap-3">
-          {routinesLoading ? (
-            <p className="px-1 text-sm text-muted-foreground">Wczytywanie rutyn…</p>
-          ) : routinesError ? (
-            <Card className="flex flex-col items-center gap-3 py-8 text-center">
-              <p className="text-sm text-muted-foreground">Nie udało się wczytać rutyn.</p>
-              <button
-                onClick={() => refetchRoutines()}
-                className="h-10 rounded-2xl bg-secondary px-4 text-sm font-semibold text-secondary-foreground"
-              >
-                Spróbuj ponownie
-              </button>
-            </Card>
-          ) : !routines || routines.length === 0 ? (
-            <EmptyState
-              title="Brak rutyn"
-              description="Dodaj pierwszą rutynę, a będzie wracać w wybrane dni tygodnia."
+        <SortableList
+          items={routines}
+          onReorder={(ids) =>
+            reorderRoutines.mutate(ids, {
+              onError: () => toast.error("Nie udało się zapisać kolejności."),
+            })
+          }
+          renderItem={(r) => (
+            <RoutineCard
+              routine={r}
+              onEdit={() => setEditingRoutine(r)}
+              onToggle={() =>
+                toggleRoutineActive.mutate(
+                  { id: r.id, is_active: r.is_active },
+                  { onError: () => toast.error("Nie udało się zmienić rutyny.") },
+                )
+              }
+              onDelete={() =>
+                deleteRoutine.mutate(r.id, {
+                  onSuccess: () => toast.success("Rutyna usunięta"),
+                  onError: () => toast.error("Nie udało się usunąć rutyny."),
+                })
+              }
             />
-          ) : (
-            routines.map((r) => (
-              <Card key={r.id} className="flex items-center gap-4 py-4">
-                <button
-                  onClick={() => setEditingRoutine(r)}
-                  aria-label={`Edytuj rutynę ${r.title}`}
-                  className="flex min-w-0 flex-1 items-center gap-4 text-left"
-                >
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-primary-soft">
-                    <Repeat className="h-4 w-4 text-primary" />
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p
-                      className={cn(
-                        "truncate text-sm font-semibold",
-                        !r.is_active && "text-muted-foreground",
-                      )}
-                    >
-                      {r.title}
-                    </p>
-                    <p className="truncate text-xs text-muted-foreground">
-                      {BLOCK_LABELS[r.day_block]} · {r.estimated_minutes ?? 0} min ·{" "}
-                      {formatWeekdays(r.weekdays)}
-                      {r.routine_subtasks.length > 0
-                        ? ` · ${r.routine_subtasks.length} podzadań`
-                        : ""}
-                    </p>
-                  </div>
-                </button>
-                <div className="flex shrink-0 items-center gap-3">
-                  <Switch
-                    checked={r.is_active}
-                    onCheckedChange={() =>
-                      toggleRoutineActive.mutate(
-                        { id: r.id, is_active: r.is_active },
-                        { onError: () => toast.error("Nie udało się zmienić rutyny.") },
-                      )
-                    }
-                  />
-                  <button
-                    onClick={() =>
-                      deleteRoutine.mutate(r.id, {
-                        onSuccess: () => toast.success("Rutyna usunięta"),
-                        onError: () => toast.error("Nie udało się usunąć rutyny."),
-                      })
-                    }
-                    aria-label="Usuń rutynę"
-                    className="text-muted-foreground transition-colors active:text-destructive"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </div>
-              </Card>
-            ))
           )}
-        </div>
+        />
       )}
 
       <button
@@ -343,6 +249,234 @@ function TasksScreen() {
   );
 }
 
+function RetryCard({ label, onRetry }: { label: string; onRetry: () => void }) {
+  return (
+    <Card className="flex flex-col items-center gap-3 py-8 text-center">
+      <p className="text-sm text-muted-foreground">{label}</p>
+      <button
+        onClick={onRetry}
+        className="h-10 rounded-2xl bg-secondary px-4 text-sm font-semibold text-secondary-foreground"
+      >
+        Spróbuj ponownie
+      </button>
+    </Card>
+  );
+}
+
+function TaskCard({
+  task,
+  onToggle,
+  onDelete,
+}: {
+  task: TaskRow;
+  onToggle: () => void;
+  onDelete: () => void;
+}) {
+  const done = task.status === "done";
+  return (
+    <Card className="flex flex-col gap-2">
+      <div className="flex items-start gap-3">
+        <button
+          onClick={onToggle}
+          aria-label={done ? "Oznacz jako niezrobione" : "Oznacz jako zrobione"}
+          className={cn(
+            "mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border transition-colors",
+            done ? "border-primary bg-primary text-primary-foreground" : "border-input",
+          )}
+        >
+          {done ? <Check className="h-4 w-4" /> : null}
+        </button>
+        <h3
+          className={cn(
+            "flex-1 text-base font-semibold",
+            done && "text-muted-foreground line-through",
+          )}
+        >
+          {task.title}
+        </h3>
+        {task.priority === "high" && !done ? (
+          <span className="shrink-0 rounded-full bg-primary-soft px-2.5 py-1 text-[11px] font-semibold text-primary">
+            Wysoki
+          </span>
+        ) : null}
+        <button
+          onClick={onDelete}
+          aria-label="Usuń zadanie"
+          className="shrink-0 text-muted-foreground transition-colors active:text-destructive"
+        >
+          <Trash2 className="h-4 w-4" />
+        </button>
+      </div>
+      {task.description ? (
+        <p className="text-sm text-muted-foreground">{task.description}</p>
+      ) : null}
+      {task.task_subtasks.length > 0 ? (
+        <ul className="mt-1 flex flex-col gap-1">
+          {task.task_subtasks.map((s) => (
+            <li key={s.id} className="flex items-center gap-2 text-sm text-muted-foreground">
+              <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+              {s.title}
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </Card>
+  );
+}
+
+function RoutineCard({
+  routine,
+  onEdit,
+  onToggle,
+  onDelete,
+}: {
+  routine: RoutineRow;
+  onEdit: () => void;
+  onToggle: () => void;
+  onDelete: () => void;
+}) {
+  return (
+    <Card className="flex items-center gap-4 py-4">
+      <button
+        onClick={onEdit}
+        aria-label={`Edytuj rutynę ${routine.title}`}
+        className="flex min-w-0 flex-1 items-center gap-4 text-left"
+      >
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-primary-soft">
+          <Repeat className="h-4 w-4 text-primary" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p
+            className={cn(
+              "truncate text-sm font-semibold",
+              !routine.is_active && "text-muted-foreground",
+            )}
+          >
+            {routine.title}
+          </p>
+          <p className="truncate text-xs text-muted-foreground">
+            {formatWeekdays(routine.weekdays)}
+            {routine.routine_subtasks.length > 0
+              ? ` · ${routine.routine_subtasks.length} podzadań`
+              : ""}
+          </p>
+        </div>
+      </button>
+      <div className="flex shrink-0 items-center gap-3">
+        <Switch checked={routine.is_active} onCheckedChange={onToggle} />
+        <button
+          onClick={onDelete}
+          aria-label="Usuń rutynę"
+          className="text-muted-foreground transition-colors active:text-destructive"
+        >
+          <Trash2 className="h-4 w-4" />
+        </button>
+      </div>
+    </Card>
+  );
+}
+
+/** Shared priority picker (the one control both forms kept). */
+function PriorityPicker({ value, onChange }: { value: Priority; onChange: (p: Priority) => void }) {
+  return (
+    <>
+      <label className="mb-2 block text-xs font-semibold text-muted-foreground">Priorytet</label>
+      <div className="mb-4 grid grid-cols-3 gap-2">
+        {(["low", "normal", "high"] as const).map((p) => (
+          <button
+            key={p}
+            onClick={() => onChange(p)}
+            className={cn(
+              "h-11 rounded-2xl text-sm font-medium transition-colors",
+              value === p ? "bg-primary-soft text-primary" : "bg-elevated text-muted-foreground",
+            )}
+          >
+            {PRIORITY_LABELS[p]}
+          </button>
+        ))}
+      </div>
+    </>
+  );
+}
+
+/** Shared subtask editor. */
+function SubtaskEditor({
+  subtasks,
+  setSubtasks,
+  placeholder,
+}: {
+  subtasks: string[];
+  setSubtasks: (updater: (prev: string[]) => string[]) => void;
+  placeholder: string;
+}) {
+  const [draft, setDraft] = useState("");
+  return (
+    <>
+      <label className="mb-2 block text-xs font-semibold text-muted-foreground">Podzadania</label>
+      <div className="mb-2 flex gap-2">
+        <input
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          placeholder={placeholder}
+          className="h-12 flex-1 rounded-2xl border border-input bg-elevated px-4 text-sm outline-none focus:border-primary"
+        />
+        <button
+          onClick={() => {
+            if (!draft.trim()) return;
+            setSubtasks((p) => [...p, draft.trim()]);
+            setDraft("");
+          }}
+          className="flex h-12 w-12 items-center justify-center rounded-2xl bg-secondary"
+        >
+          <Plus className="h-5 w-5" />
+        </button>
+      </div>
+      {subtasks.length > 0 ? (
+        <ul className="mb-4 flex flex-col gap-1">
+          {subtasks.map((s, idx) => (
+            <li
+              key={`${s}-${idx}`}
+              className="flex items-center justify-between rounded-xl bg-elevated px-4 py-2.5 text-sm"
+            >
+              {s}
+              <button onClick={() => setSubtasks((p) => p.filter((_, i) => i !== idx))}>
+                <X className="h-4 w-4 text-muted-foreground" />
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </>
+  );
+}
+
+function Sheet({
+  title,
+  onClose,
+  children,
+}: {
+  title: string;
+  onClose: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-end bg-background/80 backdrop-blur-sm">
+      <div className="card-surface safe-bottom max-h-[88vh] w-full overflow-y-auto rounded-b-none px-5 pt-5">
+        <div className="mb-5 flex items-center justify-between">
+          <h2 className="text-xl font-bold">{title}</h2>
+          <button
+            onClick={onClose}
+            className="flex h-9 w-9 items-center justify-center rounded-full bg-secondary"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+}
+
 function TaskForm({
   saving,
   onClose,
@@ -353,135 +487,30 @@ function TaskForm({
   onSave: (task: NewTaskInput) => void;
 }) {
   const [title, setTitle] = useState("");
-  const [block, setBlock] = useState<DayBlock>("forenoon");
   const [priority, setPriority] = useState<Priority>("normal");
-  const [minutes, setMinutes] = useState(30);
   const [subtasks, setSubtasks] = useState<string[]>([]);
-  const [subtaskDraft, setSubtaskDraft] = useState("");
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end bg-background/80 backdrop-blur-sm">
-      <div className="card-surface safe-bottom max-h-[88vh] w-full overflow-y-auto rounded-b-none px-5 pt-5">
-        <div className="mb-5 flex items-center justify-between">
-          <h2 className="text-xl font-bold">Nowe zadanie</h2>
-          <button
-            onClick={onClose}
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-secondary"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
+    <Sheet title="Nowe zadanie" onClose={onClose}>
+      <label className="mb-1 block text-xs font-semibold text-muted-foreground">Tytuł</label>
+      <input
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        placeholder="np. Dokończ aplikację"
+        className="mb-4 h-13 w-full rounded-2xl border border-input bg-elevated px-4 py-3.5 text-sm outline-none focus:border-primary"
+      />
 
-        <label className="mb-1 block text-xs font-semibold text-muted-foreground">Tytuł</label>
-        <input
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="np. Dokończ aplikację"
-          className="mb-4 h-13 w-full rounded-2xl border border-input bg-elevated px-4 py-3.5 text-sm outline-none focus:border-primary"
-        />
+      <PriorityPicker value={priority} onChange={setPriority} />
+      <SubtaskEditor subtasks={subtasks} setSubtasks={setSubtasks} placeholder="np. Popraw logo" />
 
-        <label className="mb-2 block text-xs font-semibold text-muted-foreground">Blok dnia</label>
-        <div className="mb-4 grid grid-cols-2 gap-2">
-          {BLOCK_ORDER.map((b) => (
-            <button
-              key={b}
-              onClick={() => setBlock(b)}
-              className={cn(
-                "h-11 rounded-2xl text-sm font-medium transition-colors",
-                block === b ? "bg-primary-soft text-primary" : "bg-elevated text-muted-foreground",
-              )}
-            >
-              {BLOCK_LABELS[b]}
-            </button>
-          ))}
-        </div>
-
-        <label className="mb-2 block text-xs font-semibold text-muted-foreground">Priorytet</label>
-        <div className="mb-4 grid grid-cols-3 gap-2">
-          {(["low", "normal", "high"] as const).map((p) => (
-            <button
-              key={p}
-              onClick={() => setPriority(p)}
-              className={cn(
-                "h-11 rounded-2xl text-sm font-medium transition-colors",
-                priority === p
-                  ? "bg-primary-soft text-primary"
-                  : "bg-elevated text-muted-foreground",
-              )}
-            >
-              {PRIORITY_LABELS[p]}
-            </button>
-          ))}
-        </div>
-
-        <label className="mb-2 block text-xs font-semibold text-muted-foreground">
-          Szacowany czas: {minutes} min
-        </label>
-        <input
-          type="range"
-          min={5}
-          max={180}
-          step={5}
-          value={minutes}
-          onChange={(e) => setMinutes(Number(e.target.value))}
-          className="mb-5 w-full accent-[oklch(0.635_0.202_13.5)]"
-        />
-
-        <label className="mb-2 block text-xs font-semibold text-muted-foreground">Podzadania</label>
-        <div className="mb-2 flex gap-2">
-          <input
-            value={subtaskDraft}
-            onChange={(e) => setSubtaskDraft(e.target.value)}
-            placeholder="np. Popraw logo"
-            className="h-12 flex-1 rounded-2xl border border-input bg-elevated px-4 text-sm outline-none focus:border-primary"
-          />
-          <button
-            onClick={() => {
-              if (!subtaskDraft.trim()) return;
-              setSubtasks((p) => [...p, subtaskDraft.trim()]);
-              setSubtaskDraft("");
-            }}
-            className="flex h-12 w-12 items-center justify-center rounded-2xl bg-secondary"
-          >
-            <Plus className="h-5 w-5" />
-          </button>
-        </div>
-        {subtasks.length > 0 ? (
-          <ul className="mb-4 flex flex-col gap-1">
-            {subtasks.map((s, idx) => (
-              <li
-                key={`${s}-${idx}`}
-                className="flex items-center justify-between rounded-xl bg-elevated px-4 py-2.5 text-sm"
-              >
-                {s}
-                <button onClick={() => setSubtasks((p) => p.filter((_, i) => i !== idx))}>
-                  <X className="h-4 w-4 text-muted-foreground" />
-                </button>
-              </li>
-            ))}
-          </ul>
-        ) : null}
-
-        {/* TODO dzień: przełącznik „Dodaj do dzisiejszego dnia” wróci, gdy plan dnia
-            przejdzie na Supabase (dziś jest jeszcze w pamięci). */}
-
-        <button
-          disabled={!title.trim() || saving}
-          onClick={() =>
-            onSave({
-              title: title.trim(),
-              block,
-              priority,
-              estimatedMinutes: minutes,
-              subtasks,
-            })
-          }
-          className="accent-gradient mb-4 h-16 w-full rounded-3xl text-lg font-bold text-primary-foreground transition-opacity disabled:opacity-40"
-        >
-          {saving ? "Zapisywanie…" : "Zapisz zadanie"}
-        </button>
-      </div>
-    </div>
+      <button
+        disabled={!title.trim() || saving}
+        onClick={() => onSave({ title: title.trim(), priority, subtasks })}
+        className="accent-gradient mb-4 h-16 w-full rounded-3xl text-lg font-bold text-primary-foreground transition-opacity disabled:opacity-40"
+      >
+        {saving ? "Zapisywanie…" : "Zapisz zadanie"}
+      </button>
+    </Sheet>
   );
 }
 
@@ -498,14 +527,11 @@ function RoutineForm({
 }) {
   const isEdit = !!initial;
   const [title, setTitle] = useState(initial?.title ?? "");
-  const [block, setBlock] = useState<DayBlock>(initial?.day_block ?? "morning");
   const [priority, setPriority] = useState<Priority>(initial?.priority ?? "normal");
-  const [minutes, setMinutes] = useState(initial?.estimated_minutes ?? 15);
   const [weekdays, setWeekdays] = useState<number[]>(initial?.weekdays ?? ALL_WEEKDAYS);
   const [subtasks, setSubtasks] = useState<string[]>(
     initial?.routine_subtasks.map((s) => s.title) ?? [],
   );
-  const [subtaskDraft, setSubtaskDraft] = useState("");
 
   const toggleDay = (n: number) =>
     setWeekdays((prev) =>
@@ -513,147 +539,45 @@ function RoutineForm({
     );
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end bg-background/80 backdrop-blur-sm">
-      <div className="card-surface safe-bottom max-h-[88vh] w-full overflow-y-auto rounded-b-none px-5 pt-5">
-        <div className="mb-5 flex items-center justify-between">
-          <h2 className="text-xl font-bold">{isEdit ? "Edytuj rutynę" : "Nowa rutyna"}</h2>
-          <button
-            onClick={onClose}
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-secondary"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
+    <Sheet title={isEdit ? "Edytuj rutynę" : "Nowa rutyna"} onClose={onClose}>
+      <label className="mb-1 block text-xs font-semibold text-muted-foreground">Tytuł</label>
+      <input
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        placeholder="np. Poranna medytacja"
+        className="mb-4 h-13 w-full rounded-2xl border border-input bg-elevated px-4 py-3.5 text-sm outline-none focus:border-primary"
+      />
 
-        <label className="mb-1 block text-xs font-semibold text-muted-foreground">Tytuł</label>
-        <input
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="np. Poranna medytacja"
-          className="mb-4 h-13 w-full rounded-2xl border border-input bg-elevated px-4 py-3.5 text-sm outline-none focus:border-primary"
-        />
-
-        <label className="mb-2 block text-xs font-semibold text-muted-foreground">Blok dnia</label>
-        <div className="mb-4 grid grid-cols-2 gap-2">
-          {BLOCK_ORDER.map((b) => (
+      <label className="mb-2 block text-xs font-semibold text-muted-foreground">Dni tygodnia</label>
+      <div className="mb-4 grid grid-cols-7 gap-1.5">
+        {WEEKDAYS.map((d) => {
+          const on = weekdays.includes(d.n);
+          return (
             <button
-              key={b}
-              onClick={() => setBlock(b)}
+              key={d.n}
+              onClick={() => toggleDay(d.n)}
+              aria-pressed={on}
               className={cn(
-                "h-11 rounded-2xl text-sm font-medium transition-colors",
-                block === b ? "bg-primary-soft text-primary" : "bg-elevated text-muted-foreground",
+                "h-11 rounded-2xl text-sm font-semibold transition-colors",
+                on ? "bg-primary-soft text-primary" : "bg-elevated text-muted-foreground",
               )}
             >
-              {BLOCK_LABELS[b]}
+              {d.short}
             </button>
-          ))}
-        </div>
-
-        <label className="mb-2 block text-xs font-semibold text-muted-foreground">
-          Dni tygodnia
-        </label>
-        <div className="mb-4 grid grid-cols-7 gap-1.5">
-          {WEEKDAYS.map((d) => {
-            const on = weekdays.includes(d.n);
-            return (
-              <button
-                key={d.n}
-                onClick={() => toggleDay(d.n)}
-                aria-pressed={on}
-                className={cn(
-                  "h-11 rounded-2xl text-sm font-semibold transition-colors",
-                  on ? "bg-primary-soft text-primary" : "bg-elevated text-muted-foreground",
-                )}
-              >
-                {d.short}
-              </button>
-            );
-          })}
-        </div>
-
-        <label className="mb-2 block text-xs font-semibold text-muted-foreground">Priorytet</label>
-        <div className="mb-4 grid grid-cols-3 gap-2">
-          {(["low", "normal", "high"] as const).map((p) => (
-            <button
-              key={p}
-              onClick={() => setPriority(p)}
-              className={cn(
-                "h-11 rounded-2xl text-sm font-medium transition-colors",
-                priority === p
-                  ? "bg-primary-soft text-primary"
-                  : "bg-elevated text-muted-foreground",
-              )}
-            >
-              {PRIORITY_LABELS[p]}
-            </button>
-          ))}
-        </div>
-
-        <label className="mb-2 block text-xs font-semibold text-muted-foreground">
-          Szacowany czas: {minutes} min
-        </label>
-        <input
-          type="range"
-          min={5}
-          max={180}
-          step={5}
-          value={minutes}
-          onChange={(e) => setMinutes(Number(e.target.value))}
-          className="mb-5 w-full accent-[oklch(0.635_0.202_13.5)]"
-        />
-
-        <label className="mb-2 block text-xs font-semibold text-muted-foreground">Podzadania</label>
-        <div className="mb-2 flex gap-2">
-          <input
-            value={subtaskDraft}
-            onChange={(e) => setSubtaskDraft(e.target.value)}
-            placeholder="np. Rozgrzewka"
-            className="h-12 flex-1 rounded-2xl border border-input bg-elevated px-4 text-sm outline-none focus:border-primary"
-          />
-          <button
-            onClick={() => {
-              if (!subtaskDraft.trim()) return;
-              setSubtasks((p) => [...p, subtaskDraft.trim()]);
-              setSubtaskDraft("");
-            }}
-            className="flex h-12 w-12 items-center justify-center rounded-2xl bg-secondary"
-          >
-            <Plus className="h-5 w-5" />
-          </button>
-        </div>
-        {subtasks.length > 0 ? (
-          <ul className="mb-4 flex flex-col gap-1">
-            {subtasks.map((s, idx) => (
-              <li
-                key={`${s}-${idx}`}
-                className="flex items-center justify-between rounded-xl bg-elevated px-4 py-2.5 text-sm"
-              >
-                {s}
-                <button onClick={() => setSubtasks((p) => p.filter((_, i) => i !== idx))}>
-                  <X className="h-4 w-4 text-muted-foreground" />
-                </button>
-              </li>
-            ))}
-          </ul>
-        ) : null}
-
-        <button
-          disabled={!title.trim() || weekdays.length === 0 || saving}
-          onClick={() =>
-            onSave({
-              title: title.trim(),
-              block,
-              priority,
-              estimatedMinutes: minutes,
-              weekdays,
-              subtasks,
-            })
-          }
-          className="accent-gradient mb-4 h-16 w-full rounded-3xl text-lg font-bold text-primary-foreground transition-opacity disabled:opacity-40"
-        >
-          {saving ? "Zapisywanie…" : isEdit ? "Zapisz zmiany" : "Zapisz rutynę"}
-        </button>
+          );
+        })}
       </div>
-    </div>
+
+      <PriorityPicker value={priority} onChange={setPriority} />
+      <SubtaskEditor subtasks={subtasks} setSubtasks={setSubtasks} placeholder="np. Rozgrzewka" />
+
+      <button
+        disabled={!title.trim() || weekdays.length === 0 || saving}
+        onClick={() => onSave({ title: title.trim(), priority, weekdays, subtasks })}
+        className="accent-gradient mb-4 h-16 w-full rounded-3xl text-lg font-bold text-primary-foreground transition-opacity disabled:opacity-40"
+      >
+        {saving ? "Zapisywanie…" : isEdit ? "Zapisz zmiany" : "Zapisz rutynę"}
+      </button>
+    </Sheet>
   );
 }

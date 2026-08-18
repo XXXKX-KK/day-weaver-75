@@ -5,7 +5,8 @@ import { useAuth } from "@/lib/auth";
 import { Blocker, isNativeBlocker } from "@/lib/blocker";
 import { xpValueForItem, shareForSubtask } from "@/lib/gamification";
 import type { ProfileRow } from "@/lib/profile";
-import { BLOCK_ORDER, type DayBlock, type Priority } from "@/lib/store";
+import { reorderByIds } from "@/lib/reorder";
+import type { DayBlock, Priority } from "@/lib/store";
 
 /** day_item_subtasks row (per-day copy of a subtask; has its own done-state). */
 export type DayItemSubtaskRow = {
@@ -64,16 +65,15 @@ const DAY_ITEM_COLUMNS =
   "id, source_type, day_block, position, status, title, description, estimated_minutes, priority, xp_value, xp_awarded, day_item_subtasks(id, title, position, is_done)";
 
 function sortItems(items: DayItemRow[]): DayItemRow[] {
-  return [...items]
-    .map((i) => ({
-      ...i,
-      day_item_subtasks: [...(i.day_item_subtasks ?? [])].sort((a, b) => a.position - b.position),
-    }))
-    .sort((a, b) => {
-      const blockDiff = BLOCK_ORDER.indexOf(a.day_block) - BLOCK_ORDER.indexOf(b.day_block);
-      if (blockDiff !== 0) return blockDiff;
-      return a.position - b.position;
-    });
+  return (
+    [...items]
+      .map((i) => ({
+        ...i,
+        day_item_subtasks: [...(i.day_item_subtasks ?? [])].sort((a, b) => a.position - b.position),
+      }))
+      // Manual order: a single position sequence across the whole day (no blocks).
+      .sort((a, b) => a.position - b.position)
+  );
 }
 
 export function useToday() {
@@ -349,6 +349,33 @@ export function useCompleteDay() {
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max);
+}
+
+/** Persist a new manual order of day items (ids top-to-bottom). Optimistic on
+ *  ['today']; this is the order the overlay walks with "Nie teraz". */
+export function useReorderDayItems() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (orderedIds: string[]) => {
+      await Promise.all(
+        orderedIds.map(async (id, position) => {
+          const { error } = await supabase.from("day_items").update({ position }).eq("id", id);
+          if (error) throw error;
+        }),
+      );
+    },
+    onMutate: async (orderedIds) => {
+      await queryClient.cancelQueries({ queryKey: TODAY_KEY });
+      const previous = queryClient.getQueriesData<TodayData>({ queryKey: TODAY_KEY });
+      queryClient.setQueriesData<TodayData>({ queryKey: TODAY_KEY }, (old) =>
+        old ? { ...old, items: reorderByIds(old.items, orderedIds) } : old,
+      );
+      return { previous };
+    },
+    onError: (_err, _ids, ctx) =>
+      ctx?.previous.forEach(([key, data]) => queryClient.setQueryData(key, data)),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: TODAY_KEY }),
+  });
 }
 
 /**

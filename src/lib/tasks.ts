@@ -1,7 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth";
-import type { DayBlock, Priority } from "@/lib/store";
+import { reorderByIds } from "@/lib/reorder";
+import type { Priority } from "@/lib/store";
 
 /** A task row (tasks table) with its subtasks (task_subtasks). */
 export type TaskSubtaskRow = {
@@ -15,9 +16,9 @@ export type TaskRow = {
   id: string;
   title: string;
   description: string | null;
-  day_block: DayBlock;
   priority: Priority;
-  estimated_minutes: number;
+  /** Manual order (drag-and-drop). Nulls sort last. */
+  position: number | null;
   status: "open" | "done";
   scheduled_date: string | null;
   completed_at: string | null;
@@ -25,19 +26,16 @@ export type TaskRow = {
   task_subtasks: TaskSubtaskRow[];
 };
 
-/** Payload from the task form (same shape the in-memory store used). */
+/** Payload from the task form. Day block + estimated time were dropped when the
+ *  model moved to manual ordering. */
 export type NewTaskInput = {
   title: string;
   description?: string | undefined;
-  block: DayBlock;
   priority: Priority;
-  estimatedMinutes: number;
   subtasks: string[];
 };
 
 const TASKS_KEY = ["tasks"] as const;
-
-const PRIORITY_WEIGHT: Record<Priority, number> = { high: 0, normal: 1, low: 2 };
 
 /** Local (Europe/Warsaw on device) YYYY-MM-DD — avoids UTC day shift. */
 function todayLocalISO(): string {
@@ -51,11 +49,11 @@ function sortTasks(rows: TaskRow[]): TaskRow[] {
       task_subtasks: [...(t.task_subtasks ?? [])].sort((a, b) => a.position - b.position),
     }))
     .sort((a, b) => {
-      // Open before done, then by priority, then newest first.
-      if (a.status !== b.status) return a.status === "open" ? -1 : 1;
-      if (a.priority !== b.priority)
-        return PRIORITY_WEIGHT[a.priority] - PRIORITY_WEIGHT[b.priority];
-      return b.created_at.localeCompare(a.created_at);
+      // Manual order: by position (nulls last), then oldest first as tie-break.
+      const pa = a.position ?? Number.POSITIVE_INFINITY;
+      const pb = b.position ?? Number.POSITIVE_INFINITY;
+      if (pa !== pb) return pa - pb;
+      return a.created_at.localeCompare(b.created_at);
     });
 }
 
@@ -68,12 +66,23 @@ export function useTasks() {
       const { data, error } = await supabase
         .from("tasks")
         .select(
-          "id, title, description, day_block, priority, estimated_minutes, status, scheduled_date, completed_at, created_at, task_subtasks(id, title, position, is_done)",
+          "id, title, description, priority, position, status, scheduled_date, completed_at, created_at, task_subtasks(id, title, position, is_done)",
         );
       if (error) throw error;
       return sortTasks((data ?? []) as TaskRow[]);
     },
   });
+}
+
+/** Next position for a new row = current max + 1 (lands at the end). */
+async function nextTaskPosition(): Promise<number> {
+  const { data } = await supabase
+    .from("tasks")
+    .select("position")
+    .order("position", { ascending: false, nullsFirst: false })
+    .limit(1)
+    .maybeSingle();
+  return ((data?.position as number | null) ?? -1) + 1;
 }
 
 export function useAddTask() {
@@ -86,9 +95,8 @@ export function useAddTask() {
         .insert({
           title: input.title,
           description: input.description ?? null,
-          day_block: input.block,
           priority: input.priority,
-          estimated_minutes: input.estimatedMinutes,
+          position: await nextTaskPosition(),
           status: "open",
           scheduled_date: todayLocalISO(),
         })
@@ -147,5 +155,31 @@ export function useDeleteTask() {
       if (error) throw error;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: TASKS_KEY }),
+  });
+}
+
+/** Persist a new manual order (task ids top-to-bottom). Optimistic. */
+export function useReorderTasks() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (orderedIds: string[]) => {
+      await Promise.all(
+        orderedIds.map(async (id, position) => {
+          const { error } = await supabase.from("tasks").update({ position }).eq("id", id);
+          if (error) throw error;
+        }),
+      );
+    },
+    onMutate: async (orderedIds) => {
+      await queryClient.cancelQueries({ queryKey: TASKS_KEY });
+      const previous = queryClient.getQueriesData<TaskRow[]>({ queryKey: TASKS_KEY });
+      queryClient.setQueriesData<TaskRow[]>({ queryKey: TASKS_KEY }, (old) =>
+        old ? reorderByIds(old, orderedIds) : old,
+      );
+      return { previous };
+    },
+    onError: (_err, _ids, ctx) =>
+      ctx?.previous.forEach(([key, data]) => queryClient.setQueryData(key, data)),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: TASKS_KEY }),
   });
 }

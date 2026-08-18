@@ -1,7 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowLeft, Check, Clock, Repeat, SkipForward } from "lucide-react";
+import { ArrowLeft, Check, Repeat, SkipForward } from "lucide-react";
 import { Screen, ScreenHeader, Card, ProgressBar, EmptyState } from "@/components/ui-kit";
-import { BLOCK_LABELS, BLOCK_ORDER } from "@/lib/store";
 import { useToday, type DayItemRow } from "@/lib/day";
 import { cn } from "@/lib/utils";
 
@@ -96,23 +95,10 @@ function DayPlan() {
           description="Na dziś nie ma aktywnych rutyn ani zaplanowanych zadań."
         />
       ) : (
-        <div className="flex flex-col gap-6">
-          {BLOCK_ORDER.map((block) => {
-            const blockItems = items.filter((i) => i.day_block === block);
-            if (blockItems.length === 0) return null;
-            return (
-              <section key={block}>
-                <h2 className="mb-3 px-1 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                  {BLOCK_LABELS[block]}
-                </h2>
-                <div className="flex flex-col gap-2">
-                  {blockItems.map((item) => (
-                    <PlanItem key={item.id} item={item} />
-                  ))}
-                </div>
-              </section>
-            );
-          })}
+        <div className="flex flex-col gap-2">
+          {items.map((item) => (
+            <PlanItem key={item.id} item={item} />
+          ))}
         </div>
       )}
 
@@ -148,14 +134,16 @@ function PlanItem({ item }: { item: DayItemRow }) {
         >
           {item.title}
         </span>
-        <span className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
-          {item.source_type === "routine" ? <Repeat className="h-3 w-3" /> : null}
-          <Clock className="h-3 w-3" />
-          {item.estimated_minutes ?? 0} min
-          {item.day_item_subtasks.length > 0
-            ? ` · ${doneSubtasks}/${item.day_item_subtasks.length}`
-            : ""}
-        </span>
+        {item.source_type === "routine" || item.day_item_subtasks.length > 0 ? (
+          <span className="mt-0.5 flex items-center gap-1.5 text-xs text-muted-foreground">
+            {item.source_type === "routine" ? <Repeat className="h-3 w-3" /> : null}
+            {item.day_item_subtasks.length > 0 ? (
+              <span>
+                {doneSubtasks}/{item.day_item_subtasks.length}
+              </span>
+            ) : null}
+          </span>
+        ) : null}
       </span>
       {item.priority === "high" ? <span className="h-2 w-2 rounded-full bg-primary" /> : null}
     </div>

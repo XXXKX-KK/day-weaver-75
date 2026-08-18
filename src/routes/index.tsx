@@ -1,16 +1,17 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Check, Clock, ListChecks, Play, Repeat, SkipForward } from "lucide-react";
+import { Check, ListChecks, Play, Repeat, SkipForward } from "lucide-react";
 import { Screen, ScreenHeader, Card, ProgressBar, EmptyState } from "@/components/ui-kit";
-import { BLOCK_LABELS, BLOCK_ORDER } from "@/lib/store";
 import {
   useToday,
   useStartDay,
   useSetItemStatus,
   useToggleDayItemSubtask,
   useCompleteDay,
+  useReorderDayItems,
   type DayItemRow,
 } from "@/lib/day";
 import { XpBar } from "@/components/xp-bar";
+import { SortableList } from "@/components/sortable-list";
 import { useRoutines } from "@/lib/routines";
 import { useTasks } from "@/lib/tasks";
 import { cn } from "@/lib/utils";
@@ -50,6 +51,7 @@ function Today() {
   const { data: today, isLoading, isError, refetch } = useToday();
   const startDay = useStartDay();
   const completeDay = useCompleteDay();
+  const reorderDayItems = useReorderDayItems();
 
   if (isLoading) {
     return (
@@ -162,24 +164,15 @@ function Today() {
         />
       ) : (
         <>
-          <div className="flex flex-col gap-6">
-            {BLOCK_ORDER.map((block) => {
-              const blockItems = items.filter((i) => i.day_block === block);
-              if (blockItems.length === 0) return null;
-              return (
-                <section key={block}>
-                  <h2 className="mb-3 px-1 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                    {BLOCK_LABELS[block]}
-                  </h2>
-                  <div className="flex flex-col gap-2">
-                    {blockItems.map((item) => (
-                      <DayItemCard key={item.id} item={item} />
-                    ))}
-                  </div>
-                </section>
-              );
-            })}
-          </div>
+          <SortableList
+            items={items}
+            onReorder={(ids) =>
+              reorderDayItems.mutate(ids, {
+                onError: () => toast.error("Nie udało się zapisać kolejności."),
+              })
+            }
+            renderItem={(item) => <DayItemCard item={item} />}
+          />
 
           <button
             onClick={() => {
@@ -237,14 +230,16 @@ function DayItemCard({ item }: { item: DayItemRow }) {
           >
             {item.title}
           </span>
-          <span className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
-            {item.source_type === "routine" ? <Repeat className="h-3 w-3" /> : null}
-            <Clock className="h-3 w-3" />
-            {item.estimated_minutes ?? 0} min
-            {item.day_item_subtasks.length > 0
-              ? ` · ${doneSubtasks}/${item.day_item_subtasks.length}`
-              : ""}
-          </span>
+          {item.source_type === "routine" || item.day_item_subtasks.length > 0 ? (
+            <span className="mt-0.5 flex items-center gap-1.5 text-xs text-muted-foreground">
+              {item.source_type === "routine" ? <Repeat className="h-3 w-3" /> : null}
+              {item.day_item_subtasks.length > 0 ? (
+                <span>
+                  {doneSubtasks}/{item.day_item_subtasks.length}
+                </span>
+              ) : null}
+            </span>
+          ) : null}
         </span>
         {item.priority === "high" ? <span className="h-2 w-2 rounded-full bg-primary" /> : null}
       </button>
@@ -293,19 +288,15 @@ function NotStarted({ starting, onStart }: { starting: boolean; onStart: () => v
 
   const plannedRoutines = todaysRoutines.length;
   const plannedTasks = openTasks.length;
-  const minutes =
-    todaysRoutines.reduce((s, r) => s + (r.estimated_minutes ?? 0), 0) +
-    openTasks.reduce((s, t) => s + (t.estimated_minutes ?? 0), 0);
 
   return (
     <Screen>
       <XpBar />
       <ScreenHeader eyebrow={dateLabel()} title="Gotowy na dziś?" />
       <Card className="flex flex-col gap-6 py-8">
-        <div className="grid grid-cols-3 gap-3 text-center">
-          <Stat value={plannedRoutines} label="Rutyny" />
+        <div className="grid grid-cols-2 gap-3 text-center">
+          <Stat value={plannedRoutines} label="Rutyny na dziś" />
           <Stat value={plannedTasks} label="Zadania" />
-          <Stat value={`${Math.round(minutes / 60)}h`} label="Czas" />
         </div>
         <p className="text-center text-sm text-muted-foreground">
           Poprowadzę Cię przez dzień krok po kroku — z rutyn na dziś i zaplanowanych zadań.
