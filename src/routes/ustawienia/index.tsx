@@ -1,11 +1,27 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Bell, ChevronRight, Clock, LogOut, Palette, ShieldCheck, User } from "lucide-react";
+import {
+  Bell,
+  BellRing,
+  ChevronRight,
+  Clock,
+  LogOut,
+  Palette,
+  ShieldCheck,
+  User,
+} from "lucide-react";
 import { Screen, ScreenHeader, Card } from "@/components/ui-kit";
 import { Switch } from "@/components/ui/switch";
 import { useStore } from "@/lib/store";
 import { useAuth } from "@/lib/auth";
 import { useProfile, useUpdateProfile } from "@/lib/profile";
+import { useToday } from "@/lib/day";
+import {
+  areNotificationsEnabled,
+  cancelReminders,
+  refreshNotifications,
+  setNotificationsEnabledLocal,
+} from "@/lib/notifications";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/ustawienia/")({
@@ -34,6 +50,7 @@ function SettingsScreen() {
   const { resetDay } = useStore();
   const { user, signOut } = useAuth();
   const { data: profile, isLoading, isError, refetch } = useProfile();
+  const { data: today } = useToday();
   const updateProfile = useUpdateProfile();
 
   // Local mirror for the time inputs, seeded from the profile.
@@ -45,6 +62,29 @@ function SettingsScreen() {
       setDayEnd(toTimeInput(profile.day_end_time));
     }
   }, [profile]);
+
+  // Notifications toggle — persisted locally (default on), seeded on mount.
+  const [notifEnabled, setNotifEnabled] = useState(true);
+  useEffect(() => {
+    setNotifEnabled(areNotificationsEnabled());
+  }, []);
+
+  const toggleNotifications = (enabled: boolean) => {
+    setNotifEnabled(enabled);
+    setNotificationsEnabledLocal(enabled);
+    if (!enabled) {
+      void cancelReminders();
+      return;
+    }
+    void refreshNotifications({
+      dayStartTime: profile?.day_start_time ?? null,
+      dayEndTime: profile?.day_end_time ?? null,
+      undoneCount:
+        today?.status === "in_progress" ? today.items.filter((i) => i.status !== "done").length : 0,
+      streak: profile?.streak_count ?? 0,
+      dayCompleted: today?.status === "completed",
+    });
+  };
 
   const save = (patch: Parameters<typeof updateProfile.mutate>[0]) =>
     updateProfile.mutate(patch, {
@@ -136,6 +176,19 @@ function SettingsScreen() {
 
       {/* TODO dzień: godziny są tu tylko zapisywane do profilu; podpięcie pod
           generowanie dnia (startDay/buildDay) to osobny brief. */}
+
+      <h2 className="mb-3 px-1 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+        Powiadomienia
+      </h2>
+      <Card className="mb-6 p-0">
+        <div className="flex items-center justify-between px-5 py-4">
+          <span className="flex items-center gap-3 text-sm">
+            <BellRing className="h-4 w-4 text-muted-foreground" />
+            Przypomnienia dnia
+          </span>
+          <Switch checked={notifEnabled} onCheckedChange={toggleNotifications} />
+        </div>
+      </Card>
 
       <h2 className="mb-3 px-1 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
         Uprawnienia Androida

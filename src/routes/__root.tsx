@@ -16,6 +16,7 @@ import { AuthProvider, useAuth } from "@/lib/auth";
 import { AuthScreen } from "@/components/auth-screen";
 import { BlockedAppsSync } from "@/components/blocked-apps-sync";
 import { CurrentTaskSync } from "@/components/current-task-sync";
+import { NotificationsSync } from "@/components/notifications-sync";
 import { StoreProvider } from "@/lib/store";
 import { BottomNav } from "@/components/bottom-nav";
 import { Toaster } from "@/components/ui/sonner";
@@ -179,6 +180,8 @@ function AuthGate({ children }: { children: ReactNode }) {
       <BlockedAppsSync />
       {/* Mirrors the day's first not-done item into current_task for the overlay. */}
       <CurrentTaskSync />
+      {/* Keeps on-device daily reminders in step with the profile + day state. */}
+      <NotificationsSync />
       {children}
     </>
   );
