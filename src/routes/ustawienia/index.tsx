@@ -219,7 +219,7 @@ function SettingsScreen() {
         <LogOut className="h-4 w-4" />
         Wyloguj się
       </button>
-      <p className="mt-6 text-center text-xs text-muted-foreground">Wersja 0.1 · Faza 1</p>
+      <p className="mt-6 text-center text-xs text-muted-foreground">TENAX · Wersja 0.1</p>
     </Screen>
   );
 }

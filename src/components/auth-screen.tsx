@@ -1,8 +1,9 @@
 import { useState, type FormEvent } from "react";
-import { Eye, EyeOff, ShieldCheck } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
+import { TenaxLogo } from "@/components/tenax-logo";
 
 type Mode = "signin" | "signup";
 
@@ -63,10 +64,8 @@ export function AuthScreen() {
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-[26rem] flex-col justify-center px-6 py-10">
       <div className="mb-8 flex flex-col items-center text-center">
-        <span className="accent-gradient accent-glow mb-4 flex h-14 w-14 items-center justify-center rounded-3xl">
-          <ShieldCheck className="h-7 w-7 text-primary-foreground" />
-        </span>
-        <h1 className="text-2xl font-bold leading-tight">Dzień Lepszy</h1>
+        <TenaxLogo size={56} className="mb-4 text-primary" />
+        <h1 className="text-2xl font-bold leading-tight tracking-wide">TENAX</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           {mode === "signin" ? "Zaloguj się, aby kontynuować" : "Załóż konto, aby zacząć"}
         </p>

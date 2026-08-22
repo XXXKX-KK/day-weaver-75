@@ -1,4 +1,4 @@
-# Dzień Lepszy
+# TENAX
 
 ## KONTEKST
 

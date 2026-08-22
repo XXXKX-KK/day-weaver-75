@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Dzień Lepszy</string>
-    <string name="title_activity_main">Dzień Lepszy</string>
+    <string name="app_name">TENAX</string>
+    <string name="title_activity_main">TENAX</string>
     <string name="package_name">pl.dzienlepszy.app</string>
     <string name="custom_url_scheme">pl.dzienlepszy.app</string>
     <string name="blocker_service_description">Wykrywa otwarcie blokowanych aplikacji i pokazuje ekran skupienia, gdy blokada jest włączona.</string>
