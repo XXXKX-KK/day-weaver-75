@@ -22,14 +22,14 @@ export function TenaxLogo({ className, size = 56 }: { className?: string; size?:
         aria-hidden="true"
       >
         <path
-          d="M32 12L18 21v10c0 9.6 6.7 18.5 14 21.3 7.3-2.8 14-11.7 14-21.3V21L32 12Z"
+          d="M32 14L16 22v9c0 8 6.4 15.5 16 17.8 9.6-2.3 16-9.8 16-17.8v-9L32 14Z"
           stroke="currentColor"
           strokeWidth="3"
           strokeLinejoin="round"
           strokeLinecap="round"
         />
         <path
-          d="M24.5 33l5 5L38 27"
+          d="M24 33l5.5 5L39 27"
           stroke="currentColor"
           strokeWidth="4"
           strokeLinecap="round"
