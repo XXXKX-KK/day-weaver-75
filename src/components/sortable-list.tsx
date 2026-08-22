@@ -19,6 +19,7 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState, useCallback, useRef } from "react";
 
@@ -49,22 +50,28 @@ export function SortableList<T extends Identifiable>({
   );
   const ids = items.map((i) => i.id);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [hasMoved, setHasMoved] = useState(false);
   const movedRef = useRef(false);
 
   const handleDragStart = useCallback((event: DragStartEvent) => {
     setActiveId(String(event.active.id));
+    setHasMoved(false);
     movedRef.current = false;
     vibrate();
   }, []);
 
   const handleDragMove = useCallback((_event: DragMoveEvent) => {
-    movedRef.current = true;
+    if (!movedRef.current) {
+      movedRef.current = true;
+      setHasMoved(true);
+    }
   }, []);
 
   const handleDragEnd = useCallback(
     (event: DragEndEvent) => {
       const draggedId = activeId;
       setActiveId(null);
+      setHasMoved(false);
 
       if (!movedRef.current && draggedId && onLongPress) {
         onLongPress(draggedId);
@@ -81,7 +88,10 @@ export function SortableList<T extends Identifiable>({
     [ids, onReorder, activeId, onLongPress],
   );
 
-  const handleDragCancel = useCallback(() => setActiveId(null), []);
+  const handleDragCancel = useCallback(() => {
+    setActiveId(null);
+    setHasMoved(false);
+  }, []);
 
   return (
     <DndContext
@@ -96,7 +106,12 @@ export function SortableList<T extends Identifiable>({
       <SortableContext items={ids} strategy={verticalListSortingStrategy}>
         <div className={cn("flex flex-col gap-3", className)}>
           {items.map((item) => (
-            <SortableRow key={item.id} id={item.id} isDragActive={activeId === item.id}>
+            <SortableRow
+              key={item.id}
+              id={item.id}
+              isDragActive={activeId === item.id}
+              showTrash={activeId === item.id && !hasMoved && !!onLongPress}
+            >
               {renderItem(item)}
             </SortableRow>
           ))}
@@ -109,10 +124,12 @@ export function SortableList<T extends Identifiable>({
 function SortableRow({
   id,
   isDragActive,
+  showTrash,
   children,
 }: {
   id: string;
   isDragActive: boolean;
+  showTrash: boolean;
   children: ReactNode;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
@@ -136,6 +153,11 @@ function SortableRow({
       {...listeners}
     >
       {children}
+      {showTrash ? (
+        <div className="absolute right-3 top-1/2 flex -translate-y-1/2 items-center justify-center rounded-full bg-destructive/15 p-2 animate-in fade-in zoom-in-75 duration-200">
+          <Trash2 className="h-5 w-5 text-destructive" />
+        </div>
+      ) : null}
     </div>
   );
 }
