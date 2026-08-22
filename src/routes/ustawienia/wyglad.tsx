@@ -16,16 +16,49 @@ export const Route = createFileRoute("/ustawienia/wyglad")({
   component: AppearanceScreen,
 });
 
-const MODES: { key: ThemeMode; label: string; icon: typeof Moon }[] = [
-  { key: "dark", label: "Ciemny", icon: Moon },
-  { key: "light", label: "Jasny", icon: Sun },
-];
-
 const LANGUAGES = [
   { code: "pl", label: "Polski", flag: "\u{1F1F5}\u{1F1F1}", active: true },
   { code: "en", label: "English", flag: "\u{1F1EC}\u{1F1E7}", active: false },
   { code: "uk", label: "Українська", flag: "\u{1F1FA}\u{1F1E6}", active: false },
 ];
+
+function ThemePreview({ mode, active }: { mode: ThemeMode; active: boolean }) {
+  const isDark = mode === "dark";
+  return (
+    <button
+      className={cn(
+        "flex flex-col overflow-hidden rounded-[20px] border-2 transition-colors",
+        active ? "border-primary" : "border-border",
+      )}
+    >
+      {/* Mini UI mockup */}
+      <div className={cn("flex flex-col gap-2 px-4 pb-3 pt-4", isDark ? "bg-[#111]" : "bg-[#f0f0f2]")}>
+        <div className={cn("h-2 w-3/4 rounded-full", isDark ? "bg-white/20" : "bg-black/15")} />
+        <div className={cn("h-2 w-1/2 rounded-full", isDark ? "bg-white/10" : "bg-black/8")} />
+        <div className="mt-1 flex gap-2">
+          <div className="h-6 flex-1 rounded-lg bg-primary/60" />
+          <div className={cn("h-6 flex-1 rounded-lg", isDark ? "bg-white/8" : "bg-black/6")} />
+        </div>
+      </div>
+      {/* Label bar */}
+      <div
+        className={cn(
+          "flex items-center justify-center gap-2 px-3 py-3",
+          isDark ? "bg-[#181818]" : "bg-white",
+        )}
+      >
+        {isDark ? (
+          <Moon className={cn("h-4 w-4", isDark ? "text-white" : "text-black")} />
+        ) : (
+          <Sun className={cn("h-4 w-4", isDark ? "text-white" : "text-black")} />
+        )}
+        <span className={cn("text-sm font-semibold", isDark ? "text-white" : "text-black")}>
+          {isDark ? "Ciemny" : "Jasny"}
+        </span>
+      </div>
+    </button>
+  );
+}
 
 function AppearanceScreen() {
   const [accent, setAccent] = useState<AccentKey>(() => readAccent());
@@ -59,6 +92,18 @@ function AppearanceScreen() {
         </div>
       </div>
 
+      {/* ── TRYB (dark / light) ── */}
+      <h2 className="mb-3 px-1 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+        Tryb
+      </h2>
+      <div className="mb-6 grid grid-cols-2 gap-3">
+        {(["dark", "light"] as const).map((m) => (
+          <div key={m} onClick={() => chooseMode(m)}>
+            <ThemePreview mode={m} active={m === mode} />
+          </div>
+        ))}
+      </div>
+
       {/* ── MOTYW (accent colors) ── */}
       <h2 className="mb-3 px-1 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
         Motyw
@@ -80,38 +125,6 @@ function AppearanceScreen() {
                 style={{ backgroundColor: a.swatch }}
               />
               <span className="flex-1 text-sm font-semibold">{a.label}</span>
-              {active ? (
-                <span className="accent-gradient flex h-6 w-6 items-center justify-center rounded-full">
-                  <Check className="h-4 w-4 text-primary-foreground" />
-                </span>
-              ) : (
-                <span className="h-6 w-6 rounded-full border border-input" />
-              )}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* ── TRYB (dark / light) ── */}
-      <h2 className="mb-3 px-1 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-        Tryb
-      </h2>
-      <div className="mb-6 flex flex-col gap-2">
-        {MODES.map((m) => {
-          const active = m.key === mode;
-          return (
-            <button
-              key={m.key}
-              onClick={() => chooseMode(m.key)}
-              className={cn(
-                "card-surface flex items-center gap-4 px-4 py-4 text-left transition-colors",
-                active && "border-primary/50",
-              )}
-            >
-              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-elevated">
-                <m.icon className="h-4 w-4 text-muted-foreground" />
-              </span>
-              <span className="flex-1 text-sm font-semibold">{m.label}</span>
               {active ? (
                 <span className="accent-gradient flex h-6 w-6 items-center justify-center rounded-full">
                   <Check className="h-4 w-4 text-primary-foreground" />
