@@ -171,8 +171,8 @@ function SortableRow({
       ref={setNodeRef}
       style={style}
       className={cn(
-        "touch-none rounded-2xl transition-shadow duration-200",
-        isDragActive && !inSelectMode && "ring-2 ring-primary/50 shadow-[0_0_18px_-4px] shadow-primary/40",
+        "rounded-2xl transition-shadow duration-200",
+        isDragActive && !inSelectMode && "touch-none ring-2 ring-primary/50 shadow-[0_0_18px_-4px] shadow-primary/40",
         selected && "ring-2 ring-destructive/60",
       )}
       onClick={inSelectMode ? onTap : undefined}

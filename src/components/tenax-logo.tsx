@@ -9,29 +9,29 @@ export function TenaxLogo({ className, size = 56 }: { className?: string; size?:
   return (
     <div
       className={cn(
-        "flex items-center justify-center rounded-[22%] bg-[#161618]",
+        "flex items-center justify-center rounded-[22%] bg-black",
         className,
       )}
       style={{ width: size, height: size }}
     >
       <svg
-        viewBox="0 0 64 64"
+        viewBox="0 0 24 24"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
         style={{ width: size * 0.6, height: size * 0.6 }}
         aria-hidden="true"
       >
         <path
-          d="M32 14L16 22v9c0 8 6.4 15.5 16 17.8 9.6-2.3 16-9.8 16-17.8v-9L32 14Z"
+          d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 .5-.87l7.5-4.5a1 1 0 0 1 1 0l7.5 4.5A1 1 0 0 1 20 6z"
           stroke="currentColor"
-          strokeWidth="3"
+          strokeWidth="2"
           strokeLinejoin="round"
           strokeLinecap="round"
         />
         <path
-          d="M24 33l5.5 5L39 27"
+          d="m9 12 2 2 4-4"
           stroke="currentColor"
-          strokeWidth="4"
+          strokeWidth="2"
           strokeLinecap="round"
           strokeLinejoin="round"
         />
