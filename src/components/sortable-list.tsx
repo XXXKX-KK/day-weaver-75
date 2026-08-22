@@ -8,6 +8,7 @@ import {
   useSensors,
   type DragEndEvent,
   type DragStartEvent,
+  type DragMoveEvent,
 } from "@dnd-kit/core";
 import { restrictToVerticalAxis, restrictToParentElement } from "@dnd-kit/modifiers";
 import {
@@ -19,7 +20,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { cn } from "@/lib/utils";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 
 type Identifiable = { id: string };
 
@@ -29,18 +30,16 @@ function vibrate() {
   } catch {}
 }
 
-/**
- * Vertical drag-to-reorder list. Long-press to grab (TouchSensor with delay),
- * vibration + accent glow while dragging, release to drop.
- */
 export function SortableList<T extends Identifiable>({
   items,
   onReorder,
+  onLongPress,
   renderItem,
   className,
 }: {
   items: T[];
   onReorder: (orderedIds: string[]) => void;
+  onLongPress?: (id: string) => void;
   renderItem: (item: T) => ReactNode;
   className?: string;
 }) {
@@ -50,15 +49,28 @@ export function SortableList<T extends Identifiable>({
   );
   const ids = items.map((i) => i.id);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const movedRef = useRef(false);
 
   const handleDragStart = useCallback((event: DragStartEvent) => {
     setActiveId(String(event.active.id));
+    movedRef.current = false;
     vibrate();
+  }, []);
+
+  const handleDragMove = useCallback((_event: DragMoveEvent) => {
+    movedRef.current = true;
   }, []);
 
   const handleDragEnd = useCallback(
     (event: DragEndEvent) => {
+      const draggedId = activeId;
       setActiveId(null);
+
+      if (!movedRef.current && draggedId && onLongPress) {
+        onLongPress(draggedId);
+        return;
+      }
+
       const { active, over } = event;
       if (!over || active.id === over.id) return;
       const oldIndex = ids.indexOf(String(active.id));
@@ -66,7 +78,7 @@ export function SortableList<T extends Identifiable>({
       if (oldIndex < 0 || newIndex < 0) return;
       onReorder(arrayMove(ids, oldIndex, newIndex));
     },
-    [ids, onReorder],
+    [ids, onReorder, activeId, onLongPress],
   );
 
   const handleDragCancel = useCallback(() => setActiveId(null), []);
@@ -77,6 +89,7 @@ export function SortableList<T extends Identifiable>({
       collisionDetection={closestCenter}
       modifiers={[restrictToVerticalAxis, restrictToParentElement]}
       onDragStart={handleDragStart}
+      onDragMove={handleDragMove}
       onDragEnd={handleDragEnd}
       onDragCancel={handleDragCancel}
     >

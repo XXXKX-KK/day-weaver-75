@@ -1,6 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { Check, Plus, Repeat, Trash2, X } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Screen, ScreenHeader, Card, EmptyState } from "@/components/ui-kit";
 import { PRIORITY_LABELS, type Priority } from "@/lib/store";
 import {
@@ -91,6 +101,27 @@ function TasksScreen() {
   const [formOpen, setFormOpen] = useState(false);
   const [routineFormOpen, setRoutineFormOpen] = useState(false);
   const [editingRoutine, setEditingRoutine] = useState<RoutineRow | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<{
+    type: "task" | "routine";
+    id: string;
+    title: string;
+  } | null>(null);
+
+  const handleConfirmDelete = () => {
+    if (!deleteConfirm) return;
+    if (deleteConfirm.type === "task") {
+      deleteTask.mutate(deleteConfirm.id, {
+        onSuccess: () => toast.success("Zadanie usunięte"),
+        onError: () => toast.error("Nie udało się usunąć zadania."),
+      });
+    } else {
+      deleteRoutine.mutate(deleteConfirm.id, {
+        onSuccess: () => toast.success("Rutyna usunięta"),
+        onError: () => toast.error("Nie udało się usunąć rutyny."),
+      });
+    }
+    setDeleteConfirm(null);
+  };
 
   return (
     <Screen>
@@ -129,16 +160,14 @@ function TasksScreen() {
                 onError: () => toast.error("Nie udało się zapisać kolejności."),
               })
             }
+            onLongPress={(id) => {
+              const t = tasks.find((x) => x.id === id);
+              if (t) setDeleteConfirm({ type: "task", id, title: t.title });
+            }}
             renderItem={(t) => (
               <TaskCard
                 task={t}
                 onToggle={() => toggleDone.mutate({ id: t.id, status: t.status })}
-                onDelete={() =>
-                  deleteTask.mutate(t.id, {
-                    onSuccess: () => toast.success("Zadanie usunięte"),
-                    onError: () => toast.error("Nie udało się usunąć zadania."),
-                  })
-                }
               />
             )}
           />
@@ -160,6 +189,10 @@ function TasksScreen() {
               onError: () => toast.error("Nie udało się zapisać kolejności."),
             })
           }
+          onLongPress={(id) => {
+            const r = routines.find((x) => x.id === id);
+            if (r) setDeleteConfirm({ type: "routine", id, title: r.title });
+          }}
           renderItem={(r) => (
             <RoutineCard
               routine={r}
@@ -169,12 +202,6 @@ function TasksScreen() {
                   { id: r.id, is_active: r.is_active },
                   { onError: () => toast.error("Nie udało się zmienić rutyny.") },
                 )
-              }
-              onDelete={() =>
-                deleteRoutine.mutate(r.id, {
-                  onSuccess: () => toast.success("Rutyna usunięta"),
-                  onError: () => toast.error("Nie udało się usunąć rutyny."),
-                })
               }
             />
           )}
@@ -230,7 +257,6 @@ function TasksScreen() {
           onClose={() => setEditingRoutine(null)}
           onSave={(routine) =>
             updateRoutine.mutate(
-              // Keep the existing description — the form doesn't edit it.
               {
                 id: editingRoutine.id,
                 ...routine,
@@ -247,6 +273,33 @@ function TasksScreen() {
           }
         />
       ) : null}
+
+      <AlertDialog open={!!deleteConfirm} onOpenChange={(o) => !o && setDeleteConfirm(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10">
+              <Trash2 className="h-5 w-5 text-destructive" />
+            </div>
+            <AlertDialogTitle className="text-center">
+              Czy na pewno chcesz usunąć?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-center">
+              {deleteConfirm
+                ? `„${deleteConfirm.title}" zostanie trwale usunięte.`
+                : ""}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-row gap-3">
+            <AlertDialogCancel className="flex-1">Anuluj</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              className="flex-1 bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Usuń
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Screen>
   );
 }
@@ -268,11 +321,9 @@ function RetryCard({ label, onRetry }: { label: string; onRetry: () => void }) {
 function TaskCard({
   task,
   onToggle,
-  onDelete,
 }: {
   task: TaskRow;
   onToggle: () => void;
-  onDelete: () => void;
 }) {
   const done = task.status === "done";
   return (
@@ -301,13 +352,6 @@ function TaskCard({
             Wysoki
           </span>
         ) : null}
-        <button
-          onClick={onDelete}
-          aria-label="Usuń zadanie"
-          className="shrink-0 text-muted-foreground transition-colors active:text-destructive"
-        >
-          <Trash2 className="h-4 w-4" />
-        </button>
       </div>
       {task.description ? (
         <p className="text-sm text-muted-foreground">{task.description}</p>
@@ -330,12 +374,10 @@ function RoutineCard({
   routine,
   onEdit,
   onToggle,
-  onDelete,
 }: {
   routine: RoutineRow;
   onEdit: () => void;
   onToggle: () => void;
-  onDelete: () => void;
 }) {
   return (
     <Card className="flex items-center gap-4 py-4">
@@ -364,16 +406,7 @@ function RoutineCard({
           </p>
         </div>
       </button>
-      <div className="flex shrink-0 items-center gap-3">
-        <Switch checked={routine.is_active} onCheckedChange={onToggle} />
-        <button
-          onClick={onDelete}
-          aria-label="Usuń rutynę"
-          className="text-muted-foreground transition-colors active:text-destructive"
-        >
-          <Trash2 className="h-4 w-4" />
-        </button>
-      </div>
+      <Switch checked={routine.is_active} onCheckedChange={onToggle} />
     </Card>
   );
 }
