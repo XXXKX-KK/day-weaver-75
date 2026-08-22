@@ -9,7 +9,7 @@ export function TenaxLogo({ className, size = 56 }: { className?: string; size?:
   return (
     <div
       className={cn(
-        "flex items-center justify-center rounded-[22%] bg-[#1C1D2E]",
+        "flex items-center justify-center rounded-[22%] bg-[#161618]",
         className,
       )}
       style={{ width: size, height: size }}
@@ -21,27 +21,19 @@ export function TenaxLogo({ className, size = 56 }: { className?: string; size?:
         style={{ width: size * 0.6, height: size * 0.6 }}
         aria-hidden="true"
       >
-        {/* Shield shape with integrated checkmark */}
-        <path
-          d="M32 4L8 16v16c0 14.4 10.24 27.84 24 32 13.76-4.16 24-17.6 24-32V16L32 4Z"
-          fill="currentColor"
-          opacity="0.15"
-        />
         <path
           d="M32 4L8 16v16c0 14.4 10.24 27.84 24 32 13.76-4.16 24-17.6 24-32V16L32 4Z"
           stroke="currentColor"
-          strokeWidth="2.5"
+          strokeWidth="3"
           strokeLinejoin="round"
-          fill="none"
+          strokeLinecap="round"
         />
-        {/* Checkmark integrated into the shield */}
         <path
           d="M20 33l8.5 8.5L44 24"
           stroke="currentColor"
           strokeWidth="4"
           strokeLinecap="round"
           strokeLinejoin="round"
-          fill="none"
         />
       </svg>
     </div>
