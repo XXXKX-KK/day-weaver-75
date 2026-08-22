@@ -12,6 +12,7 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { applyAccent, readAccent } from "@/lib/accent";
+import { applyTheme, readTheme } from "@/lib/theme";
 import { AuthProvider, useAuth } from "@/lib/auth";
 import { AuthScreen } from "@/components/auth-screen";
 import { BlockedAppsSync } from "@/components/blocked-apps-sync";
@@ -119,11 +120,11 @@ function RootShell({ children }: { children: ReactNode }) {
     <html lang="pl" className="dark">
       <head>
         <HeadContent />
-        {/* Apply the saved accent before first paint to avoid a color flash. */}
+        {/* Apply saved theme + accent before first paint to avoid a flash. */}
         <script
           dangerouslySetInnerHTML={{
             __html:
-              "try{var a=localStorage.getItem('dl-accent');if(a==='orange'||a==='pink'||a==='blue'||a==='green'){document.documentElement.setAttribute('data-accent',a)}}catch(e){}",
+              "try{var t=localStorage.getItem('dl-theme');if(t==='light'){document.documentElement.classList.remove('dark');document.documentElement.setAttribute('data-theme','light')}var a=localStorage.getItem('dl-accent');if(a==='orange'||a==='pink'||a==='blue'||a==='green'){document.documentElement.setAttribute('data-accent',a)}}catch(e){}",
           }}
         />
       </head>
@@ -138,8 +139,9 @@ function RootShell({ children }: { children: ReactNode }) {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
 
-  // Sync the accent on startup (also mirrors it into native prefs for the overlay).
+  // Sync the theme + accent on startup (also mirrors accent into native prefs).
   useEffect(() => {
+    applyTheme(readTheme());
     applyAccent(readAccent());
   }, []);
 
