@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useRef, useState } from "react";
-import { Calendar, Check, Plus, Repeat, Trash2, X } from "lucide-react";
+import { Calendar, Check, Clock, Plus, Repeat, Trash2, X } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -36,6 +36,7 @@ import { SortableList } from "@/components/sortable-list";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { scheduleTaskReminder, cancelTaskReminder } from "@/lib/notifications";
 
 /** ISO weekday order 1=Mon .. 7=Sun, with short PL labels. */
 const WEEKDAYS: { n: number; short: string }[] = [
@@ -110,8 +111,12 @@ function TasksScreen() {
   const handleConfirmDelete = () => {
     if (!deleteConfirm) return;
     if (deleteConfirm.type === "task") {
-      deleteTask.mutate(deleteConfirm.id, {
-        onSuccess: () => toast.success("Zadanie usunięte"),
+      const taskId = deleteConfirm.id;
+      deleteTask.mutate(taskId, {
+        onSuccess: () => {
+          toast.success("Zadanie usunięte");
+          void cancelTaskReminder(taskId);
+        },
         onError: () => toast.error("Nie udało się usunąć zadania."),
       });
     } else {
@@ -224,9 +229,17 @@ function TasksScreen() {
           onClose={() => setFormOpen(false)}
           onSave={(task) =>
             addTask.mutate(task, {
-              onSuccess: () => {
+              onSuccess: (taskId) => {
                 setFormOpen(false);
                 toast.success("Zadanie dodane");
+                if (task.scheduled_time && taskId) {
+                  void scheduleTaskReminder({
+                    id: taskId,
+                    title: task.title,
+                    scheduled_date: task.scheduled_date ?? todayLocalISO(),
+                    scheduled_time: task.scheduled_time,
+                  });
+                }
               },
               onError: () => toast.error("Nie udało się zapisać zadania."),
             })
@@ -546,28 +559,47 @@ function TaskForm({
   const [priority, setPriority] = useState<Priority>("normal");
   const [subtasks, setSubtasks] = useState<string[]>([]);
   const [scheduledDate, setScheduledDate] = useState(todayLocalISO());
+  const [scheduledTime, setScheduledTime] = useState("");
   const dateRef = useRef<HTMLInputElement>(null);
+  const timeRef = useRef<HTMLInputElement>(null);
 
   return (
     <Sheet
       title="Nowe zadanie"
       onClose={onClose}
       headerExtra={
-        <button
-          type="button"
-          onClick={() => dateRef.current?.showPicker?.()}
-          className="relative flex h-9 items-center gap-1.5 rounded-full bg-secondary px-3 text-xs font-semibold text-secondary-foreground"
-        >
-          <Calendar className="h-3.5 w-3.5" />
-          {formatDateShort(scheduledDate)}
-          <input
-            ref={dateRef}
-            type="date"
-            value={scheduledDate}
-            onChange={(e) => setScheduledDate(e.target.value || todayLocalISO())}
-            className="absolute inset-0 cursor-pointer opacity-0"
-          />
-        </button>
+        <>
+          <button
+            type="button"
+            onClick={() => dateRef.current?.showPicker?.()}
+            className="relative flex h-9 items-center gap-1.5 rounded-full bg-secondary px-3 text-xs font-semibold text-secondary-foreground"
+          >
+            <Calendar className="h-3.5 w-3.5" />
+            {formatDateShort(scheduledDate)}
+            <input
+              ref={dateRef}
+              type="date"
+              value={scheduledDate}
+              onChange={(e) => setScheduledDate(e.target.value || todayLocalISO())}
+              className="absolute inset-0 cursor-pointer opacity-0"
+            />
+          </button>
+          <button
+            type="button"
+            onClick={() => timeRef.current?.showPicker?.()}
+            className="relative flex h-9 items-center gap-1.5 rounded-full bg-secondary px-3 text-xs font-semibold text-secondary-foreground"
+          >
+            <Clock className="h-3.5 w-3.5" />
+            {scheduledTime || "Godz."}
+            <input
+              ref={timeRef}
+              type="time"
+              value={scheduledTime}
+              onChange={(e) => setScheduledTime(e.target.value)}
+              className="absolute inset-0 cursor-pointer opacity-0"
+            />
+          </button>
+        </>
       }
     >
       <label className="mb-1 block text-xs font-semibold text-muted-foreground">Tytuł</label>
@@ -584,7 +616,13 @@ function TaskForm({
       <button
         disabled={!title.trim() || saving}
         onClick={() =>
-          onSave({ title: title.trim(), priority, subtasks, scheduled_date: scheduledDate })
+          onSave({
+            title: title.trim(),
+            priority,
+            subtasks,
+            scheduled_date: scheduledDate,
+            scheduled_time: scheduledTime || undefined,
+          })
         }
         className="accent-gradient mb-4 h-16 w-full rounded-3xl text-lg font-bold text-primary-foreground transition-opacity disabled:opacity-40"
       >

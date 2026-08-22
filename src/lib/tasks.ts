@@ -21,6 +21,7 @@ export type TaskRow = {
   position: number | null;
   status: "open" | "done";
   scheduled_date: string | null;
+  scheduled_time: string | null;
   completed_at: string | null;
   created_at: string;
   task_subtasks: TaskSubtaskRow[];
@@ -33,7 +34,8 @@ export type NewTaskInput = {
   description?: string | undefined;
   priority: Priority;
   subtasks: string[];
-  scheduled_date?: string;
+  scheduled_date?: string | undefined;
+  scheduled_time?: string | undefined;
 };
 
 const TASKS_KEY = ["tasks"] as const;
@@ -67,7 +69,7 @@ export function useTasks() {
       const { data, error } = await supabase
         .from("tasks")
         .select(
-          "id, title, description, priority, position, status, scheduled_date, completed_at, created_at, task_subtasks(id, title, position, is_done)",
+          "id, title, description, priority, position, status, scheduled_date, scheduled_time, completed_at, created_at, task_subtasks(id, title, position, is_done)",
         );
       if (error) throw error;
       return sortTasks((data ?? []) as TaskRow[]);
@@ -100,6 +102,7 @@ export function useAddTask() {
           position: await nextTaskPosition(),
           status: "open",
           scheduled_date: input.scheduled_date ?? todayLocalISO(),
+          scheduled_time: input.scheduled_time ?? null,
         })
         .select("id")
         .single();
@@ -119,6 +122,8 @@ export function useAddTask() {
         );
         if (subError) throw subError;
       }
+
+      return task.id as string;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: TASKS_KEY }),
   });

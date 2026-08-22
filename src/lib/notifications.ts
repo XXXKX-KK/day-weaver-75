@@ -15,7 +15,9 @@ import { useToday } from "@/lib/day";
 
 const MORNING_ID = 1001;
 const EVENING_ID = 1002;
+const TASK_ID_BASE = 2000;
 const CHANNEL_ID = "dl-reminders";
+const TASK_CHANNEL_ID = "dl-task-reminders";
 
 /** localStorage flag for the Settings toggle (default on). */
 const ENABLED_KEY = "dl-notifications-enabled";
@@ -162,6 +164,75 @@ export async function refreshNotifications(state: NotificationState): Promise<vo
     }
   } catch (e) {
     console.error("refreshNotifications failed", e);
+  }
+}
+
+/** Stable numeric ID for a task UUID (offset to avoid collision with daily IDs). */
+function taskNotificationId(taskId: string): number {
+  let hash = 0;
+  for (let i = 0; i < taskId.length; i++) {
+    hash = ((hash << 5) - hash + taskId.charCodeAt(i)) | 0;
+  }
+  return (Math.abs(hash) % 1_000_000) + TASK_ID_BASE;
+}
+
+/**
+ * Schedule a one-shot notification 10 minutes before a task's scheduled time.
+ * No-op on web, when time is missing, or when the moment has already passed.
+ */
+export async function scheduleTaskReminder(task: {
+  id: string;
+  title: string;
+  scheduled_date: string;
+  scheduled_time: string;
+}): Promise<void> {
+  if (!isNative() || !areNotificationsEnabled()) return;
+  try {
+    const granted = await ensurePermission();
+    if (!granted) return;
+
+    await LocalNotifications.createChannel({
+      id: TASK_CHANNEL_ID,
+      name: "Przypomnienia o zadaniach",
+      description: "Powiadomienia 10 min przed zaplanowanym zadaniem.",
+      importance: 4,
+    });
+
+    const [h, m] = task.scheduled_time.split(":").map(Number);
+    if (h === undefined || m === undefined) return;
+    const parts = task.scheduled_date.split("-").map(Number);
+    const fireAt = new Date(parts[0]!, parts[1]! - 1, parts[2]!, h, m, 0);
+    fireAt.setMinutes(fireAt.getMinutes() - 10);
+
+    if (fireAt.getTime() <= Date.now()) return;
+
+    const id = taskNotificationId(task.id);
+    await LocalNotifications.cancel({ notifications: [{ id }] });
+    await LocalNotifications.schedule({
+      notifications: [
+        {
+          id,
+          channelId: TASK_CHANNEL_ID,
+          title: "Za 10 minut",
+          body: task.title,
+          schedule: { at: fireAt, allowWhileIdle: true },
+        },
+      ],
+    });
+  } catch (e) {
+    console.error("scheduleTaskReminder failed", e);
+  }
+}
+
+/** Cancel a previously scheduled task reminder. */
+export async function cancelTaskReminder(taskId: string): Promise<void> {
+  if (!isNative()) return;
+  try {
+    await LocalNotifications.cancel({
+      notifications: [{ id: taskNotificationId(taskId) }],
+    });
+  } catch (e) {
+    console.error("cancelTaskReminder failed", e);
   }
 }
 
