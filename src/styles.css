@@ -70,13 +70,13 @@
   /* Powierzchnie */
   --background: oklch(0.16 0.012 300);
   --foreground: oklch(0.97 0.004 300);
-  --card: oklch(0.21 0.014 300);
+  --card: oklch(0.26 0.014 300);
   --card-foreground: oklch(0.97 0.004 300);
   /* Field surface — deliberately lighter than both background and cards so
    * inputs/selectors read as raised (wzór: apka „Dieta”). Text (0.97) and
    * placeholder/muted-foreground (0.68) stay high-contrast on this. */
   --elevated: oklch(0.31 0.017 300);
-  --popover: oklch(0.21 0.014 300);
+  --popover: oklch(0.26 0.014 300);
   --popover-foreground: oklch(0.97 0.004 300);
 
   /*
@@ -130,7 +130,7 @@
     color-mix(in oklab, var(--primary), white 8%) 0%,
     color-mix(in oklab, var(--primary), black 12%) 100%
   );
-  --gradient-surface: linear-gradient(160deg, oklch(0.23 0.016 300) 0%, oklch(0.19 0.013 300) 100%);
+  --gradient-surface: linear-gradient(160deg, oklch(0.28 0.016 300) 0%, oklch(0.24 0.013 300) 100%);
   --shadow-card: 0 1px 0 0 oklch(1 0 0 / 5%) inset, 0 12px 30px -18px oklch(0 0 0 / 80%);
   --shadow-accent: 0 14px 34px -16px color-mix(in oklab, var(--primary) 60%, transparent);
 
