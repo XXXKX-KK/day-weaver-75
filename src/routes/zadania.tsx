@@ -181,9 +181,11 @@ function TasksScreen() {
         />
       )}
 
+      <div className="h-24" />
       <button
         onClick={() => (tab === "tasks" ? setFormOpen(true) : setRoutineFormOpen(true))}
-        className="accent-gradient accent-glow fixed bottom-28 left-1/2 z-40 flex h-14 -translate-x-1/2 items-center gap-2 rounded-full px-6 font-bold text-primary-foreground transition-transform active:scale-95"
+        className="accent-gradient accent-glow fixed left-1/2 z-40 flex h-14 -translate-x-1/2 items-center gap-2 rounded-full px-6 font-bold text-primary-foreground transition-transform active:scale-95"
+        style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 80px)" }}
       >
         <Plus className="h-5 w-5" strokeWidth={3} />
         {tab === "tasks" ? "Nowe zadanie" : "Nowa rutyna"}
