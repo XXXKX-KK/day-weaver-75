@@ -9,7 +9,7 @@ export function TenaxLogo({ className, size = 56 }: { className?: string; size?:
   return (
     <div
       className={cn(
-        "flex items-center justify-center rounded-[22%] bg-[oklch(0.13_0.005_280)]",
+        "flex items-center justify-center rounded-[22%] bg-[#1C1D2E]",
         className,
       )}
       style={{ width: size, height: size }}
