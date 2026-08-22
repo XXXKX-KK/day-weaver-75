@@ -102,41 +102,92 @@ function TasksScreen() {
   const [formOpen, setFormOpen] = useState(false);
   const [routineFormOpen, setRoutineFormOpen] = useState(false);
   const [editingRoutine, setEditingRoutine] = useState<RoutineRow | null>(null);
-  const [deleteConfirm, setDeleteConfirm] = useState<{
-    type: "task" | "routine";
-    id: string;
-    title: string;
-  } | null>(null);
+
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const inSelectMode = selectedIds.size > 0;
+
+  const handleTabChange = (t: "tasks" | "routines") => {
+    setSelectedIds(new Set());
+    setTab(t);
+  };
+
+  const handleLongPress = (id: string) => {
+    setSelectedIds(new Set([id]));
+  };
+
+  const handleTapInSelectMode = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
 
   const handleConfirmDelete = () => {
-    if (!deleteConfirm) return;
-    if (deleteConfirm.type === "task") {
-      const taskId = deleteConfirm.id;
-      deleteTask.mutate(taskId, {
-        onSuccess: () => {
-          toast.success("Zadanie usunięte");
-          void cancelTaskReminder(taskId);
-        },
-        onError: () => toast.error("Nie udało się usunąć zadania."),
-      });
+    const ids = [...selectedIds];
+    if (tab === "tasks") {
+      for (const id of ids) {
+        deleteTask.mutate(id, {
+          onSuccess: () => void cancelTaskReminder(id),
+          onError: () => toast.error("Nie udało się usunąć zadania."),
+        });
+      }
+      toast.success(ids.length === 1 ? "Zadanie usunięte" : `Usunięto ${ids.length} zadań`);
     } else {
-      deleteRoutine.mutate(deleteConfirm.id, {
-        onSuccess: () => toast.success("Rutyna usunięta"),
-        onError: () => toast.error("Nie udało się usunąć rutyny."),
-      });
+      for (const id of ids) {
+        deleteRoutine.mutate(id, {
+          onError: () => toast.error("Nie udało się usunąć rutyny."),
+        });
+      }
+      toast.success(ids.length === 1 ? "Rutyna usunięta" : `Usunięto ${ids.length} rutyn`);
     }
-    setDeleteConfirm(null);
+    setSelectedIds(new Set());
+    setShowDeleteDialog(false);
   };
+
+  const deleteDialogDescription = (() => {
+    if (selectedIds.size === 1) {
+      const id = [...selectedIds][0]!;
+      const item =
+        tab === "tasks"
+          ? tasks?.find((t) => t.id === id)
+          : routines?.find((r) => r.id === id);
+      return item ? `„${item.title}" zostanie trwale usunięte.` : "";
+    }
+    return `Zaznaczone pozycje (${selectedIds.size}) zostaną trwale usunięte.`;
+  })();
 
   return (
     <Screen>
-      <ScreenHeader eyebrow="Biblioteka" title="Zadania" />
+      {inSelectMode ? (
+        <div className="mb-4 flex items-center justify-between">
+          <button
+            onClick={() => setSelectedIds(new Set())}
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary"
+          >
+            <X className="h-4 w-4" />
+          </button>
+          <span className="text-sm font-semibold">
+            {selectedIds.size} {selectedIds.size === 1 ? "zaznaczone" : "zaznaczonych"}
+          </span>
+          <button
+            onClick={() => setShowDeleteDialog(true)}
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-destructive/10 transition-transform active:scale-90"
+          >
+            <Trash2 className="h-5 w-5 text-destructive" />
+          </button>
+        </div>
+      ) : (
+        <ScreenHeader eyebrow="Biblioteka" title="Zadania" />
+      )}
 
       <div className="mb-6 grid grid-cols-2 gap-1 rounded-2xl bg-secondary p-1">
         {(["tasks", "routines"] as const).map((t) => (
           <button
             key={t}
-            onClick={() => setTab(t)}
+            onClick={() => handleTabChange(t)}
             className={cn(
               "h-11 rounded-xl text-sm font-semibold transition-colors",
               tab === t ? "accent-gradient text-primary-foreground" : "text-muted-foreground",
@@ -165,14 +216,15 @@ function TasksScreen() {
                 onError: () => toast.error("Nie udało się zapisać kolejności."),
               })
             }
-            onLongPress={(id) => {
-              const t = tasks.find((x) => x.id === id);
-              if (t) setDeleteConfirm({ type: "task", id, title: t.title });
-            }}
+            onLongPress={handleLongPress}
+            selectedIds={selectedIds}
+            onTapInSelectMode={handleTapInSelectMode}
             renderItem={(t) => (
               <TaskCard
                 task={t}
-                onToggle={() => toggleDone.mutate({ id: t.id, status: t.status })}
+                onToggle={() =>
+                  !inSelectMode && toggleDone.mutate({ id: t.id, status: t.status })
+                }
               />
             )}
           />
@@ -194,15 +246,15 @@ function TasksScreen() {
               onError: () => toast.error("Nie udało się zapisać kolejności."),
             })
           }
-          onLongPress={(id) => {
-            const r = routines.find((x) => x.id === id);
-            if (r) setDeleteConfirm({ type: "routine", id, title: r.title });
-          }}
+          onLongPress={handleLongPress}
+          selectedIds={selectedIds}
+          onTapInSelectMode={handleTapInSelectMode}
           renderItem={(r) => (
             <RoutineCard
               routine={r}
-              onEdit={() => setEditingRoutine(r)}
+              onEdit={() => !inSelectMode && setEditingRoutine(r)}
               onToggle={() =>
+                !inSelectMode &&
                 toggleRoutineActive.mutate(
                   { id: r.id, is_active: r.is_active },
                   { onError: () => toast.error("Nie udało się zmienić rutyny.") },
@@ -214,14 +266,16 @@ function TasksScreen() {
       )}
 
       <div className="h-24" />
-      <button
-        onClick={() => (tab === "tasks" ? setFormOpen(true) : setRoutineFormOpen(true))}
-        className="accent-gradient accent-glow fixed left-1/2 z-40 flex h-14 -translate-x-1/2 items-center gap-2 rounded-full px-6 font-bold text-primary-foreground transition-transform active:scale-95"
-        style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 80px)" }}
-      >
-        <Plus className="h-5 w-5" strokeWidth={3} />
-        {tab === "tasks" ? "Nowe zadanie" : "Nowa rutyna"}
-      </button>
+      {!inSelectMode ? (
+        <button
+          onClick={() => (tab === "tasks" ? setFormOpen(true) : setRoutineFormOpen(true))}
+          className="accent-gradient accent-glow fixed left-1/2 z-40 flex h-14 -translate-x-1/2 items-center gap-2 rounded-full px-6 font-bold text-primary-foreground transition-transform active:scale-95"
+          style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 80px)" }}
+        >
+          <Plus className="h-5 w-5" strokeWidth={3} />
+          {tab === "tasks" ? "Nowe zadanie" : "Nowa rutyna"}
+        </button>
+      ) : null}
 
       {formOpen ? (
         <TaskForm
@@ -287,7 +341,10 @@ function TasksScreen() {
         />
       ) : null}
 
-      <AlertDialog open={!!deleteConfirm} onOpenChange={(o) => !o && setDeleteConfirm(null)}>
+      <AlertDialog
+        open={showDeleteDialog}
+        onOpenChange={(o) => !o && setShowDeleteDialog(false)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10">
@@ -297,9 +354,7 @@ function TasksScreen() {
               Czy na pewno chcesz usunąć?
             </AlertDialogTitle>
             <AlertDialogDescription className="text-center">
-              {deleteConfirm
-                ? `„${deleteConfirm.title}" zostanie trwale usunięte.`
-                : ""}
+              {deleteDialogDescription}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex-row gap-3">

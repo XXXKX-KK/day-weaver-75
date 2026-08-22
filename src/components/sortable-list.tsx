@@ -19,7 +19,6 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState, useCallback, useRef } from "react";
 
@@ -27,7 +26,7 @@ type Identifiable = { id: string };
 
 function vibrate() {
   try {
-    navigator.vibrate?.(40);
+    navigator.vibrate?.(50);
   } catch {}
 }
 
@@ -35,43 +34,54 @@ export function SortableList<T extends Identifiable>({
   items,
   onReorder,
   onLongPress,
+  selectedIds,
+  onTapInSelectMode,
   renderItem,
   className,
 }: {
   items: T[];
   onReorder: (orderedIds: string[]) => void;
   onLongPress?: (id: string) => void;
-  renderItem: (item: T) => ReactNode;
+  selectedIds?: ReadonlySet<string>;
+  onTapInSelectMode?: (id: string) => void;
+  renderItem: (item: T, selected: boolean) => ReactNode;
   className?: string;
 }) {
+  const inSelectMode = selectedIds != null && selectedIds.size > 0;
   const sensors = useSensors(
     useSensor(TouchSensor, { activationConstraint: { delay: 300, tolerance: 8 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
   const ids = items.map((i) => i.id);
   const [activeId, setActiveId] = useState<string | null>(null);
-  const [hasMoved, setHasMoved] = useState(false);
   const movedRef = useRef(false);
 
-  const handleDragStart = useCallback((event: DragStartEvent) => {
-    setActiveId(String(event.active.id));
-    setHasMoved(false);
-    movedRef.current = false;
-    vibrate();
-  }, []);
+  const handleDragStart = useCallback(
+    (event: DragStartEvent) => {
+      if (inSelectMode) return;
+      setActiveId(String(event.active.id));
+      movedRef.current = false;
+      vibrate();
+    },
+    [inSelectMode],
+  );
 
-  const handleDragMove = useCallback((_event: DragMoveEvent) => {
-    if (!movedRef.current) {
-      movedRef.current = true;
-      setHasMoved(true);
-    }
-  }, []);
+  const handleDragMove = useCallback(
+    (_event: DragMoveEvent) => {
+      if (!movedRef.current) movedRef.current = true;
+    },
+    [],
+  );
 
   const handleDragEnd = useCallback(
     (event: DragEndEvent) => {
       const draggedId = activeId;
       setActiveId(null);
-      setHasMoved(false);
+
+      if (inSelectMode) {
+        if (draggedId && onTapInSelectMode) onTapInSelectMode(draggedId);
+        return;
+      }
 
       if (!movedRef.current && draggedId && onLongPress) {
         onLongPress(draggedId);
@@ -85,13 +95,21 @@ export function SortableList<T extends Identifiable>({
       if (oldIndex < 0 || newIndex < 0) return;
       onReorder(arrayMove(ids, oldIndex, newIndex));
     },
-    [ids, onReorder, activeId, onLongPress],
+    [ids, onReorder, activeId, onLongPress, inSelectMode, onTapInSelectMode],
   );
 
   const handleDragCancel = useCallback(() => {
     setActiveId(null);
-    setHasMoved(false);
   }, []);
+
+  const handleTap = useCallback(
+    (id: string) => {
+      if (inSelectMode && onTapInSelectMode) {
+        onTapInSelectMode(id);
+      }
+    },
+    [inSelectMode, onTapInSelectMode],
+  );
 
   return (
     <DndContext
@@ -110,9 +128,11 @@ export function SortableList<T extends Identifiable>({
               key={item.id}
               id={item.id}
               isDragActive={activeId === item.id}
-              showTrash={activeId === item.id && !hasMoved && !!onLongPress}
+              selected={selectedIds?.has(item.id) ?? false}
+              inSelectMode={inSelectMode}
+              onTap={() => handleTap(item.id)}
             >
-              {renderItem(item)}
+              {renderItem(item, selectedIds?.has(item.id) ?? false)}
             </SortableRow>
           ))}
         </div>
@@ -124,16 +144,21 @@ export function SortableList<T extends Identifiable>({
 function SortableRow({
   id,
   isDragActive,
-  showTrash,
+  selected,
+  inSelectMode,
+  onTap,
   children,
 }: {
   id: string;
   isDragActive: boolean;
-  showTrash: boolean;
+  selected: boolean;
+  inSelectMode: boolean;
+  onTap: () => void;
   children: ReactNode;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id,
+    disabled: inSelectMode,
   });
   const style: CSSProperties = {
     transform: CSS.Transform.toString(transform),
@@ -147,17 +172,13 @@ function SortableRow({
       style={style}
       className={cn(
         "touch-none rounded-2xl transition-shadow duration-200",
-        isDragActive && "ring-2 ring-primary/50 shadow-[0_0_18px_-4px] shadow-primary/40",
+        isDragActive && !inSelectMode && "ring-2 ring-primary/50 shadow-[0_0_18px_-4px] shadow-primary/40",
+        selected && "ring-2 ring-destructive/60",
       )}
-      {...attributes}
-      {...listeners}
+      onClick={inSelectMode ? onTap : undefined}
+      {...(inSelectMode ? {} : { ...attributes, ...listeners })}
     >
       {children}
-      {showTrash ? (
-        <div className="absolute right-3 top-1/2 flex -translate-y-1/2 items-center justify-center rounded-full bg-destructive/15 p-2 animate-in fade-in zoom-in-75 duration-200">
-          <Trash2 className="h-5 w-5 text-destructive" />
-        </div>
-      ) : null}
     </div>
   );
 }
