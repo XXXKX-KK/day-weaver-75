@@ -33,6 +33,7 @@ export type NewTaskInput = {
   description?: string | undefined;
   priority: Priority;
   subtasks: string[];
+  scheduled_date?: string;
 };
 
 const TASKS_KEY = ["tasks"] as const;
@@ -98,7 +99,7 @@ export function useAddTask() {
           priority: input.priority,
           position: await nextTaskPosition(),
           status: "open",
-          scheduled_date: todayLocalISO(),
+          scheduled_date: input.scheduled_date ?? todayLocalISO(),
         })
         .select("id")
         .single();

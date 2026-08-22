@@ -23,6 +23,7 @@ export type DayItemStatus = "pending" | "done" | "skipped" | "postponed";
 export type DayItemRow = {
   id: string;
   source_type: "routine" | "task";
+  task_id: string | null;
   day_block: DayBlock;
   position: number;
   status: DayItemStatus;
@@ -62,7 +63,7 @@ export function todayLocalISO(): string {
 }
 
 const DAY_ITEM_COLUMNS =
-  "id, source_type, day_block, position, status, title, description, estimated_minutes, priority, xp_value, xp_awarded, day_item_subtasks(id, title, position, is_done)";
+  "id, source_type, task_id, day_block, position, status, title, description, estimated_minutes, priority, xp_value, xp_awarded, day_item_subtasks(id, title, position, is_done)";
 
 function sortItems(items: DayItemRow[]): DayItemRow[] {
   return (
@@ -192,6 +193,18 @@ export function useSetItemStatus() {
         })
         .eq("id", item.id);
       if (error) throw error;
+
+      if (item.source_type === "task" && item.task_id) {
+        const { error: taskError } = await supabase
+          .from("tasks")
+          .update({
+            status: next === "done" ? "done" : "open",
+            completed_at: next === "done" ? new Date().toISOString() : null,
+          })
+          .eq("id", item.task_id);
+        if (taskError) throw taskError;
+      }
+
       if (user) await persistXpDelta(queryClient, user.id, delta);
     },
     onMutate: async (item) => {
@@ -216,7 +229,10 @@ export function useSetItemStatus() {
       return snap;
     },
     onError: (_err, _item, ctx) => restoreCaches(queryClient, ctx),
-    onSettled: () => invalidateDayAndProfile(queryClient),
+    onSettled: () => {
+      invalidateDayAndProfile(queryClient);
+      queryClient.invalidateQueries({ queryKey: ["tasks"] });
+    },
   });
 }
 

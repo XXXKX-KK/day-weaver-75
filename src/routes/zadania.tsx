@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
-import { Check, Plus, Repeat, Trash2, X } from "lucide-react";
+import { useRef, useState } from "react";
+import { Calendar, Check, Plus, Repeat, Trash2, X } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -488,10 +488,12 @@ function SubtaskEditor({
 function Sheet({
   title,
   onClose,
+  headerExtra,
   children,
 }: {
   title: string;
   onClose: () => void;
+  headerExtra?: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
@@ -499,16 +501,35 @@ function Sheet({
       <div className="card-surface safe-bottom max-h-[88vh] w-full overflow-y-auto rounded-b-none px-5 pt-5">
         <div className="mb-5 flex items-center justify-between">
           <h2 className="text-xl font-bold">{title}</h2>
-          <button
-            onClick={onClose}
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-secondary"
-          >
-            <X className="h-4 w-4" />
-          </button>
+          <div className="flex items-center gap-2">
+            {headerExtra}
+            <button
+              onClick={onClose}
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-secondary"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
         </div>
         {children}
       </div>
     </div>
+  );
+}
+
+function todayLocalISO(): string {
+  return new Date().toLocaleDateString("en-CA");
+}
+
+function formatDateShort(dateStr: string): string {
+  const todayStr = todayLocalISO();
+  if (dateStr === todayStr) return "Dziś";
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  if (dateStr === tomorrow.toLocaleDateString("en-CA")) return "Jutro";
+  const parts = dateStr.split("-").map(Number);
+  return new Intl.DateTimeFormat("pl-PL", { day: "numeric", month: "short" }).format(
+    new Date(parts[0]!, parts[1]! - 1, parts[2]!),
   );
 }
 
@@ -524,9 +545,31 @@ function TaskForm({
   const [title, setTitle] = useState("");
   const [priority, setPriority] = useState<Priority>("normal");
   const [subtasks, setSubtasks] = useState<string[]>([]);
+  const [scheduledDate, setScheduledDate] = useState(todayLocalISO());
+  const dateRef = useRef<HTMLInputElement>(null);
 
   return (
-    <Sheet title="Nowe zadanie" onClose={onClose}>
+    <Sheet
+      title="Nowe zadanie"
+      onClose={onClose}
+      headerExtra={
+        <button
+          type="button"
+          onClick={() => dateRef.current?.showPicker?.()}
+          className="relative flex h-9 items-center gap-1.5 rounded-full bg-secondary px-3 text-xs font-semibold text-secondary-foreground"
+        >
+          <Calendar className="h-3.5 w-3.5" />
+          {formatDateShort(scheduledDate)}
+          <input
+            ref={dateRef}
+            type="date"
+            value={scheduledDate}
+            onChange={(e) => setScheduledDate(e.target.value || todayLocalISO())}
+            className="absolute inset-0 cursor-pointer opacity-0"
+          />
+        </button>
+      }
+    >
       <label className="mb-1 block text-xs font-semibold text-muted-foreground">Tytuł</label>
       <input
         value={title}
@@ -540,7 +583,9 @@ function TaskForm({
 
       <button
         disabled={!title.trim() || saving}
-        onClick={() => onSave({ title: title.trim(), priority, subtasks })}
+        onClick={() =>
+          onSave({ title: title.trim(), priority, subtasks, scheduled_date: scheduledDate })
+        }
         className="accent-gradient mb-4 h-16 w-full rounded-3xl text-lg font-bold text-primary-foreground transition-opacity disabled:opacity-40"
       >
         {saving ? "Zapisywanie…" : "Zapisz zadanie"}
