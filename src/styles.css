@@ -6,7 +6,7 @@
 
 /*
  * System projektowy — aplikacja produktywności.
- * Dark mode jest domyślny i jedyny motyw w MVP.
+ * Dark mode jest domyślny. Tryb jasny: html[data-theme="light"].
  * Kolor akcentowy: #EE4261 (żywy malinowy róż) -> --primary.
  * Wszystkie kolory w oklch. Nigdy nie używaj kolorów wprost w komponentach.
  */
@@ -140,11 +140,50 @@
   --navpill-top: color-mix(in srgb, var(--primary) 20%, rgba(255, 255, 255, 0.18));
 }
 
-/* Wariant jasny (nieaktywny w MVP — apka jest ciemna; zostawione dla spójności) */
+/* Tryb jasny — pełny zestaw tokenów (wzór: apki „Dieta" i „Trening"). */
 :root[data-theme="light"] {
-  --navpill: color-mix(in srgb, var(--primary) 14%, rgba(255, 255, 255, 0.7));
-  --navpill-border: color-mix(in srgb, var(--primary) 18%, rgba(0, 0, 0, 0.06));
-  --navpill-top: color-mix(in srgb, var(--primary) 12%, rgba(255, 255, 255, 0.65));
+  color-scheme: light;
+
+  --background: oklch(0.965 0.002 280);
+  --foreground: oklch(0.16 0.01 280);
+  --card: oklch(0.995 0.001 280);
+  --card-foreground: oklch(0.16 0.01 280);
+  --elevated: oklch(0.93 0.004 280);
+  --popover: oklch(0.995 0.001 280);
+  --popover-foreground: oklch(0.16 0.01 280);
+
+  --primary-soft: color-mix(in oklab, var(--primary) 10%, transparent);
+
+  --secondary: oklch(0.92 0.005 280);
+  --secondary-foreground: oklch(0.22 0.01 280);
+  --muted: oklch(0.93 0.004 280);
+  --muted-foreground: oklch(0.45 0.01 280);
+  --accent: oklch(0.94 0.005 280);
+  --accent-foreground: oklch(0.22 0.01 280);
+
+  --border: oklch(0 0 0 / 8%);
+  --input: oklch(0 0 0 / 12%);
+  --ring: color-mix(in oklab, var(--primary) 40%, transparent);
+
+  --gradient-surface: linear-gradient(160deg, oklch(0.995 0.002 280) 0%, oklch(0.965 0.003 280) 100%);
+  --shadow-card: 0 1px 3px oklch(0 0 0 / 5%), 0 1px 0 oklch(0 0 0 / 3%);
+  --shadow-accent: 0 8px 20px -8px color-mix(in oklab, var(--primary) 25%, transparent);
+
+  --sidebar: oklch(0.97 0.003 280);
+  --sidebar-foreground: oklch(0.16 0.01 280);
+  --sidebar-accent: oklch(0.94 0.004 280);
+  --sidebar-accent-foreground: oklch(0.22 0.01 280);
+  --sidebar-border: oklch(0 0 0 / 8%);
+
+  /* Pastylka nawigacji — mocno podbarwiona akcentem (wzór: apka „Dieta") */
+  --navpill: color-mix(in srgb, var(--primary) 16%, rgba(255, 255, 255, 0.88));
+  --navpill-border: color-mix(in srgb, var(--primary) 22%, rgba(0, 0, 0, 0.06));
+  --navpill-top: color-mix(in srgb, var(--primary) 14%, rgba(255, 255, 255, 0.7));
+}
+
+/* Poświata wyłączona w jasnym trybie — czysta płaska powierzchnia. */
+[data-theme="light"] body::before {
+  display: none;
 }
 
 /*

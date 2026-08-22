@@ -114,7 +114,7 @@ function SettingsScreen() {
           </span>
           <div className="min-w-0 flex-1">
             <p className="text-sm font-semibold">Wygląd</p>
-            <p className="truncate text-xs text-muted-foreground">Kolor akcentu</p>
+            <p className="truncate text-xs text-muted-foreground">Motyw, tryb i język</p>
           </div>
           <ChevronRight className="h-5 w-5 shrink-0 text-muted-foreground" />
         </Card>
