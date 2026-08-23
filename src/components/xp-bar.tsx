@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { Castle } from "lucide-react";
-import { useGamification, XP_PER_LEVEL } from "@/lib/gamification";
+import { useGamification } from "@/lib/gamification";
 
 /**
  * Compact XP widget for the top of the Today screen: level, a within-level
@@ -8,7 +8,7 @@ import { useGamification, XP_PER_LEVEL } from "@/lib/gamification";
  * Grows live as items are checked off (reads the ['profile'] cache).
  */
 export function XpBar() {
-  const { level, intoLevel, progress, streak } = useGamification();
+  const { level, intoLevel, toNext, progress, streak } = useGamification();
 
   return (
     <div className="mb-5 flex items-center gap-3 rounded-2xl bg-elevated px-3 py-2.5">
@@ -21,7 +21,7 @@ export function XpBar() {
         <div className="mb-1 flex items-baseline justify-between text-[11px] text-muted-foreground">
           <span className="font-semibold text-foreground">Poziom {level}</span>
           <span>
-            {intoLevel}/{XP_PER_LEVEL} XP
+            {intoLevel}/{intoLevel + toNext} XP
           </span>
         </div>
         <div className="h-1.5 w-full overflow-hidden rounded-full bg-secondary">

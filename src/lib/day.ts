@@ -44,6 +44,7 @@ export type DayRow = {
   status: "planned" | "in_progress" | "completed";
   planned_count: number;
   completed_count: number;
+  streak_counted: boolean;
 };
 
 /** What the Today screen reads: the day (or null before it's started) + items. */
@@ -87,7 +88,7 @@ export function useToday() {
       // RLS limits this to the caller's own row. maybeSingle → null before start.
       const { data, error } = await supabase
         .from("days")
-        .select(`id, date, status, planned_count, completed_count, day_items(${DAY_ITEM_COLUMNS})`)
+        .select(`id, date, status, planned_count, completed_count, streak_counted, day_items(${DAY_ITEM_COLUMNS})`)
         .eq("date", date)
         .maybeSingle();
       if (error) throw error;
@@ -166,18 +167,29 @@ async function persistXpDelta(queryClient: QueryClient, userId: string, delta: n
   if (error) throw error;
 }
 
+const STREAK_THRESHOLD = 0.45;
+
+type SetItemStatusInput = {
+  item: DayItemRow;
+  day: DayRow | null;
+  items: DayItemRow[];
+};
+
 /**
  * Toggle a day item between done and pending. An item with no subtasks awards
  * its full xp_value; one with subtasks is "topped up" to the full value (the
  * part not covered by checked subtasks). Undo subtracts whatever was credited.
  * xp_awarded tracks the item's running contribution; days.completed_count is
  * maintained by a DB trigger — never set it here.
+ *
+ * Streak: when done/total >= 45% and the day hasn't been streak-counted yet,
+ * advance the profile streak and flag the day. Once counted, never revoked.
  */
 export function useSetItemStatus() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   return useMutation({
-    mutationFn: async (item: DayItemRow) => {
+    mutationFn: async ({ item, day, items }: SetItemStatusInput) => {
       const next: DayItemStatus = item.status === "done" ? "pending" : "done";
       const xpValue = xpValueForItem(item);
       const newAwarded = next === "done" ? xpValue : 0;
@@ -206,17 +218,44 @@ export function useSetItemStatus() {
       }
 
       if (user) await persistXpDelta(queryClient, user.id, delta);
+
+      if (user && day && !day.streak_counted) {
+        const doneCount = items.filter((i) => (i.id === item.id ? next === "done" : i.status === "done")).length;
+        if (items.length > 0 && doneCount / items.length >= STREAK_THRESHOLD) {
+          const { data: prof } = await supabase
+            .from("profiles")
+            .select("streak_count, last_completed_date")
+            .maybeSingle();
+          const streak = nextStreak(prof?.last_completed_date ?? null, prof?.streak_count ?? 0);
+          const { error: profError } = await supabase
+            .from("profiles")
+            .update({ streak_count: streak, last_completed_date: todayLocalISO() })
+            .eq("id", user.id);
+          if (profError) throw profError;
+          const { error: dayError } = await supabase
+            .from("days")
+            .update({ streak_counted: true })
+            .eq("id", day.id);
+          if (dayError) throw dayError;
+        }
+      }
     },
-    onMutate: async (item) => {
+    onMutate: async ({ item, day, items }: SetItemStatusInput) => {
       await queryClient.cancelQueries({ queryKey: TODAY_KEY });
       const snap = snapshotCaches(queryClient);
       const next: DayItemStatus = item.status === "done" ? "pending" : "done";
       const xpValue = xpValueForItem(item);
       const newAwarded = next === "done" ? xpValue : 0;
+
+      const shouldCountStreak =
+        day && !day.streak_counted && items.length > 0 &&
+        items.filter((i) => (i.id === item.id ? next === "done" : i.status === "done")).length / items.length >= STREAK_THRESHOLD;
+
       queryClient.setQueriesData<TodayData>({ queryKey: TODAY_KEY }, (old) =>
         old
           ? {
               ...old,
+              day: old.day && shouldCountStreak ? { ...old.day, streak_counted: true } : old.day,
               items: old.items.map((i) =>
                 i.id === item.id
                   ? { ...i, status: next, xp_value: xpValue, xp_awarded: newAwarded }
@@ -226,9 +265,20 @@ export function useSetItemStatus() {
           : old,
       );
       bumpCachedXp(queryClient, newAwarded - item.xp_awarded);
+      if (shouldCountStreak) {
+        queryClient.setQueriesData<ProfileRow | null>({ queryKey: PROFILE_KEY }, (old) =>
+          old
+            ? {
+                ...old,
+                streak_count: nextStreak(old.last_completed_date, old.streak_count),
+                last_completed_date: todayLocalISO(),
+              }
+            : old,
+        );
+      }
       return snap;
     },
-    onError: (_err, _item, ctx) => restoreCaches(queryClient, ctx),
+    onError: (_err, _input, ctx) => restoreCaches(queryClient, ctx),
     onSettled: () => {
       invalidateDayAndProfile(queryClient);
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
@@ -314,10 +364,9 @@ function nextStreak(last: string | null, count: number): number {
   return 1;
 }
 
-/** Mark the day completed and advance the streak. */
+/** Mark the day completed (streak is handled by item toggles, not here). */
 export function useCompleteDay() {
   const queryClient = useQueryClient();
-  const { user } = useAuth();
   return useMutation({
     mutationFn: async (dayId: string) => {
       const { error: dayError } = await supabase
@@ -325,19 +374,6 @@ export function useCompleteDay() {
         .update({ status: "completed", completed_at: new Date().toISOString() })
         .eq("id", dayId);
       if (dayError) throw dayError;
-
-      if (!user) return;
-      // Read fresh so the streak decision doesn't ride on a stale cache.
-      const { data: prof } = await supabase
-        .from("profiles")
-        .select("streak_count, last_completed_date")
-        .maybeSingle();
-      const streak = nextStreak(prof?.last_completed_date ?? null, prof?.streak_count ?? 0);
-      const { error: profError } = await supabase
-        .from("profiles")
-        .update({ streak_count: streak, last_completed_date: todayLocalISO() })
-        .eq("id", user.id);
-      if (profError) throw profError;
     },
     onMutate: async () => {
       await queryClient.cancelQueries({ queryKey: TODAY_KEY });
@@ -345,15 +381,6 @@ export function useCompleteDay() {
       queryClient.setQueriesData<TodayData>({ queryKey: TODAY_KEY }, (old) =>
         old && old.day
           ? { ...old, status: "completed", day: { ...old.day, status: "completed" } }
-          : old,
-      );
-      queryClient.setQueriesData<ProfileRow | null>({ queryKey: PROFILE_KEY }, (old) =>
-        old
-          ? {
-              ...old,
-              streak_count: nextStreak(old.last_completed_date, old.streak_count),
-              last_completed_date: todayLocalISO(),
-            }
           : old,
       );
       return snap;

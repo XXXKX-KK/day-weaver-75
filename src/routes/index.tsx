@@ -9,6 +9,7 @@ import {
   useCompleteDay,
   useReorderDayItems,
   type DayItemRow,
+  type DayRow,
 } from "@/lib/day";
 import { XpBar } from "@/components/xp-bar";
 import { SortableList } from "@/components/sortable-list";
@@ -171,7 +172,7 @@ function Today() {
                 onError: () => toast.error("Nie udało się zapisać kolejności."),
               })
             }
-            renderItem={(item) => <DayItemCard item={item} />}
+            renderItem={(item) => <DayItemCard item={item} day={today.day} items={items} />}
           />
 
           <button
@@ -193,7 +194,7 @@ function Today() {
 }
 
 /** One day item; tapping the row toggles done<->pending, subtasks toggle too. */
-function DayItemCard({ item }: { item: DayItemRow }) {
+function DayItemCard({ item, day, items }: { item: DayItemRow; day: DayRow | null; items: DayItemRow[] }) {
   const setItemStatus = useSetItemStatus();
   const toggleSubtask = useToggleDayItemSubtask();
   const doneSubtasks = item.day_item_subtasks.filter((s) => s.is_done).length;
@@ -202,7 +203,7 @@ function DayItemCard({ item }: { item: DayItemRow }) {
     <div className="card-surface flex flex-col gap-2 px-4 py-4">
       <button
         onClick={() =>
-          setItemStatus.mutate(item, {
+          setItemStatus.mutate({ item, day, items }, {
             onError: () => toast.error("Nie udało się zapisać zmiany."),
           })
         }

@@ -7,13 +7,23 @@ import type { Priority } from "@/lib/store";
  * writes live in the day mutations (src/lib/day.ts).
  */
 
-/** XP needed per level. Single knob — change here to reshape the curve. */
-export const XP_PER_LEVEL = 100;
+const BASE_XP = 100;
+const INCREMENT_EARLY = 15;
+const INCREMENT_LATE = 25;
+const LATE_FROM_LEVEL = 21;
+
+/** XP cost to go from level N to level N+1. */
+export function xpForLevel(n: number): number {
+  if (n < 1) return BASE_XP;
+  if (n < LATE_FROM_LEVEL) return BASE_XP + (n - 1) * INCREMENT_EARLY;
+  const lastEarly = BASE_XP + (LATE_FROM_LEVEL - 2) * INCREMENT_EARLY;
+  return lastEarly + (n - LATE_FROM_LEVEL + 1) * INCREMENT_LATE;
+}
 
 export type LevelInfo = {
   /** 1-based level. */
   level: number;
-  /** XP accumulated within the current level, in [0, XP_PER_LEVEL). */
+  /** XP accumulated within the current level. */
   intoLevel: number;
   /** XP remaining to reach the next level. */
   toNext: number;
@@ -23,14 +33,17 @@ export type LevelInfo = {
 
 export function levelFromXp(totalXp: number): LevelInfo {
   const xp = Math.max(0, Math.floor(totalXp));
-  const level = Math.floor(xp / XP_PER_LEVEL) + 1;
-  const intoLevel = xp % XP_PER_LEVEL;
-  return {
-    level,
-    intoLevel,
-    toNext: XP_PER_LEVEL - intoLevel,
-    progress: intoLevel / XP_PER_LEVEL,
-  };
+  let level = 1;
+  let consumed = 0;
+  while (true) {
+    const cost = xpForLevel(level);
+    if (consumed + cost > xp) {
+      const intoLevel = xp - consumed;
+      return { level, intoLevel, toNext: cost - intoLevel, progress: intoLevel / cost };
+    }
+    consumed += cost;
+    level++;
+  }
 }
 
 const PRIORITY_XP: Record<Priority, number> = { high: 10, normal: 5, low: 0 };

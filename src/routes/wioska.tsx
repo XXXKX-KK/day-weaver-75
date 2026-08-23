@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeft, Castle, Flame, Sparkles, Star } from "lucide-react";
 import { Screen, ScreenHeader, Card } from "@/components/ui-kit";
-import { useGamification, XP_PER_LEVEL } from "@/lib/gamification";
+import { useGamification } from "@/lib/gamification";
 
 export const Route = createFileRoute("/wioska")({
   head: () => ({
@@ -17,7 +17,7 @@ export const Route = createFileRoute("/wioska")({
 });
 
 function VillageScreen() {
-  const { level, intoLevel, toNext, totalXp, streak } = useGamification();
+  const { level, intoLevel, toNext, totalXp, streak, progress } = useGamification();
 
   return (
     <Screen>
@@ -46,7 +46,7 @@ function VillageScreen() {
         <div className="mt-1 h-2 w-full max-w-[16rem] overflow-hidden rounded-full bg-secondary">
           <div
             className="accent-gradient h-full rounded-full"
-            style={{ width: `${Math.round((intoLevel / XP_PER_LEVEL) * 100)}%` }}
+            style={{ width: `${Math.round(progress * 100)}%` }}
           />
         </div>
       </Card>
