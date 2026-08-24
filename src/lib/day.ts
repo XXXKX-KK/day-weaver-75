@@ -4,7 +4,8 @@ import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth";
 import { Blocker, isNativeBlocker } from "@/lib/blocker";
 import { xpValueForItem, shareForSubtask } from "@/lib/gamification";
-import type { ProfileRow } from "@/lib/profile";
+import { useProfile, type ProfileRow } from "@/lib/profile";
+import { useFocusNotes } from "@/lib/focus-notes";
 import { reorderByIds } from "@/lib/reorder";
 import type { DayBlock, Priority } from "@/lib/store";
 
@@ -443,25 +444,30 @@ export function useReorderDayItems() {
  */
 export function useCurrentTaskNativeSync() {
   const { data } = useToday();
+  const { data: profile } = useProfile();
+  const { data: focusNotes } = useFocusNotes();
   const native = isNativeBlocker();
 
   const undoneTitles = useMemo<string[]>(() => {
     if (!data || data.status !== "in_progress") return [];
-    // items are already ordered by day_block + position in useToday.
     return data.items.filter((i) => i.status !== "done").map((i) => i.title);
   }, [data]);
 
+  const titlesToSync = useMemo<string[]>(() => {
+    if (undoneTitles.length > 0) return undoneTitles;
+    if (profile?.focus_notes_enabled && focusNotes && focusNotes.length > 0) {
+      return focusNotes.map((n) => n.title);
+    }
+    return [];
+  }, [undoneTitles, profile?.focus_notes_enabled, focusNotes]);
+
   useEffect(() => {
-    if (!native || data === undefined) return; // wait until the day is loaded
-    // Always mirror the (possibly empty) list; empty tells the overlay to fall
-    // back to current_task and hide the skip button.
-    Blocker.setDayTasks({ titles: undoneTitles }).catch((e) =>
+    if (!native || data === undefined) return;
+    Blocker.setDayTasks({ titles: titlesToSync }).catch((e) =>
       console.error("sync day tasks -> prefs failed", e),
     );
-    // Keep current_task in step with the first item; when the list is empty
-    // clear it so the overlay doesn't show a stale "ghost" task.
-    Blocker.setCurrentTask({ title: undoneTitles[0] ?? "" }).catch((e) =>
+    Blocker.setCurrentTask({ title: titlesToSync[0] ?? "" }).catch((e) =>
       console.error("sync current task -> prefs failed", e),
     );
-  }, [native, data, undoneTitles]);
+  }, [native, data, titlesToSync]);
 }

@@ -3,19 +3,30 @@ import { useEffect, useState } from "react";
 import {
   Bell,
   BellRing,
+  Check,
   ChevronRight,
   Clock,
   LogOut,
   Palette,
+  Plus,
   ShieldCheck,
+  StickyNote,
+  Trash2,
   User,
 } from "lucide-react";
 import { Screen, ScreenHeader, Card } from "@/components/ui-kit";
 import { Switch } from "@/components/ui/switch";
+import { cn } from "@/lib/utils";
 import { useStore } from "@/lib/store";
 import { useAuth } from "@/lib/auth";
 import { useProfile, useUpdateProfile } from "@/lib/profile";
 import { useToday } from "@/lib/day";
+import {
+  useFocusNotes,
+  useAddFocusNote,
+  useDeleteFocusNote,
+  useToggleFocusNoteDone,
+} from "@/lib/focus-notes";
 import {
   areNotificationsEnabled,
   cancelReminders,
@@ -190,6 +201,11 @@ function SettingsScreen() {
         </div>
       </Card>
 
+      <FocusNotesSection
+        enabled={profile?.focus_notes_enabled ?? false}
+        onToggle={(v) => save({ focus_notes_enabled: v })}
+      />
+
       <h2 className="mb-3 px-1 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
         Uprawnienia Androida
       </h2>
@@ -258,5 +274,108 @@ function Row({ icon, label, value }: { icon: React.ReactNode; label: string; val
       </span>
       <span className="text-sm text-muted-foreground">{value}</span>
     </div>
+  );
+}
+
+function FocusNotesSection({
+  enabled,
+  onToggle,
+}: {
+  enabled: boolean;
+  onToggle: (v: boolean) => void;
+}) {
+  const { data: notes } = useFocusNotes();
+  const addNote = useAddFocusNote();
+  const deleteNote = useDeleteFocusNote();
+  const toggleDone = useToggleFocusNoteDone();
+  const [draft, setDraft] = useState("");
+
+  return (
+    <>
+      <h2 className="mb-3 px-1 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+        Notatki na luz
+      </h2>
+      <Card className="mb-6 divide-y divide-border p-0">
+        <div className="flex items-center justify-between px-5 py-4">
+          <span className="flex items-center gap-3 text-sm">
+            <StickyNote className="h-4 w-4 text-muted-foreground" />
+            Pokazuj na nakładce
+          </span>
+          <Switch checked={enabled} onCheckedChange={onToggle} />
+        </div>
+
+        {enabled ? (
+          <>
+            <div className="flex items-center gap-2 px-4 py-3">
+              <input
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && draft.trim()) {
+                    addNote.mutate(draft.trim(), {
+                      onSuccess: () => setDraft(""),
+                      onError: () => toast.error("Nie udało się dodać notatki."),
+                    });
+                  }
+                }}
+                placeholder="np. Posłuchaj podcastu"
+                className="h-11 min-w-0 flex-1 rounded-2xl border border-input bg-elevated px-4 text-sm outline-none focus:border-primary"
+              />
+              <button
+                onClick={() => {
+                  if (!draft.trim()) return;
+                  addNote.mutate(draft.trim(), {
+                    onSuccess: () => setDraft(""),
+                    onError: () => toast.error("Nie udało się dodać notatki."),
+                  });
+                }}
+                disabled={!draft.trim() || addNote.isPending}
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-secondary disabled:opacity-40"
+              >
+                <Plus className="h-5 w-5" />
+              </button>
+            </div>
+
+            {notes && notes.length > 0
+              ? notes.map((note) => (
+                  <div key={note.id} className="flex items-center gap-3 px-5 py-3">
+                    <button
+                      onClick={() => toggleDone.mutate({ id: note.id, last_done_at: note.last_done_at })}
+                      aria-label={note.last_done_at ? "Resetuj" : "Odhacz"}
+                      className={cn(
+                        "flex h-6 w-6 shrink-0 items-center justify-center rounded-full border transition-colors",
+                        note.last_done_at
+                          ? "border-primary bg-primary text-primary-foreground"
+                          : "border-input",
+                      )}
+                    >
+                      {note.last_done_at ? <Check className="h-4 w-4" /> : null}
+                    </button>
+                    <span
+                      className={cn(
+                        "min-w-0 flex-1 truncate text-sm",
+                        note.last_done_at && "text-muted-foreground line-through",
+                      )}
+                    >
+                      {note.title}
+                    </span>
+                    <button
+                      onClick={() =>
+                        deleteNote.mutate(note.id, {
+                          onError: () => toast.error("Nie udało się usunąć notatki."),
+                        })
+                      }
+                      aria-label="Usuń notatkę"
+                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors active:text-destructive"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                ))
+              : null}
+          </>
+        ) : null}
+      </Card>
+    </>
   );
 }

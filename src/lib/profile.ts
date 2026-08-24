@@ -16,6 +16,7 @@ export type ProfileRow = {
   total_xp: number;
   streak_count: number;
   last_completed_date: string | null; // "YYYY-MM-DD"
+  focus_notes_enabled: boolean;
 };
 
 /** Fields the settings screen may write (room left for break_* etc.). */
@@ -28,13 +29,14 @@ export type ProfileUpdate = Partial<
     | "break_daily_limit"
     | "break_delay_seconds"
     | "display_name"
+    | "focus_notes_enabled"
   >
 >;
 
 const PROFILE_KEY = ["profile"] as const;
 
 const PROFILE_COLUMNS =
-  "id, display_name, timezone, day_start_time, day_end_time, autostart_day, break_daily_limit, break_delay_seconds, total_xp, streak_count, last_completed_date";
+  "id, display_name, timezone, day_start_time, day_end_time, autostart_day, break_daily_limit, break_delay_seconds, total_xp, streak_count, last_completed_date, focus_notes_enabled";
 
 export function useProfile() {
   const { user } = useAuth();
