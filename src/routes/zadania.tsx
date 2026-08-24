@@ -209,24 +209,27 @@ function TasksScreen() {
             description="Dodaj pierwsze zadanie jednorazowe, a pojawi się w planie dnia."
           />
         ) : (
-          <SortableList
-            items={tasks}
+          <TasksWithCompleted
+            tasks={tasks}
+            inSelectMode={inSelectMode}
+            selectedIds={selectedIds}
+            onToggle={(t) => toggleDone.mutate({ id: t.id, status: t.status })}
             onReorder={(ids) =>
               reorderTasks.mutate(ids, {
                 onError: () => toast.error("Nie udało się zapisać kolejności."),
               })
             }
             onLongPress={handleLongPress}
-            selectedIds={selectedIds}
             onTapInSelectMode={handleTapInSelectMode}
-            renderItem={(t) => (
-              <TaskCard
-                task={t}
-                onToggle={() =>
-                  !inSelectMode && toggleDone.mutate({ id: t.id, status: t.status })
-                }
-              />
-            )}
+            onDelete={(id) =>
+              deleteTask.mutate(id, {
+                onSuccess: () => {
+                  void cancelTaskReminder(id);
+                  toast.success("Zadanie usunięte");
+                },
+                onError: () => toast.error("Nie udało się usunąć zadania."),
+              })
+            }
           />
         )
       ) : routinesLoading ? (
@@ -381,6 +384,105 @@ function RetryCard({ label, onRetry }: { label: string; onRetry: () => void }) {
         className="h-10 rounded-2xl bg-secondary px-4 text-sm font-semibold text-secondary-foreground"
       >
         Spróbuj ponownie
+      </button>
+    </Card>
+  );
+}
+
+// TODO auto-usuwanie po 30 dniach
+function TasksWithCompleted({
+  tasks,
+  inSelectMode,
+  selectedIds,
+  onToggle,
+  onReorder,
+  onLongPress,
+  onTapInSelectMode,
+  onDelete,
+}: {
+  tasks: TaskRow[];
+  inSelectMode: boolean;
+  selectedIds: Set<string>;
+  onToggle: (t: TaskRow) => void;
+  onReorder: (ids: string[]) => void;
+  onLongPress: (id: string) => void;
+  onTapInSelectMode: (id: string) => void;
+  onDelete: (id: string) => void;
+}) {
+  const active = tasks.filter((t) => t.status === "open");
+  const completed = tasks.filter((t) => t.status === "done");
+
+  return (
+    <>
+      {active.length === 0 && completed.length > 0 ? (
+        <EmptyState
+          title="Wszystko zrobione"
+          description="Brak aktywnych zadań. Dodaj nowe lub odznacz ukończone."
+        />
+      ) : (
+        <SortableList
+          items={active}
+          onReorder={onReorder}
+          onLongPress={onLongPress}
+          selectedIds={selectedIds}
+          onTapInSelectMode={onTapInSelectMode}
+          renderItem={(t) => (
+            <TaskCard
+              task={t}
+              onToggle={() => !inSelectMode && onToggle(t)}
+            />
+          )}
+        />
+      )}
+
+      {completed.length > 0 ? (
+        <div className="mt-6">
+          <h2 className="mb-3 px-1 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+            Ukończone
+          </h2>
+          <div className="flex flex-col gap-2">
+            {completed.map((t) => (
+              <CompletedTaskCard
+                key={t.id}
+                task={t}
+                onToggle={() => onToggle(t)}
+                onDelete={() => onDelete(t.id)}
+              />
+            ))}
+          </div>
+        </div>
+      ) : null}
+    </>
+  );
+}
+
+function CompletedTaskCard({
+  task,
+  onToggle,
+  onDelete,
+}: {
+  task: TaskRow;
+  onToggle: () => void;
+  onDelete: () => void;
+}) {
+  return (
+    <Card className="flex items-center gap-3">
+      <button
+        onClick={onToggle}
+        aria-label="Oznacz jako niezrobione"
+        className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-primary bg-primary text-primary-foreground"
+      >
+        <Check className="h-4 w-4" />
+      </button>
+      <span className="min-w-0 flex-1 truncate text-sm text-muted-foreground line-through">
+        {task.title}
+      </span>
+      <button
+        onClick={onDelete}
+        aria-label="Usuń zadanie"
+        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors active:text-destructive"
+      >
+        <Trash2 className="h-4 w-4" />
       </button>
     </Card>
   );

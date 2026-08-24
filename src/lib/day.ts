@@ -458,13 +458,10 @@ export function useCurrentTaskNativeSync() {
     Blocker.setDayTasks({ titles: undoneTitles }).catch((e) =>
       console.error("sync day tasks -> prefs failed", e),
     );
-    // Keep current_task in step with the first item; when the list is empty we
-    // leave it alone so the manual field / fallback survives.
-    const first = undoneTitles[0];
-    if (first) {
-      Blocker.setCurrentTask({ title: first }).catch((e) =>
-        console.error("sync current task -> prefs failed", e),
-      );
-    }
+    // Keep current_task in step with the first item; when the list is empty
+    // clear it so the overlay doesn't show a stale "ghost" task.
+    Blocker.setCurrentTask({ title: undoneTitles[0] ?? "" }).catch((e) =>
+      console.error("sync current task -> prefs failed", e),
+    );
   }, [native, data, undoneTitles]);
 }

@@ -101,29 +101,29 @@ public class BlockOverlayActivity extends Activity {
     /**
      * Renders the current task. When the day plan has items, shows the one at
      * taskIndex and offers "Nie teraz" to move on (only if there's more than one
-     * left). With no plan, falls back to the manual current_task / generic
-     * string and hides the skip button.
+     * left). With no plan and no current_task, shows an "all done" state. With
+     * no plan but a current_task set, falls back to that task.
      */
     private void bindTaskView() {
         TextView eyebrow = findViewById(R.id.block_task_eyebrow);
         TextView title = findViewById(R.id.block_task_title);
+        TextView motivation = findViewById(R.id.block_motivation);
         Button skip = findViewById(R.id.block_skip_button);
 
         if (!dayTasks.isEmpty()) {
             if (taskIndex < 0 || taskIndex >= dayTasks.size()) taskIndex = 0;
             eyebrow.setVisibility(View.VISIBLE);
             title.setText(dayTasks.get(taskIndex));
-            // Skipping only makes sense when there's somewhere to skip to.
             skip.setVisibility(dayTasks.size() > 1 ? View.VISIBLE : View.GONE);
             return;
         }
 
-        // No day plan → keep the previous behaviour (manual field / fallback).
         skip.setVisibility(View.GONE);
         String task = BlockerPrefs.getCurrentTask(this);
         if (TextUtils.isEmpty(task)) {
             eyebrow.setVisibility(View.GONE);
-            title.setText(R.string.block_overlay_current_task_fallback);
+            title.setText(R.string.block_overlay_all_done_title);
+            motivation.setText(R.string.block_overlay_all_done_subtitle);
         } else {
             eyebrow.setVisibility(View.VISIBLE);
             title.setText(task);
