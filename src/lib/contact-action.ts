@@ -104,9 +104,9 @@ export function openSms(): void {
 }
 
 export function openWhatsApp(): void {
-  window.open("https://wa.me/", "_system");
+  window.open("https://wa.me/", "_blank", "noopener,noreferrer");
 }
 
 export function openMessenger(): void {
-  window.open("https://m.me/", "_system");
+  window.open("https://m.me/", "_blank", "noopener,noreferrer");
 }
