@@ -19,6 +19,14 @@ const CALL_KEYWORDS: string[] = [
   "oddzwonic",
   "wykręć numer",
   "wykrec numer",
+  "przedzwoń",
+  "przedzwonić",
+  "przedzwon",
+  "zadzwonię",
+  "zadzwonie",
+  "wybierz numer",
+  "połącz się z",
+  "polacz sie z",
 ];
 
 const MESSAGE_KEYWORDS: string[] = [
@@ -44,6 +52,17 @@ const MESSAGE_KEYWORDS: string[] = [
   "wyslij whatsapp",
   "wyślij messenger",
   "wyslij messenger",
+  "wyślę",
+  "wysle",
+  "wysłać",
+  "wyslac",
+  "napiszę",
+  "napisze",
+  "smsnij",
+  "wyślij mms",
+  "wyslij mms",
+  "wiadomość do",
+  "wiadomosc do",
 ];
 
 const AMBIGUOUS_KEYWORDS: string[] = [
@@ -63,6 +82,13 @@ const AMBIGUOUS_KEYWORDS: string[] = [
   "dogadaj sie",
   "umów się",
   "umow sie",
+  "porozmawiaj z",
+  "pogadaj z",
+  "zapytaj",
+  "spytaj",
+  "ustal z",
+  "potwierdź z",
+  "potwierdz z",
 ];
 
 function titleContains(title: string, keywords: string[]): boolean {
