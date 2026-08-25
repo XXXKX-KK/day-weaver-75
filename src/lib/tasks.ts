@@ -3,6 +3,7 @@ import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth";
 import { reorderByIds } from "@/lib/reorder";
 import type { Priority } from "@/lib/store";
+import type { ContactActionType } from "@/lib/contact-action";
 
 /** A task row (tasks table) with its subtasks (task_subtasks). */
 export type TaskSubtaskRow = {
@@ -24,6 +25,7 @@ export type TaskRow = {
   scheduled_time: string | null;
   completed_at: string | null;
   created_at: string;
+  contact_action: ContactActionType | null;
   task_subtasks: TaskSubtaskRow[];
 };
 
@@ -69,7 +71,7 @@ export function useTasks() {
       const { data, error } = await supabase
         .from("tasks")
         .select(
-          "id, title, description, priority, position, status, scheduled_date, scheduled_time, completed_at, created_at, task_subtasks(id, title, position, is_done)",
+          "id, title, description, priority, position, status, scheduled_date, scheduled_time, completed_at, created_at, contact_action, task_subtasks(id, title, position, is_done)",
         );
       if (error) throw error;
       return sortTasks((data ?? []) as TaskRow[]);
@@ -158,6 +160,20 @@ export function useDeleteTask() {
         .eq("task_id", taskId);
       if (subError) throw subError;
       const { error } = await supabase.from("tasks").delete().eq("id", taskId);
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: TASKS_KEY }),
+  });
+}
+
+export function useSetContactAction() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (args: { taskId: string; action: ContactActionType | null }) => {
+      const { error } = await supabase
+        .from("tasks")
+        .update({ contact_action: args.action })
+        .eq("id", args.taskId);
       if (error) throw error;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: TASKS_KEY }),

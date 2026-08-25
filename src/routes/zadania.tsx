@@ -17,11 +17,13 @@ import {
   useAddTask,
   useDeleteTask,
   useReorderTasks,
+  useSetContactAction,
   useTasks,
   useToggleTaskDone,
   type NewTaskInput,
   type TaskRow,
 } from "@/lib/tasks";
+import { ContactActionButtons } from "@/components/contact-action-buttons";
 import {
   useAddRoutine,
   useDeleteRoutine,
@@ -496,6 +498,7 @@ function TaskCard({
   onToggle: () => void;
 }) {
   const done = task.status === "done";
+  const setContactAction = useSetContactAction();
   return (
     <Card className="flex flex-col gap-2">
       <div className="flex items-start gap-3">
@@ -511,12 +514,21 @@ function TaskCard({
         </button>
         <h3
           className={cn(
-            "flex-1 text-base font-semibold",
+            "min-w-0 flex-1 text-base font-semibold",
             done && "text-muted-foreground line-through",
           )}
         >
           {task.title}
         </h3>
+        {!done && (
+          <ContactActionButtons
+            title={task.title}
+            manualAction={task.contact_action}
+            onSetManual={(action) =>
+              setContactAction.mutate({ taskId: task.id, action })
+            }
+          />
+        )}
         {task.priority === "high" && !done ? (
           <span className="shrink-0 rounded-full bg-primary-soft px-2.5 py-1 text-[11px] font-semibold text-primary">
             Wysoki

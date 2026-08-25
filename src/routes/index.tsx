@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useMemo } from "react";
 import { Check, ListChecks, Play, Repeat, SkipForward } from "lucide-react";
 import { Screen, ScreenHeader, Card, ProgressBar, EmptyState } from "@/components/ui-kit";
 import {
@@ -14,9 +15,11 @@ import {
 import { XpBar } from "@/components/xp-bar";
 import { SortableList } from "@/components/sortable-list";
 import { useRoutines } from "@/lib/routines";
-import { useTasks } from "@/lib/tasks";
+import { useTasks, type TaskRow } from "@/lib/tasks";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { ContactActionButtons } from "@/components/contact-action-buttons";
+import type { ContactActionType } from "@/lib/contact-action";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -94,12 +97,21 @@ function Today() {
     );
   }
 
+  const { data: allTasks } = useTasks();
   const items = today.items;
   // Progress is derived from item statuses so it moves with optimistic updates;
   // it converges to days.completed_count (kept by a DB trigger) after refetch.
   const done = items.filter((i) => i.status === "done").length;
   const total = items.length;
   const percent = total ? Math.round((done / total) * 100) : 0;
+
+  const contactActionMap = useMemo<Record<string, ContactActionType | null>>(() => {
+    const map: Record<string, ContactActionType | null> = {};
+    for (const t of allTasks ?? []) {
+      map[t.id] = t.contact_action;
+    }
+    return map;
+  }, [allTasks]);
 
   // Day already closed → show a wind-down summary.
   if (today.status === "completed") {
@@ -172,7 +184,14 @@ function Today() {
                 onError: () => toast.error("Nie udało się zapisać kolejności."),
               })
             }
-            renderItem={(item) => <DayItemCard item={item} day={today.day} items={items} />}
+            renderItem={(item) => (
+              <DayItemCard
+                item={item}
+                day={today.day}
+                items={items}
+                manualAction={item.task_id ? contactActionMap[item.task_id] ?? null : null}
+              />
+            )}
           />
 
           <button
@@ -194,56 +213,71 @@ function Today() {
 }
 
 /** One day item; tapping the row toggles done<->pending, subtasks toggle too. */
-function DayItemCard({ item, day, items }: { item: DayItemRow; day: DayRow | null; items: DayItemRow[] }) {
+function DayItemCard({
+  item,
+  day,
+  items,
+  manualAction,
+}: {
+  item: DayItemRow;
+  day: DayRow | null;
+  items: DayItemRow[];
+  manualAction: ContactActionType | null;
+}) {
   const setItemStatus = useSetItemStatus();
   const toggleSubtask = useToggleDayItemSubtask();
   const doneSubtasks = item.day_item_subtasks.filter((s) => s.is_done).length;
 
   return (
     <div className="card-surface flex flex-col gap-2 px-4 py-4">
-      <button
-        onClick={() =>
-          setItemStatus.mutate({ item, day, items }, {
-            onError: () => toast.error("Nie udało się zapisać zmiany."),
-          })
-        }
-        className="flex items-center gap-3 text-left transition-transform active:scale-[0.99]"
-      >
-        <span
-          className={cn(
-            "flex h-7 w-7 shrink-0 items-center justify-center rounded-full border transition-all duration-200",
-            item.status === "done" ? "accent-gradient border-transparent" : "border-input",
-          )}
+      <div className="flex items-center gap-3">
+        <button
+          onClick={() =>
+            setItemStatus.mutate({ item, day, items }, {
+              onError: () => toast.error("Nie udało się zapisać zmiany."),
+            })
+          }
+          className="flex min-w-0 flex-1 items-center gap-3 text-left transition-transform active:scale-[0.99]"
         >
-          {item.status === "done" ? (
-            <Check className="h-4 w-4 text-primary-foreground" strokeWidth={3} />
-          ) : null}
-          {item.status === "skipped" ? (
-            <SkipForward className="h-3.5 w-3.5 text-muted-foreground" />
-          ) : null}
-        </span>
-        <span className="min-w-0 flex-1">
           <span
             className={cn(
-              "block truncate text-sm font-semibold",
-              item.status !== "pending" && "text-muted-foreground line-through",
+              "flex h-7 w-7 shrink-0 items-center justify-center rounded-full border transition-all duration-200",
+              item.status === "done" ? "accent-gradient border-transparent" : "border-input",
             )}
           >
-            {item.title}
+            {item.status === "done" ? (
+              <Check className="h-4 w-4 text-primary-foreground" strokeWidth={3} />
+            ) : null}
+            {item.status === "skipped" ? (
+              <SkipForward className="h-3.5 w-3.5 text-muted-foreground" />
+            ) : null}
           </span>
-          {item.source_type === "routine" || item.day_item_subtasks.length > 0 ? (
-            <span className="mt-0.5 flex items-center gap-1.5 text-xs text-muted-foreground">
-              {item.source_type === "routine" ? <Repeat className="h-3 w-3" /> : null}
-              {item.day_item_subtasks.length > 0 ? (
-                <span>
-                  {doneSubtasks}/{item.day_item_subtasks.length}
-                </span>
-              ) : null}
+          <span className="min-w-0 flex-1">
+            <span
+              className={cn(
+                "block truncate text-sm font-semibold",
+                item.status !== "pending" && "text-muted-foreground line-through",
+              )}
+            >
+              {item.title}
             </span>
-          ) : null}
-        </span>
-        {item.priority === "high" ? <span className="h-2 w-2 rounded-full bg-primary" /> : null}
-      </button>
+            {item.source_type === "routine" || item.day_item_subtasks.length > 0 ? (
+              <span className="mt-0.5 flex items-center gap-1.5 text-xs text-muted-foreground">
+                {item.source_type === "routine" ? <Repeat className="h-3 w-3" /> : null}
+                {item.day_item_subtasks.length > 0 ? (
+                  <span>
+                    {doneSubtasks}/{item.day_item_subtasks.length}
+                  </span>
+                ) : null}
+              </span>
+            ) : null}
+          </span>
+          {item.priority === "high" ? <span className="h-2 w-2 rounded-full bg-primary" /> : null}
+        </button>
+        {item.status === "pending" && (
+          <ContactActionButtons title={item.title} manualAction={manualAction} />
+        )}
+      </div>
 
       {item.day_item_subtasks.length > 0 ? (
         <ul className="ml-10 flex flex-col gap-1">
