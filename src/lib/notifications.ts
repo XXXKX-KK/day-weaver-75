@@ -80,7 +80,7 @@ function buildNotifications(state: NotificationState): ScheduledNotification[] {
       channelId: CHANNEL_ID,
       title: "Zacznij swój dzień",
       body: "Zaplanuj dzień i ruszaj — Twój plan już czeka.",
-      schedule: { on: { hour: morning.hour, minute: morning.minute }, allowWhileIdle: true },
+      schedule: { on: { hour: morning.hour, minute: morning.minute } },
     });
   }
 
@@ -103,7 +103,7 @@ function buildNotifications(state: NotificationState): ScheduledNotification[] {
         channelId: CHANNEL_ID,
         title: "Dzień się kończy",
         body,
-        schedule: { on: { hour: evening.hour, minute: evening.minute }, allowWhileIdle: true },
+        schedule: { on: { hour: evening.hour, minute: evening.minute } },
       });
     }
   }
@@ -215,7 +215,7 @@ export async function scheduleTaskReminder(task: {
           channelId: TASK_CHANNEL_ID,
           title: "Za 10 minut",
           body: task.title,
-          schedule: { at: fireAt, allowWhileIdle: true },
+          schedule: { at: fireAt },
         },
       ],
     });
