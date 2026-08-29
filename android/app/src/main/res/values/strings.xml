@@ -4,7 +4,6 @@
     <string name="title_activity_main">TENAX</string>
     <string name="package_name">pl.dzienlepszy.app</string>
     <string name="custom_url_scheme">pl.dzienlepszy.app</string>
-    <string name="blocker_service_description">Wykrywa otwarcie blokowanych aplikacji i pokazuje ekran skupienia, gdy blokada jest włączona.</string>
     <string name="block_overlay_headline">Chwila skupienia</string>
     <string name="block_overlay_motivation">Ten czas należy do Ciebie. Wróć do tego, co naprawdę ważne.</string>
     <string name="block_overlay_return_to">Wróć do:</string>

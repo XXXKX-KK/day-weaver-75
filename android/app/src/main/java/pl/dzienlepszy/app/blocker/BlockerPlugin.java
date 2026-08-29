@@ -1,6 +1,6 @@
 package pl.dzienlepszy.app.blocker;
 
-import android.content.ComponentName;
+import android.app.AppOpsManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -8,9 +8,11 @@ import android.content.pm.ResolveInfo;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.drawable.Drawable;
+import android.net.Uri;
 import android.provider.Settings;
-import android.text.TextUtils;
 import android.util.Base64;
+
+import androidx.core.content.ContextCompat;
 
 import com.getcapacitor.JSArray;
 import com.getcapacitor.JSObject;
@@ -30,12 +32,9 @@ import java.util.Set;
 /**
  * Native bridge for the app-blocking core:
  *  - lists launchable installed apps (PackageManager),
- *  - reads/writes the blocked list + enabled flag in SharedPreferences
- *    (the same store the AccessibilityService reads),
- *  - reports and opens the accessibility-service permission screen.
- *
- * No scheduling, breaks, or foreground-service logic lives here — that is
- * intentionally out of scope for this milestone.
+ *  - reads/writes the blocked list + enabled flag in SharedPreferences,
+ *  - starts/stops BlockerForegroundService when blocking is toggled,
+ *  - reports and opens Usage Access / Overlay permission screens.
  */
 @CapacitorPlugin(name = "Blocker")
 public class BlockerPlugin extends Plugin {
@@ -113,7 +112,14 @@ public class BlockerPlugin extends Plugin {
             call.reject("Missing 'enabled' boolean");
             return;
         }
-        BlockerPrefs.setBlockingEnabled(getContext(), enabled);
+        Context context = getContext();
+        BlockerPrefs.setBlockingEnabled(context, enabled);
+        Intent service = new Intent(context, BlockerForegroundService.class);
+        if (enabled) {
+            ContextCompat.startForegroundService(context, service);
+        } else {
+            context.stopService(service);
+        }
         JSObject result = new JSObject();
         result.put("enabled", enabled);
         call.resolve(result);
@@ -220,35 +226,41 @@ public class BlockerPlugin extends Plugin {
     }
 
     @PluginMethod
-    public void isAccessibilityEnabled(PluginCall call) {
+    public void isUsageAccessGranted(PluginCall call) {
+        Context context = getContext();
+        AppOpsManager appOps = (AppOpsManager) context.getSystemService(Context.APP_OPS_SERVICE);
+        int mode = appOps.unsafeCheckOpNoThrow(
+                AppOpsManager.OPSTR_GET_USAGE_STATS,
+                android.os.Process.myUid(),
+                context.getPackageName());
         JSObject result = new JSObject();
-        result.put("enabled", isAccessibilityServiceEnabled());
+        result.put("granted", mode == AppOpsManager.MODE_ALLOWED);
         call.resolve(result);
     }
 
     @PluginMethod
-    public void openAccessibilitySettings(PluginCall call) {
-        Intent intent = new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS);
+    public void openUsageAccessSettings(PluginCall call) {
+        Intent intent = new Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS);
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         getContext().startActivity(intent);
         call.resolve();
     }
 
-    private boolean isAccessibilityServiceEnabled() {
-        Context context = getContext();
-        ComponentName expected = new ComponentName(context, BlockerService.class);
-        String enabled = Settings.Secure.getString(
-                context.getContentResolver(),
-                Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES);
-        if (TextUtils.isEmpty(enabled)) return false;
+    @PluginMethod
+    public void isOverlayGranted(PluginCall call) {
+        JSObject result = new JSObject();
+        result.put("granted", Settings.canDrawOverlays(getContext()));
+        call.resolve(result);
+    }
 
-        TextUtils.SimpleStringSplitter splitter = new TextUtils.SimpleStringSplitter(':');
-        splitter.setString(enabled);
-        while (splitter.hasNext()) {
-            ComponentName parsed = ComponentName.unflattenFromString(splitter.next());
-            if (expected.equals(parsed)) return true;
-        }
-        return false;
+    @PluginMethod
+    public void openOverlaySettings(PluginCall call) {
+        Intent intent = new Intent(
+                Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                Uri.parse("package:" + getContext().getPackageName()));
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        getContext().startActivity(intent);
+        call.resolve();
     }
 
     private String encodeIcon(Drawable drawable) {

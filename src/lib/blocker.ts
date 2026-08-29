@@ -10,7 +10,7 @@ export type InstalledApp = {
 /**
  * Native app-blocking bridge (Android). Implemented by BlockerPlugin.java.
  * The blocked list and enabled flag live in native SharedPreferences — the
- * same store the AccessibilityService reads — so there is no Supabase and no
+ * same store the foreground service reads — so there is no Supabase and no
  * network in this path.
  */
 export interface BlockerPlugin {
@@ -19,8 +19,10 @@ export interface BlockerPlugin {
   setBlockedApps(options: { packages: string[] }): Promise<void>;
   setBlockingEnabled(options: { enabled: boolean }): Promise<{ enabled: boolean }>;
   isBlockingEnabled(): Promise<{ enabled: boolean }>;
-  isAccessibilityEnabled(): Promise<{ enabled: boolean }>;
-  openAccessibilitySettings(): Promise<void>;
+  isUsageAccessGranted(): Promise<{ granted: boolean }>;
+  openUsageAccessSettings(): Promise<void>;
+  isOverlayGranted(): Promise<{ granted: boolean }>;
+  openOverlaySettings(): Promise<void>;
   /** The task the user set manually on the Skupienie screen (shown by the overlay). */
   setCurrentTask(options: { title: string }): Promise<{ title: string }>;
   getCurrentTask(): Promise<{ title: string }>;

@@ -25,7 +25,7 @@ export const Route = createFileRoute("/skupienie/")({
       {
         name: "description",
         content:
-          "Włącz blokadę, przyznaj uprawnienie usługi dostępności i wybierz aplikacje do zablokowania.",
+          "Włącz blokadę, nadaj uprawnienia i wybierz aplikacje do zablokowania.",
       },
       { property: "og:title", content: "Skupienie – blokada rozpraszających aplikacji" },
       {
@@ -41,7 +41,8 @@ function FocusScreen() {
   const { user } = useAuth();
   const native = isNativeBlocker();
   const [blockingEnabled, setBlockingEnabled] = useState(false);
-  const [accessibilityEnabled, setAccessibilityEnabled] = useState(false);
+  const [usageAccessGranted, setUsageAccessGranted] = useState(false);
+  const [overlayGranted, setOverlayGranted] = useState(false);
   const [blockedCount, setBlockedCount] = useState(0);
   const [busy, setBusy] = useState(false);
   const [currentTask, setCurrentTask] = useState("");
@@ -54,14 +55,16 @@ function FocusScreen() {
   const refresh = useCallback(async () => {
     if (!native) return;
     try {
-      const [enabled, access, blocked, pin] = await Promise.all([
+      const [enabled, usage, overlay, blocked, pin] = await Promise.all([
         Blocker.isBlockingEnabled(),
-        Blocker.isAccessibilityEnabled(),
+        Blocker.isUsageAccessGranted(),
+        Blocker.isOverlayGranted(),
         Blocker.getBlockedApps(),
         Blocker.hasPin(),
       ]);
       setBlockingEnabled(enabled.enabled);
-      setAccessibilityEnabled(access.enabled);
+      setUsageAccessGranted(usage.granted);
+      setOverlayGranted(overlay.granted);
       setBlockedCount(blocked.packages.length);
       setPinSet(pin.hasPin);
     } catch (e) {
@@ -91,13 +94,15 @@ function FocusScreen() {
       .catch((e) => console.error("getCurrentTask failed", e));
   }, [native]);
 
+  const bothGranted = usageAccessGranted && overlayGranted;
+
   const doSetBlocking = async (enabled: boolean) => {
     setBusy(true);
     try {
       await Blocker.setBlockingEnabled({ enabled });
       setBlockingEnabled(enabled);
-      if (enabled && !accessibilityEnabled) {
-        toast.warning("Włącz usługę dostępności, aby blokada zadziałała.");
+      if (enabled && !bothGranted) {
+        toast.warning("Nadaj oba uprawnienia, aby blokada zadziałała.");
       }
     } catch (e) {
       console.error(e);
@@ -150,13 +155,18 @@ function FocusScreen() {
     }
   };
 
-  const openSettings = async () => {
-    if (!native) {
-      toast.info("Ustawienia dostępności są dostępne tylko na telefonie.");
-      return;
-    }
+  const openUsageSettings = async () => {
     try {
-      await Blocker.openAccessibilitySettings();
+      await Blocker.openUsageAccessSettings();
+    } catch (e) {
+      console.error(e);
+      toast.error("Nie udało się otworzyć ustawień.");
+    }
+  };
+
+  const openOverlay = async () => {
+    try {
+      await Blocker.openOverlaySettings();
     } catch (e) {
       console.error(e);
       toast.error("Nie udało się otworzyć ustawień.");
@@ -214,26 +224,52 @@ function FocusScreen() {
       </Card>
 
       {native ? (
-        accessibilityEnabled ? (
+        bothGranted ? (
           <Card className="mb-4 flex items-center gap-3 border-primary/25 py-4">
             <ShieldCheck className="h-4 w-4 shrink-0 text-primary" />
             <p className="flex-1 text-xs leading-relaxed text-muted-foreground">
-              Usługa dostępności jest włączona. Blokada może działać.
+              Uprawnienia nadane. Blokada może działać.
             </p>
           </Card>
         ) : (
-          <Card className="mb-4 flex items-start gap-3 border-warning/25 py-4">
-            <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
-            <div className="flex-1">
+          <Card className="mb-4 flex flex-col gap-4 border-warning/25 py-4 px-4">
+            <div className="flex items-start gap-3">
+              <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
               <p className="text-xs leading-relaxed text-muted-foreground">
-                Blokada wymaga usługi dostępności Androida. Bez niej przełącznik nic nie zablokuje.
+                Blokada wymaga dwóch uprawnień. Nadaj oba, aby przełącznik zadziałał.
               </p>
-              <button
-                onClick={openSettings}
-                className="mt-3 h-10 rounded-2xl bg-secondary px-4 text-sm font-semibold text-secondary-foreground"
-              >
-                Włącz usługę
-              </button>
+            </div>
+            <div className="flex items-center gap-3">
+              {usageAccessGranted ? (
+                <ShieldCheck className="h-4 w-4 shrink-0 text-primary" />
+              ) : (
+                <ShieldOff className="h-4 w-4 shrink-0 text-muted-foreground" />
+              )}
+              <p className="flex-1 text-xs text-muted-foreground">Dostęp do użycia</p>
+              {!usageAccessGranted && (
+                <button
+                  onClick={openUsageSettings}
+                  className="h-8 rounded-xl bg-secondary px-3 text-xs font-semibold text-secondary-foreground"
+                >
+                  Nadaj
+                </button>
+              )}
+            </div>
+            <div className="flex items-center gap-3">
+              {overlayGranted ? (
+                <ShieldCheck className="h-4 w-4 shrink-0 text-primary" />
+              ) : (
+                <ShieldOff className="h-4 w-4 shrink-0 text-muted-foreground" />
+              )}
+              <p className="flex-1 text-xs text-muted-foreground">Wyświetlanie nad innymi aplikacjami</p>
+              {!overlayGranted && (
+                <button
+                  onClick={openOverlay}
+                  className="h-8 rounded-xl bg-secondary px-3 text-xs font-semibold text-secondary-foreground"
+                >
+                  Nadaj
+                </button>
+              )}
             </div>
           </Card>
         )
@@ -241,8 +277,8 @@ function FocusScreen() {
         <Card className="mb-4 flex items-start gap-3 border-warning/25 py-4">
           <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
           <p className="text-xs leading-relaxed text-muted-foreground">
-            Realna blokada wymaga usługi dostępności Androida. W podglądzie webowym widzisz
-            wyłącznie interfejs sterowania.
+            Realna blokada wymaga uprawnień Androida. W podglądzie webowym widzisz wyłącznie
+            interfejs sterowania.
           </p>
         </Card>
       )}

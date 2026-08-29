@@ -86,7 +86,7 @@ export function useSetAppBlocked() {
 /**
  * Keeps native prefs in sync with Supabase (Supabase -> prefs). Runs at
  * startup/login (component mount) and after every change (cache updates), so
- * the AccessibilityService always sees the current blocked set. No-op on web.
+ * the foreground service always sees the current blocked set. No-op on web.
  */
 export function useBlockedAppsNativeSync() {
   const { data } = useBlockedApps();
