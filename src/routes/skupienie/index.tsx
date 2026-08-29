@@ -12,9 +12,11 @@ import {
 import { Screen, ScreenHeader, Card } from "@/components/ui-kit";
 import { Switch } from "@/components/ui/switch";
 import { PinPad } from "@/components/pin-pad";
+import { PinReset } from "@/components/pin-reset";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { Blocker, isNativeBlocker } from "@/lib/blocker";
+import { useAuth } from "@/lib/auth";
 
 export const Route = createFileRoute("/skupienie/")({
   head: () => ({
@@ -36,6 +38,7 @@ export const Route = createFileRoute("/skupienie/")({
 });
 
 function FocusScreen() {
+  const { user } = useAuth();
   const native = isNativeBlocker();
   const [blockingEnabled, setBlockingEnabled] = useState(false);
   const [accessibilityEnabled, setAccessibilityEnabled] = useState(false);
@@ -45,7 +48,7 @@ function FocusScreen() {
   const [taskInput, setTaskInput] = useState("");
   const [savingTask, setSavingTask] = useState(false);
   const [pinSet, setPinSet] = useState(false);
-  const [pinAction, setPinAction] = useState<"verify-disable" | "set" | null>(null);
+  const [pinAction, setPinAction] = useState<"verify-disable" | "set" | "reset-disable" | null>(null);
   const [pinError, setPinError] = useState("");
 
   const refresh = useCallback(async () => {
@@ -309,11 +312,32 @@ function FocusScreen() {
         </Card>
       </Link>
 
-      {pinAction && (
+      {pinAction === "verify-disable" && (
         <PinPad
-          mode={pinAction === "set" ? "set" : "verify"}
+          mode="verify"
           error={pinError}
           onComplete={onPinComplete}
+          onCancel={() => setPinAction(null)}
+          onForgot={user?.email ? () => setPinAction("reset-disable") : undefined}
+        />
+      )}
+      {pinAction === "set" && (
+        <PinPad
+          mode="set"
+          error={pinError}
+          onComplete={onPinComplete}
+          onCancel={() => setPinAction(null)}
+        />
+      )}
+      {pinAction === "reset-disable" && user?.email && (
+        <PinReset
+          email={user.email}
+          onComplete={async () => {
+            setPinSet(false);
+            setPinAction(null);
+            toast.success("PIN usunięty.");
+            await doSetBlocking(false);
+          }}
           onCancel={() => setPinAction(null)}
         />
       )}

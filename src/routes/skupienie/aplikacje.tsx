@@ -4,9 +4,11 @@ import { ChevronLeft, Search, Smartphone } from "lucide-react";
 import { Screen } from "@/components/ui-kit";
 import { Switch } from "@/components/ui/switch";
 import { PinPad } from "@/components/pin-pad";
+import { PinReset } from "@/components/pin-reset";
 import { toast } from "sonner";
 import { Blocker, isNativeBlocker, type InstalledApp } from "@/lib/blocker";
 import { enabledPackagesOf, useBlockedApps, useSetAppBlocked } from "@/lib/blocked-apps";
+import { useAuth } from "@/lib/auth";
 
 export const Route = createFileRoute("/skupienie/aplikacje")({
   head: () => ({
@@ -37,6 +39,7 @@ const SUGGESTED = new Set<string>([
 ]);
 
 function AppPickerScreen() {
+  const { user } = useAuth();
   const native = isNativeBlocker();
   const [apps, setApps] = useState<InstalledApp[]>([]);
   const [query, setQuery] = useState("");
@@ -54,6 +57,7 @@ function AppPickerScreen() {
   const [pinSet, setPinSet] = useState(false);
   const [pendingUnblock, setPendingUnblock] = useState<InstalledApp | null>(null);
   const [pinError, setPinError] = useState("");
+  const [showPinReset, setShowPinReset] = useState(false);
 
   // Installed apps + PIN state from the native plugin.
   useEffect(() => {
@@ -205,12 +209,30 @@ function AppPickerScreen() {
         </div>
       )}
 
-      {pendingUnblock && (
+      {pendingUnblock && !showPinReset && (
         <PinPad
           mode="verify"
           error={pinError}
           onComplete={onPinComplete}
           onCancel={() => setPendingUnblock(null)}
+          onForgot={user?.email ? () => setShowPinReset(true) : undefined}
+        />
+      )}
+      {pendingUnblock && showPinReset && user?.email && (
+        <PinReset
+          email={user.email}
+          onComplete={() => {
+            const app = pendingUnblock;
+            setPinSet(false);
+            setShowPinReset(false);
+            setPendingUnblock(null);
+            toast.success("PIN usunięty.");
+            doUnblock(app);
+          }}
+          onCancel={() => {
+            setShowPinReset(false);
+            setPendingUnblock(null);
+          }}
         />
       )}
     </Screen>

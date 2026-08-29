@@ -8,6 +8,7 @@ interface PinPadProps {
   mode: PinPadMode;
   onComplete: (pin: string) => void;
   onCancel: () => void;
+  onForgot?: (() => void) | undefined;
   error?: string;
 }
 
@@ -24,7 +25,7 @@ function shuffle(arr: number[]): number[] {
   return copy;
 }
 
-export function PinPad({ mode, onComplete, onCancel, error }: PinPadProps) {
+export function PinPad({ mode, onComplete, onCancel, onForgot, error }: PinPadProps) {
   const [phase, setPhase] = useState<"enter" | "confirm">("enter");
   const [pin, setPin] = useState("");
   const [firstPin, setFirstPin] = useState("");
@@ -138,6 +139,15 @@ export function PinPad({ mode, onComplete, onCancel, error }: PinPadProps) {
           <Delete className="h-5 w-5" />
         </button>
       </div>
+
+      {mode === "verify" && onForgot && (
+        <button
+          onClick={onForgot}
+          className="mt-6 text-sm text-muted-foreground underline underline-offset-2"
+        >
+          Nie pamiętam PIN-u
+        </button>
+      )}
     </div>
   );
 }
