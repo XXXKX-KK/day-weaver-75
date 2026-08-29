@@ -5,6 +5,9 @@ import android.content.SharedPreferences;
 
 import org.json.JSONArray;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -27,6 +30,9 @@ public final class BlockerPrefs {
     public static final String KEY_DAY_TASKS = "day_tasks";
     public static final String KEY_ACCENT_KEY = "accent_key";
     public static final String KEY_ACCENT_HEX = "accent_hex";
+    public static final String KEY_PIN_HASH = "pin_hash";
+
+    private static final String PIN_SALT = "tenax-pin-v1";
 
     private BlockerPrefs() {}
 
@@ -127,5 +133,44 @@ public final class BlockerPrefs {
 
     public static String getAccentKey(Context context) {
         return prefs(context).getString(KEY_ACCENT_KEY, "pink");
+    }
+
+    // ── PIN (friction, not encryption — SHA-256 with a static salt) ──
+
+    public static boolean hasPin(Context context) {
+        String hash = prefs(context).getString(KEY_PIN_HASH, "");
+        return hash != null && !hash.isEmpty();
+    }
+
+    public static void setPinHash(Context context, String rawPin) {
+        prefs(context).edit()
+                .putString(KEY_PIN_HASH, hashPin(rawPin))
+                .apply();
+    }
+
+    public static boolean verifyPin(Context context, String rawPin) {
+        String stored = prefs(context).getString(KEY_PIN_HASH, "");
+        if (stored == null || stored.isEmpty()) return false;
+        return stored.equals(hashPin(rawPin));
+    }
+
+    public static void clearPin(Context context) {
+        prefs(context).edit()
+                .remove(KEY_PIN_HASH)
+                .apply();
+    }
+
+    public static String hashPin(String rawPin) {
+        try {
+            MessageDigest md = MessageDigest.getInstance("SHA-256");
+            byte[] digest = md.digest((PIN_SALT + rawPin).getBytes(StandardCharsets.UTF_8));
+            StringBuilder sb = new StringBuilder(64);
+            for (byte b : digest) {
+                sb.append(String.format("%02x", b & 0xff));
+            }
+            return sb.toString();
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException("SHA-256 not available", e);
+        }
     }
 }

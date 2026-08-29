@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { ChevronLeft, Search, Smartphone } from "lucide-react";
 import { Screen } from "@/components/ui-kit";
 import { Switch } from "@/components/ui/switch";
+import { PinPad } from "@/components/pin-pad";
 import { toast } from "sonner";
 import { Blocker, isNativeBlocker, type InstalledApp } from "@/lib/blocker";
 import { enabledPackagesOf, useBlockedApps, useSetAppBlocked } from "@/lib/blocked-apps";
@@ -50,8 +51,11 @@ function AppPickerScreen() {
   } = useBlockedApps();
   const setAppBlocked = useSetAppBlocked();
   const blockedSet = useMemo(() => new Set(enabledPackagesOf(blockedRows)), [blockedRows]);
+  const [pinSet, setPinSet] = useState(false);
+  const [pendingUnblock, setPendingUnblock] = useState<InstalledApp | null>(null);
+  const [pinError, setPinError] = useState("");
 
-  // Installed apps still come from the native plugin.
+  // Installed apps + PIN state from the native plugin.
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -60,9 +64,13 @@ function AppPickerScreen() {
         return;
       }
       try {
-        const installed = await Blocker.getInstalledApps({ includeIcons: true });
+        const [installed, pin] = await Promise.all([
+          Blocker.getInstalledApps({ includeIcons: true }),
+          Blocker.hasPin(),
+        ]);
         if (cancelled) return;
         setApps([...installed.apps].sort((a, b) => a.appLabel.localeCompare(b.appLabel, "pl")));
+        setPinSet(pin.hasPin);
       } catch (e) {
         console.error("getInstalledApps failed", e);
         if (!cancelled) toast.error("Nie udało się wczytać listy aplikacji.");
@@ -75,15 +83,45 @@ function AppPickerScreen() {
     };
   }, [native]);
 
+  const doUnblock = (app: InstalledApp) => {
+    setAppBlocked.mutate(
+      { packageName: app.packageName, appLabel: app.appLabel, blocked: false },
+      { onError: () => toast.error("Nie udało się zapisać wyboru.") },
+    );
+  };
+
   const toggle = (app: InstalledApp) => {
+    const isBlocked = blockedSet.has(app.packageName);
+    if (isBlocked && pinSet) {
+      setPinError("");
+      setPendingUnblock(app);
+      return;
+    }
     setAppBlocked.mutate(
       {
         packageName: app.packageName,
         appLabel: app.appLabel,
-        blocked: !blockedSet.has(app.packageName),
+        blocked: !isBlocked,
       },
       { onError: () => toast.error("Nie udało się zapisać wyboru.") },
     );
+  };
+
+  const onPinComplete = async (pin: string) => {
+    if (!pendingUnblock) return;
+    try {
+      const { valid } = await Blocker.verifyPin({ pin });
+      if (!valid) {
+        setPinError("Nieprawidłowy PIN");
+        return;
+      }
+      const app = pendingUnblock;
+      setPendingUnblock(null);
+      doUnblock(app);
+    } catch (e) {
+      console.error(e);
+      setPinError("Błąd weryfikacji");
+    }
   };
 
   const filtered = useMemo(() => {
@@ -165,6 +203,15 @@ function AppPickerScreen() {
             onToggle={toggle}
           />
         </div>
+      )}
+
+      {pendingUnblock && (
+        <PinPad
+          mode="verify"
+          error={pinError}
+          onComplete={onPinComplete}
+          onCancel={() => setPendingUnblock(null)}
+        />
       )}
     </Screen>
   );

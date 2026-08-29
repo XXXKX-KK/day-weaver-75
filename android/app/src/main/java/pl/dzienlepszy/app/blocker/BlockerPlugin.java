@@ -168,6 +168,44 @@ public class BlockerPlugin extends Plugin {
         call.resolve();
     }
 
+    // ── PIN ──
+
+    @PluginMethod
+    public void hasPin(PluginCall call) {
+        JSObject result = new JSObject();
+        result.put("hasPin", BlockerPrefs.hasPin(getContext()));
+        call.resolve(result);
+    }
+
+    @PluginMethod
+    public void setPin(PluginCall call) {
+        String pin = call.getString("pin");
+        if (pin == null || pin.isEmpty()) {
+            call.reject("Missing 'pin' string");
+            return;
+        }
+        BlockerPrefs.setPinHash(getContext(), pin);
+        call.resolve();
+    }
+
+    @PluginMethod
+    public void verifyPin(PluginCall call) {
+        String pin = call.getString("pin");
+        if (pin == null || pin.isEmpty()) {
+            call.reject("Missing 'pin' string");
+            return;
+        }
+        JSObject result = new JSObject();
+        result.put("valid", BlockerPrefs.verifyPin(getContext(), pin));
+        call.resolve(result);
+    }
+
+    @PluginMethod
+    public void clearPin(PluginCall call) {
+        BlockerPrefs.clearPin(getContext());
+        call.resolve();
+    }
+
     @PluginMethod
     public void isAccessibilityEnabled(PluginCall call) {
         JSObject result = new JSObject();

@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
 import {
   ChevronRight,
+  Lock,
   ShieldCheck,
   ShieldOff,
   Smartphone,
@@ -10,6 +11,7 @@ import {
 } from "lucide-react";
 import { Screen, ScreenHeader, Card } from "@/components/ui-kit";
 import { Switch } from "@/components/ui/switch";
+import { PinPad } from "@/components/pin-pad";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { Blocker, isNativeBlocker } from "@/lib/blocker";
@@ -42,18 +44,23 @@ function FocusScreen() {
   const [currentTask, setCurrentTask] = useState("");
   const [taskInput, setTaskInput] = useState("");
   const [savingTask, setSavingTask] = useState(false);
+  const [pinSet, setPinSet] = useState(false);
+  const [pinAction, setPinAction] = useState<"verify-disable" | "set" | null>(null);
+  const [pinError, setPinError] = useState("");
 
   const refresh = useCallback(async () => {
     if (!native) return;
     try {
-      const [enabled, access, blocked] = await Promise.all([
+      const [enabled, access, blocked, pin] = await Promise.all([
         Blocker.isBlockingEnabled(),
         Blocker.isAccessibilityEnabled(),
         Blocker.getBlockedApps(),
+        Blocker.hasPin(),
       ]);
       setBlockingEnabled(enabled.enabled);
       setAccessibilityEnabled(access.enabled);
       setBlockedCount(blocked.packages.length);
+      setPinSet(pin.hasPin);
     } catch (e) {
       console.error("Blocker refresh failed", e);
     }
@@ -81,16 +88,12 @@ function FocusScreen() {
       .catch((e) => console.error("getCurrentTask failed", e));
   }, [native]);
 
-  const onToggleBlocking = async (next: boolean) => {
-    if (!native) {
-      toast.info("Blokada działa tylko w aplikacji na telefonie.");
-      return;
-    }
+  const doSetBlocking = async (enabled: boolean) => {
     setBusy(true);
     try {
-      await Blocker.setBlockingEnabled({ enabled: next });
-      setBlockingEnabled(next);
-      if (next && !accessibilityEnabled) {
+      await Blocker.setBlockingEnabled({ enabled });
+      setBlockingEnabled(enabled);
+      if (enabled && !accessibilityEnabled) {
         toast.warning("Włącz usługę dostępności, aby blokada zadziałała.");
       }
     } catch (e) {
@@ -98,6 +101,49 @@ function FocusScreen() {
       toast.error("Nie udało się zmienić blokady.");
     } finally {
       setBusy(false);
+    }
+  };
+
+  const onToggleBlocking = async (next: boolean) => {
+    if (!native) {
+      toast.info("Blokada działa tylko w aplikacji na telefonie.");
+      return;
+    }
+    if (!next && pinSet) {
+      setPinError("");
+      setPinAction("verify-disable");
+      return;
+    }
+    await doSetBlocking(next);
+  };
+
+  const onPinComplete = async (pin: string) => {
+    if (pinAction === "verify-disable") {
+      try {
+        const { valid } = await Blocker.verifyPin({ pin });
+        if (!valid) {
+          setPinError("Nieprawidłowy PIN");
+          return;
+        }
+        setPinAction(null);
+        await doSetBlocking(false);
+      } catch (e) {
+        console.error(e);
+        setPinError("Błąd weryfikacji");
+      }
+      return;
+    }
+    if (pinAction === "set") {
+      try {
+        await Blocker.setPin({ pin });
+        setPinSet(true);
+        setPinAction(null);
+        toast.success("PIN ustawiony.");
+      } catch (e) {
+        console.error(e);
+        toast.error("Nie udało się ustawić PIN-u.");
+        setPinAction(null);
+      }
     }
   };
 
@@ -198,6 +244,26 @@ function FocusScreen() {
         </Card>
       )}
 
+      {blockingEnabled && !pinSet && native && (
+        <Card className="mb-4 flex items-start gap-3 border-primary/25 py-4">
+          <Lock className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+          <div className="flex-1">
+            <p className="text-xs leading-relaxed text-muted-foreground">
+              Ustaw PIN, żeby nikt nie wyłączył blokady bez Twojej zgody.
+            </p>
+            <button
+              onClick={() => {
+                setPinError("");
+                setPinAction("set");
+              }}
+              className="mt-3 h-10 rounded-2xl bg-secondary px-4 text-sm font-semibold text-secondary-foreground"
+            >
+              Ustaw PIN
+            </button>
+          </div>
+        </Card>
+      )}
+
       <Card className="mb-4 flex flex-col gap-3 py-5">
         <div className="flex items-center gap-3">
           <span className="accent-gradient flex h-10 w-10 items-center justify-center rounded-2xl">
@@ -242,6 +308,15 @@ function FocusScreen() {
           <ChevronRight className="h-5 w-5 shrink-0 text-muted-foreground" />
         </Card>
       </Link>
+
+      {pinAction && (
+        <PinPad
+          mode={pinAction === "set" ? "set" : "verify"}
+          error={pinError}
+          onComplete={onPinComplete}
+          onCancel={() => setPinAction(null)}
+        />
+      )}
     </Screen>
   );
 }

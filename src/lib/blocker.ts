@@ -35,6 +35,15 @@ export interface BlockerPlugin {
    * overlay can pick it up in a later brief. UI does not read this back.
    */
   setAccentColor(options: { key: string; hex: string }): Promise<void>;
+
+  /** Whether a blocker PIN has been set on this device. */
+  hasPin(): Promise<{ hasPin: boolean }>;
+  /** Store a new 4-digit PIN (SHA-256 hashed with a static salt). */
+  setPin(options: { pin: string }): Promise<void>;
+  /** Check a raw PIN against the stored hash. */
+  verifyPin(options: { pin: string }): Promise<{ valid: boolean }>;
+  /** Remove the stored PIN entirely. */
+  clearPin(): Promise<void>;
 }
 
 export const Blocker = registerPlugin<BlockerPlugin>("Blocker");
