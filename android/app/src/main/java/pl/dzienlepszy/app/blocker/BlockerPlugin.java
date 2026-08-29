@@ -168,6 +168,19 @@ public class BlockerPlugin extends Plugin {
         call.resolve();
     }
 
+    // ── Break config ──
+
+    @PluginMethod
+    public void setBreakConfig(PluginCall call) {
+        Integer delay = call.getInt("delaySeconds");
+        Integer limit = call.getInt("dailyLimit");
+        BlockerPrefs.setBreakConfig(
+                getContext(),
+                delay != null ? delay : BlockerPrefs.DEFAULT_BREAK_DELAY,
+                limit != null ? limit : BlockerPrefs.DEFAULT_BREAK_DAILY_LIMIT);
+        call.resolve();
+    }
+
     // ── PIN ──
 
     @PluginMethod

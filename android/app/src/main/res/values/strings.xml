@@ -13,4 +13,7 @@
     <string name="block_overlay_all_done_title">Dzień zrobiony</string>
     <string name="block_overlay_all_done_subtitle">Wszystko odhaczone. Ten czas jest twój.</string>
     <string name="block_overlay_skip">Nie teraz</string>
+    <string name="block_overlay_break">Przerwa (%1$d/%2$d)</string>
+    <string name="block_overlay_break_countdown">Odblokowanie za %1$ds</string>
+    <string name="block_overlay_break_exhausted">Przerwy wyczerpane</string>
 </resources>

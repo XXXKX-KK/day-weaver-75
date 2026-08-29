@@ -8,7 +8,10 @@ import org.json.JSONArray;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
+import java.util.Locale;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -31,6 +34,16 @@ public final class BlockerPrefs {
     public static final String KEY_ACCENT_KEY = "accent_key";
     public static final String KEY_ACCENT_HEX = "accent_hex";
     public static final String KEY_PIN_HASH = "pin_hash";
+    public static final String KEY_BREAK_DELAY = "break_delay_seconds";
+    public static final String KEY_BREAK_DAILY_LIMIT = "break_daily_limit";
+    public static final String KEY_BREAK_USED_COUNT = "break_used_count";
+    public static final String KEY_BREAK_USED_DATE = "break_used_date";
+    public static final String KEY_UNLOCK_UNTIL = "unlock_until";
+    public static final String KEY_UNLOCK_PACKAGE = "unlock_package";
+
+    public static final int DEFAULT_BREAK_DELAY = 15;
+    public static final int DEFAULT_BREAK_DAILY_LIMIT = 3;
+    public static final long BREAK_DURATION_MS = 5L * 60 * 1000;
 
     private static final String PIN_SALT = "tenax-pin-v1";
 
@@ -172,5 +185,70 @@ public final class BlockerPrefs {
         } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException("SHA-256 not available", e);
         }
+    }
+
+    // ── Controlled break ──
+
+    public static int getBreakDelay(Context context) {
+        return prefs(context).getInt(KEY_BREAK_DELAY, DEFAULT_BREAK_DELAY);
+    }
+
+    public static int getBreakDailyLimit(Context context) {
+        return prefs(context).getInt(KEY_BREAK_DAILY_LIMIT, DEFAULT_BREAK_DAILY_LIMIT);
+    }
+
+    public static void setBreakConfig(Context context, int delay, int dailyLimit) {
+        prefs(context).edit()
+                .putInt(KEY_BREAK_DELAY, delay)
+                .putInt(KEY_BREAK_DAILY_LIMIT, dailyLimit)
+                .apply();
+    }
+
+    private static String todayDate() {
+        return new SimpleDateFormat("yyyy-MM-dd", Locale.US).format(new Date());
+    }
+
+    public static int getBreakUsedToday(Context context) {
+        SharedPreferences p = prefs(context);
+        String storedDate = p.getString(KEY_BREAK_USED_DATE, "");
+        if (!todayDate().equals(storedDate)) return 0;
+        return p.getInt(KEY_BREAK_USED_COUNT, 0);
+    }
+
+    public static void incrementBreakUsed(Context context) {
+        String today = todayDate();
+        SharedPreferences p = prefs(context);
+        String storedDate = p.getString(KEY_BREAK_USED_DATE, "");
+        int count = today.equals(storedDate) ? p.getInt(KEY_BREAK_USED_COUNT, 0) : 0;
+        p.edit()
+                .putString(KEY_BREAK_USED_DATE, today)
+                .putInt(KEY_BREAK_USED_COUNT, count + 1)
+                .apply();
+    }
+
+    public static boolean hasBreaksRemaining(Context context) {
+        return getBreakUsedToday(context) < getBreakDailyLimit(context);
+    }
+
+    public static boolean isUnlocked(Context context, String packageName) {
+        SharedPreferences p = prefs(context);
+        long until = p.getLong(KEY_UNLOCK_UNTIL, 0);
+        if (System.currentTimeMillis() >= until) return false;
+        String pkg = p.getString(KEY_UNLOCK_PACKAGE, "");
+        return packageName.equals(pkg);
+    }
+
+    public static void setUnlock(Context context, String packageName) {
+        prefs(context).edit()
+                .putLong(KEY_UNLOCK_UNTIL, System.currentTimeMillis() + BREAK_DURATION_MS)
+                .putString(KEY_UNLOCK_PACKAGE, packageName)
+                .apply();
+    }
+
+    public static void clearUnlock(Context context) {
+        prefs(context).edit()
+                .remove(KEY_UNLOCK_UNTIL)
+                .remove(KEY_UNLOCK_PACKAGE)
+                .apply();
     }
 }

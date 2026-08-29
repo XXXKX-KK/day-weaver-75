@@ -34,6 +34,8 @@ public class BlockerService extends AccessibilityService {
         Set<String> blocked = BlockerPrefs.getBlockedPackages(this);
         if (!blocked.contains(pkg)) return;
 
+        if (BlockerPrefs.isUnlocked(this, pkg)) return;
+
         launchOverlay(pkg);
     }
 

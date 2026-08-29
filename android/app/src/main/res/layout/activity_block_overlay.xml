@@ -119,5 +119,17 @@
             android:textSize="15sp"
             android:textStyle="bold"
             android:visibility="gone" />
+
+        <!-- Controlled break: countdown, then temporary unlock. -->
+        <Button
+            android:id="@+id/block_break_button"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:layout_marginTop="8dp"
+            android:background="@android:color/transparent"
+            android:textAllCaps="false"
+            android:textColor="#9A9AAA"
+            android:textSize="14sp"
+            android:visibility="gone" />
     </LinearLayout>
 </FrameLayout>

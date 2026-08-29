@@ -18,6 +18,7 @@ import { AuthScreen } from "@/components/auth-screen";
 import { BlockedAppsSync } from "@/components/blocked-apps-sync";
 import { CurrentTaskSync } from "@/components/current-task-sync";
 import { NotificationsSync } from "@/components/notifications-sync";
+import { BreakConfigSync } from "@/components/break-config-sync";
 import { BottomNav } from "@/components/bottom-nav";
 import { Toaster } from "@/components/ui/sonner";
 
@@ -181,6 +182,8 @@ function AuthGate({ children }: { children: ReactNode }) {
       <CurrentTaskSync />
       {/* Keeps on-device daily reminders in step with the profile + day state. */}
       <NotificationsSync />
+      {/* Mirrors break config (delay + daily limit) into native prefs. */}
+      <BreakConfigSync />
       {children}
     </>
   );

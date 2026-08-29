@@ -44,6 +44,9 @@ export interface BlockerPlugin {
   verifyPin(options: { pin: string }): Promise<{ valid: boolean }>;
   /** Remove the stored PIN entirely. */
   clearPin(): Promise<void>;
+
+  /** Push break-config values (from Supabase profile) into native SharedPreferences. */
+  setBreakConfig(options: { delaySeconds: number; dailyLimit: number }): Promise<void>;
 }
 
 export const Blocker = registerPlugin<BlockerPlugin>("Blocker");

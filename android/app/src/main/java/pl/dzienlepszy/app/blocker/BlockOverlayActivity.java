@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
+import android.os.CountDownTimer;
 import android.text.TextUtils;
 import android.view.View;
 import android.view.WindowManager;
@@ -37,20 +38,36 @@ public class BlockOverlayActivity extends Activity {
      *  always starts at 0 (first not-done), and "Nie teraz" never persists. */
     private int taskIndex = 0;
 
+    private String blockedPackage = "";
+    private CountDownTimer breakTimer;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         setContentView(R.layout.activity_block_overlay);
 
+        blockedPackage = getIntent().getStringExtra(EXTRA_BLOCKED_PACKAGE);
+        if (blockedPackage == null) blockedPackage = "";
+
         dayTasks = BlockerPrefs.getDayTasks(this);
         taskIndex = 0;
 
         applyAccent(resolveAccent());
         bindTaskView();
+        bindBreakButton();
         startBreathing();
         findViewById(R.id.block_return_button).setOnClickListener(v -> returnToApp());
         findViewById(R.id.block_skip_button).setOnClickListener(v -> skipToNext());
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (breakTimer != null) {
+            breakTimer.cancel();
+            breakTimer = null;
+        }
     }
 
     /** Parse the accent hex from prefs; any bad/empty value falls back to pink. */
@@ -136,6 +153,50 @@ public class BlockOverlayActivity extends Activity {
         if (dayTasks.size() < 2) return;
         taskIndex = (taskIndex + 1) % dayTasks.size();
         bindTaskView();
+    }
+
+    private void bindBreakButton() {
+        Button breakBtn = findViewById(R.id.block_break_button);
+        int used = BlockerPrefs.getBreakUsedToday(this);
+        int limit = BlockerPrefs.getBreakDailyLimit(this);
+
+        if (limit <= 0) {
+            breakBtn.setVisibility(View.GONE);
+            return;
+        }
+
+        breakBtn.setVisibility(View.VISIBLE);
+        if (used >= limit) {
+            breakBtn.setText(R.string.block_overlay_break_exhausted);
+            breakBtn.setEnabled(false);
+            breakBtn.setAlpha(0.4f);
+        } else {
+            breakBtn.setText(getString(R.string.block_overlay_break, used, limit));
+            breakBtn.setOnClickListener(v -> startBreakCountdown());
+        }
+    }
+
+    private void startBreakCountdown() {
+        Button breakBtn = findViewById(R.id.block_break_button);
+        breakBtn.setEnabled(false);
+
+        int delaySec = BlockerPrefs.getBreakDelay(this);
+        long delayMs = delaySec * 1000L;
+
+        breakTimer = new CountDownTimer(delayMs, 1000) {
+            @Override
+            public void onTick(long millisUntilFinished) {
+                int sec = (int) Math.ceil(millisUntilFinished / 1000.0);
+                breakBtn.setText(getString(R.string.block_overlay_break_countdown, sec));
+            }
+
+            @Override
+            public void onFinish() {
+                BlockerPrefs.incrementBreakUsed(BlockOverlayActivity.this);
+                BlockerPrefs.setUnlock(BlockOverlayActivity.this, blockedPackage);
+                finish();
+            }
+        }.start();
     }
 
     private void startBreathing() {
