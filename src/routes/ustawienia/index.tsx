@@ -17,10 +17,9 @@ import {
 import { Screen, ScreenHeader, Card } from "@/components/ui-kit";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
-import { useStore } from "@/lib/store";
 import { useAuth } from "@/lib/auth";
 import { useProfile, useUpdateProfile } from "@/lib/profile";
-import { useToday } from "@/lib/day";
+import { useToday, useResetDay } from "@/lib/day";
 import {
   useFocusNotes,
   useAddFocusNote,
@@ -58,7 +57,8 @@ export const Route = createFileRoute("/ustawienia/")({
 const toTimeInput = (value: string | null | undefined) => (value ? value.slice(0, 5) : "");
 
 function SettingsScreen() {
-  const { resetDay } = useStore();
+  const resetDay = useResetDay();
+  const [resetConfirm, setResetConfirm] = useState(false);
   const { user, signOut } = useAuth();
   const { data: profile, isLoading, isError, refetch } = useProfile();
   const { data: today } = useToday();
@@ -222,12 +222,38 @@ function SettingsScreen() {
         />
       </Card>
 
-      <button
-        onClick={resetDay}
-        className="mb-3 h-14 w-full rounded-3xl bg-secondary text-sm font-semibold text-secondary-foreground"
-      >
-        Zresetuj dzisiejszy dzień
-      </button>
+      {resetConfirm ? (
+        <div className="mb-3 flex gap-2">
+          <button
+            onClick={() =>
+              resetDay.mutate(undefined, {
+                onSuccess: () => {
+                  toast.success("Dzień zresetowany.");
+                  setResetConfirm(false);
+                },
+                onError: () => toast.error("Nie udało się zresetować dnia."),
+              })
+            }
+            disabled={resetDay.isPending}
+            className="h-14 flex-1 rounded-3xl bg-destructive text-sm font-semibold text-destructive-foreground disabled:opacity-50"
+          >
+            {resetDay.isPending ? "Resetowanie…" : "Potwierdź reset"}
+          </button>
+          <button
+            onClick={() => setResetConfirm(false)}
+            className="h-14 rounded-3xl border border-border px-5 text-sm font-semibold text-muted-foreground"
+          >
+            Anuluj
+          </button>
+        </div>
+      ) : (
+        <button
+          onClick={() => setResetConfirm(true)}
+          className="mb-3 h-14 w-full rounded-3xl bg-secondary text-sm font-semibold text-secondary-foreground"
+        >
+          Zresetuj dzisiejszy dzień
+        </button>
+      )}
       <button
         onClick={() => void signOut()}
         className="flex h-14 w-full items-center justify-center gap-2 rounded-3xl border border-border text-sm font-semibold text-muted-foreground"

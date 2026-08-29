@@ -18,7 +18,6 @@ import { AuthScreen } from "@/components/auth-screen";
 import { BlockedAppsSync } from "@/components/blocked-apps-sync";
 import { CurrentTaskSync } from "@/components/current-task-sync";
 import { NotificationsSync } from "@/components/notifications-sync";
-import { StoreProvider } from "@/lib/store";
 import { BottomNav } from "@/components/bottom-nav";
 import { Toaster } from "@/components/ui/sonner";
 
@@ -148,14 +147,12 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <StoreProvider>
-          <AuthGate>
-            {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-            <Outlet />
-            <BottomNav />
-          </AuthGate>
-          <Toaster position="top-center" />
-        </StoreProvider>
+        <AuthGate>
+          {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+          <Outlet />
+          <BottomNav />
+        </AuthGate>
+        <Toaster position="top-center" />
       </AuthProvider>
     </QueryClientProvider>
   );
