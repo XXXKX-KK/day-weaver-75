@@ -90,8 +90,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         name: "viewport",
         content: "width=device-width, initial-scale=1, viewport-fit=cover",
       },
-      { name: "theme-color", content: "#EE4261" },
-      { name: "author", content: "Lovable" },
+      { name: "theme-color", content: "#3B82F6" },
+      { name: "author", content: "TENAX" },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -124,7 +124,7 @@ function RootShell({ children }: { children: ReactNode }) {
         <script
           dangerouslySetInnerHTML={{
             __html:
-              "try{var t=localStorage.getItem('dl-theme');if(t==='light'){document.documentElement.classList.remove('dark');document.documentElement.setAttribute('data-theme','light')}var a=localStorage.getItem('dl-accent');if(a==='orange'||a==='pink'||a==='blue'||a==='green'){document.documentElement.setAttribute('data-accent',a)}}catch(e){}",
+              "try{var t=localStorage.getItem('dl-theme');if(t==='light'){document.documentElement.classList.remove('dark');document.documentElement.setAttribute('data-theme','light')}var a=localStorage.getItem('dl-accent');if(a==='orange'||a==='pink'||a==='blue'||a==='green'){document.documentElement.setAttribute('data-accent',a)}else{document.documentElement.setAttribute('data-accent','blue')}}catch(e){}",
           }}
         />
       </head>

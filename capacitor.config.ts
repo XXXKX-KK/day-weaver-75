@@ -7,7 +7,7 @@ const config: CapacitorConfig = {
   plugins: {
     LocalNotifications: {
       // Tint for the reminder icon (accent). Uses the app icon by default.
-      iconColor: "#EE4261",
+      iconColor: "#3B82F6",
     },
   },
 };

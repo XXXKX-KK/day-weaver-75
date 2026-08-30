@@ -130,7 +130,7 @@ public final class BlockerPrefs {
 
     /**
      * The chosen accent, stored as both a key ("pink"/"orange"/…) and an sRGB
-     * hex ("#EE4261"). Written by the app when the user picks an accent; read by
+     * hex ("#3B82F6"). Written by the app when the user picks an accent; read by
      * the block overlay in a later brief.
      */
     public static void setAccentColor(Context context, String key, String hex) {
@@ -141,11 +141,11 @@ public final class BlockerPrefs {
     }
 
     public static String getAccentHex(Context context) {
-        return prefs(context).getString(KEY_ACCENT_HEX, "#EE4261");
+        return prefs(context).getString(KEY_ACCENT_HEX, "#3B82F6");
     }
 
     public static String getAccentKey(Context context) {
-        return prefs(context).getString(KEY_ACCENT_KEY, "pink");
+        return prefs(context).getString(KEY_ACCENT_KEY, "blue");
     }
 
     // ── PIN (friction, not encryption — SHA-256 with a static salt) ──

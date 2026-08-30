@@ -17,7 +17,7 @@ export const ACCENTS: Accent[] = [
   { key: "green", label: "Zielony", swatch: "#22C55E" },
 ];
 
-export const DEFAULT_ACCENT: AccentKey = "pink";
+export const DEFAULT_ACCENT: AccentKey = "blue";
 
 const STORAGE_KEY = "dl-accent";
 
@@ -26,7 +26,7 @@ function isAccentKey(value: string | null): value is AccentKey {
 }
 
 export function swatchOf(key: AccentKey): string {
-  return ACCENTS.find((a) => a.key === key)?.swatch ?? "#EE4261";
+  return ACCENTS.find((a) => a.key === key)?.swatch ?? "#3B82F6";
 }
 
 /** Read the persisted accent (SSR-safe; falls back to the default). */

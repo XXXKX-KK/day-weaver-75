@@ -25,12 +25,12 @@ import pl.dzienlepszy.app.R;
  * Calm, "breathing" focus screen shown when a blocked app is opened. A slowly
  * pulsing accent ring with a moon inside, the current task as the hero, a soft
  * accent glow, and one button back to the app. Accent colour comes from prefs
- * (accent_hex, written on the appearance screen); falls back to the app pink.
+ * (accent_hex, written on the appearance screen); falls back to the app blue.
  */
 public class BlockOverlayActivity extends Activity {
 
     public static final String EXTRA_BLOCKED_PACKAGE = "blocked_package";
-    private static final int DEFAULT_ACCENT = 0xFFEE4261;
+    private static final int DEFAULT_ACCENT = 0xFF3B82F6;
 
     /** Ordered not-done day-plan titles, loaded once when the overlay appears. */
     private List<String> dayTasks = Collections.emptyList();
