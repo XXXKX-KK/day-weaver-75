@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { CalendarDays, ListChecks, Settings, ShieldCheck } from "lucide-react";
+import { CalendarDays, ListChecks, Settings, ShieldCheck, TrendingUp } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
@@ -8,6 +8,7 @@ const tabs = [
   { to: "/", label: "Dziś", icon: CalendarDays },
   { to: "/zadania", label: "Zadania", icon: ListChecks },
   { to: "/skupienie", label: "Skupienie", icon: ShieldCheck },
+  { to: "/statystyki", label: "Statystyki", icon: TrendingUp },
   { to: "/ustawienia", label: "Ustawienia", icon: Settings },
 ] as const;
 

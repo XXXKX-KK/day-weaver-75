@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DzienRouteImport } from './routes/dzien'
+import { Route as StatystykiRouteImport } from './routes/statystyki'
 import { Route as WioskaRouteImport } from './routes/wioska'
 import { Route as ZadaniaRouteImport } from './routes/zadania'
 import { Route as SkupienieIndexRouteImport } from './routes/skupienie/index'
@@ -26,6 +27,11 @@ const IndexRoute = IndexRouteImport.update({
 const DzienRoute = DzienRouteImport.update({
   id: '/dzien',
   path: '/dzien',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StatystykiRoute = StatystykiRouteImport.update({
+  id: '/statystyki',
+  path: '/statystyki',
   getParentRoute: () => rootRouteImport,
 } as any)
 const WioskaRoute = WioskaRouteImport.update({
@@ -62,6 +68,7 @@ const UstawieniaWygladRoute = UstawieniaWygladRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/dzien': typeof DzienRoute
+  '/statystyki': typeof StatystykiRoute
   '/wioska': typeof WioskaRoute
   '/zadania': typeof ZadaniaRoute
   '/skupienie/aplikacje': typeof SkupienieAplikacjeRoute
@@ -72,6 +79,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/dzien': typeof DzienRoute
+  '/statystyki': typeof StatystykiRoute
   '/wioska': typeof WioskaRoute
   '/zadania': typeof ZadaniaRoute
   '/skupienie/aplikacje': typeof SkupienieAplikacjeRoute
@@ -83,6 +91,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/dzien': typeof DzienRoute
+  '/statystyki': typeof StatystykiRoute
   '/wioska': typeof WioskaRoute
   '/zadania': typeof ZadaniaRoute
   '/skupienie/aplikacje': typeof SkupienieAplikacjeRoute
@@ -95,6 +104,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/dzien'
+    | '/statystyki'
     | '/wioska'
     | '/zadania'
     | '/skupienie/aplikacje'
@@ -105,6 +115,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/dzien'
+    | '/statystyki'
     | '/wioska'
     | '/zadania'
     | '/skupienie/aplikacje'
@@ -115,6 +126,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/dzien'
+    | '/statystyki'
     | '/wioska'
     | '/zadania'
     | '/skupienie/aplikacje'
@@ -126,6 +138,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DzienRoute: typeof DzienRoute
+  StatystykiRoute: typeof StatystykiRoute
   WioskaRoute: typeof WioskaRoute
   ZadaniaRoute: typeof ZadaniaRoute
   SkupienieAplikacjeRoute: typeof SkupienieAplikacjeRoute
@@ -148,6 +161,13 @@ declare module '@tanstack/react-router' {
       path: '/dzien'
       fullPath: '/dzien'
       preLoaderRoute: typeof DzienRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/statystyki': {
+      id: '/statystyki'
+      path: '/statystyki'
+      fullPath: '/statystyki'
+      preLoaderRoute: typeof StatystykiRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/wioska': {
@@ -198,6 +218,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DzienRoute: DzienRoute,
+  StatystykiRoute: StatystykiRoute,
   WioskaRoute: WioskaRoute,
   ZadaniaRoute: ZadaniaRoute,
   SkupienieAplikacjeRoute: SkupienieAplikacjeRoute,
