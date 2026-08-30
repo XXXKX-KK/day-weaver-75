@@ -161,22 +161,15 @@ function bumpCachedXp(queryClient: QueryClient, delta: number) {
   );
 }
 
-/** Freshest cached total_xp, falling back to a DB read when the cache is cold. */
-async function readTotalXp(queryClient: QueryClient): Promise<number> {
-  for (const [, data] of queryClient.getQueriesData<ProfileRow | null>({ queryKey: PROFILE_KEY })) {
-    if (data) return data.total_xp;
-  }
-  const { data } = await supabase.from("profiles").select("total_xp").maybeSingle();
-  return (data as { total_xp: number } | null)?.total_xp ?? 0;
-}
-
-/** Persist total_xp = current + delta (never below 0). Read-modify-write is
- *  fine here — it's one user tapping through their own day. */
-async function persistXpDelta(queryClient: QueryClient, userId: string, delta: number) {
+async function persistXpDelta(queryClient: QueryClient, delta: number) {
   if (delta === 0) return;
-  const total = Math.max(0, (await readTotalXp(queryClient)) + delta);
-  const { error } = await supabase.from("profiles").update({ total_xp: total }).eq("id", userId);
+  const { data, error } = await supabase.rpc("add_xp", { delta });
   if (error) throw error;
+  if (typeof data === "number") {
+    queryClient.setQueriesData<ProfileRow | null>({ queryKey: PROFILE_KEY }, (old) =>
+      old ? { ...old, total_xp: data } : old,
+    );
+  }
 }
 
 const STREAK_THRESHOLD = 0.45;
@@ -229,7 +222,7 @@ export function useSetItemStatus() {
         if (taskError) throw taskError;
       }
 
-      if (user) await persistXpDelta(queryClient, user.id, delta);
+      if (user) await persistXpDelta(queryClient, delta);
 
       if (user && day && !day.streak_counted) {
         const doneCount = items.filter((i) => (i.id === item.id ? next === "done" : i.status === "done")).length;
@@ -326,7 +319,7 @@ export function useToggleDayItemSubtask() {
         .eq("id", item.id);
       if (itemError) throw itemError;
 
-      if (user) await persistXpDelta(queryClient, user.id, delta);
+      if (user) await persistXpDelta(queryClient, delta);
     },
     onMutate: async ({ item, subtask }) => {
       await queryClient.cancelQueries({ queryKey: TODAY_KEY });
