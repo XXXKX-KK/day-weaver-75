@@ -1,7 +1,7 @@
 import type { CapacitorConfig } from "@capacitor/cli";
 
 const config: CapacitorConfig = {
-  appId: "pl.dzienlepszy.app",
+  appId: "com.tenax.app",
   appName: "TENAX",
   webDir: "dist/client",
   plugins: {
