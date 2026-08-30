@@ -230,6 +230,10 @@ public final class BlockerPrefs {
         return getBreakUsedToday(context) < getBreakDailyLimit(context);
     }
 
+    public static long getUnlockUntil(Context context) {
+        return prefs(context).getLong(KEY_UNLOCK_UNTIL, 0);
+    }
+
     public static boolean isUnlocked(Context context, String packageName) {
         SharedPreferences p = prefs(context);
         long until = p.getLong(KEY_UNLOCK_UNTIL, 0);

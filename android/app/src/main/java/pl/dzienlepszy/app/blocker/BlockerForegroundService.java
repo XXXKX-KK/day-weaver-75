@@ -105,6 +105,11 @@ public class BlockerForegroundService extends Service {
 
         if (BlockerPrefs.isUnlocked(this, pkg)) return;
 
+        long until = BlockerPrefs.getUnlockUntil(this);
+        if (until != 0 && until <= System.currentTimeMillis()) {
+            BlockerPrefs.clearUnlock(this);
+        }
+
         launchOverlay(pkg);
     }
 
