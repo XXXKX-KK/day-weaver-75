@@ -77,8 +77,14 @@ export default function StatystykiScreen({
   const gridRef = useRef<HTMLDivElement | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const pendingScroll = useRef(false);
+  const seenRef = useRef<Record<TabView, boolean>>({ postep: false, siatka: false });
 
   const isReady = viewState === 'loaded';
+  const shouldAnimate = isReady && !seenRef.current[view];
+
+  useEffect(() => {
+    if (isReady) seenRef.current[view] = true;
+  }, [view, isReady]);
   const finalCounts = useMemo(
     () => ({
       streak: summary.currentStreak,
@@ -89,12 +95,14 @@ export default function StatystykiScreen({
     [summary]
   );
 
-  // Count-up przy wejściu.
+  // Count-up przy wejściu (raz na wizytę).
+  const countUpDone = useRef(false);
   useEffect(() => {
-    if (!isReady || prefersReduced) {
+    if (!isReady || prefersReduced || countUpDone.current) {
       setCounts(finalCounts);
       return;
     }
+    countUpDone.current = true;
     let raf = 0;
     const start = performance.now();
     const dur = 1150;
@@ -279,7 +287,7 @@ export default function StatystykiScreen({
   }, [summary]);
 
   const isPostep = view === 'postep';
-  const anim = (cls: string) => (prefersReduced ? '' : cls);
+  const anim = (cls: string) => (prefersReduced || !shouldAnimate ? '' : cls);
 
   return (
     <div className="flex min-h-screen items-start justify-center bg-[#08090b] px-4 py-8 [background:radial-gradient(120%_80%_at_50%_-10%,#101828_0%,#08090b_60%)]">
