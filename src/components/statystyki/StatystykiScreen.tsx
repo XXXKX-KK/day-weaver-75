@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { DayProgress, StatsSummary, TabView, RangeKey, ViewState } from './types';
 import { MOCK_SUMMARY } from './mockData';
+import './statystyki.css';
 
 // ---------------------------------------------------------------------------
 // StatystykiScreen — ekran „Statystyki" (TENAX)

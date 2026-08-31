@@ -9,6 +9,7 @@ import {
 } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
 
+import { App as CapApp } from "@capacitor/app";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { applyAccent, readAccent } from "@/lib/accent";
@@ -138,12 +139,26 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const router = useRouter();
 
   // Sync the theme + accent on startup (also mirrors accent into native prefs).
   useEffect(() => {
     applyTheme(readTheme());
     applyAccent(readAccent());
   }, []);
+
+  // Android back gesture: navigate back instead of exiting the app.
+  useEffect(() => {
+    let handle: { remove: () => void } | undefined;
+    CapApp.addListener("backButton", ({ canGoBack }) => {
+      if (canGoBack || window.history.length > 1) {
+        router.history.back();
+      } else {
+        CapApp.exitApp();
+      }
+    }).then((h) => { handle = h; });
+    return () => handle?.remove();
+  }, [router]);
 
   return (
     <QueryClientProvider client={queryClient}>
