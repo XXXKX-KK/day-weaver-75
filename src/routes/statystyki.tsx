@@ -2,8 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import StatystykiScreen from "@/components/statystyki/StatystykiScreen";
 import type { StatsSummary, DayProgress } from "@/components/statystyki/types";
 import { useDailyProgress } from "@/lib/stats";
-import { useProfile } from "@/lib/profile";
-import { levelFromXp } from "@/lib/gamification";
+import { useGamification } from "@/lib/gamification";
 
 export const Route = createFileRoute("/statystyki")({
   head: () => ({
@@ -15,7 +14,7 @@ export const Route = createFileRoute("/statystyki")({
   component: StatsRoute,
 });
 
-function buildSummary(days: DayProgress[], profile: { total_xp: number; streak_count: number } | null | undefined): StatsSummary {
+function buildSummary(days: DayProgress[], level: number, streak: number): StatsSummary {
   let longest = 0;
   let run = 0;
   for (const d of days) {
@@ -30,9 +29,9 @@ function buildSummary(days: DayProgress[], profile: { total_xp: number; streak_c
   const last = days[days.length - 1];
   return {
     days,
-    currentStreak: profile?.streak_count ?? 0,
+    currentStreak: streak,
     longestStreak: longest,
-    level: profile ? levelFromXp(profile.total_xp).level : 1,
+    level,
     daysDone: days.filter((d) => d.completed > 0).length,
     todayPct: last && last.planned ? Math.round((last.completed / last.planned) * 100) : 0,
   };
@@ -40,15 +39,41 @@ function buildSummary(days: DayProgress[], profile: { total_xp: number; streak_c
 
 function StatsRoute() {
   const daysQ = useDailyProgress();
-  const { data: profile } = useProfile();
+  const { level, streak } = useGamification();
 
-  const viewState = daysQ.isLoading
-    ? "loading"
-    : !daysQ.data || daysQ.data.length === 0
-      ? "empty"
-      : "loaded";
+  if (daysQ.isLoading) {
+    return (
+      <div className="screen-shell flex min-h-[60vh] items-center justify-center">
+        <p className="text-muted-foreground">Ładowanie…</p>
+      </div>
+    );
+  }
 
-  const summary = buildSummary(daysQ.data ?? [], profile);
+  if (daysQ.isError) {
+    return (
+      <div className="screen-shell flex min-h-[60vh] flex-col items-center justify-center gap-4 text-center">
+        <p className="text-muted-foreground">Nie udało się wczytać statystyk.</p>
+        <button
+          onClick={() => daysQ.refetch()}
+          className="rounded-2xl bg-secondary px-4 py-2 text-foreground"
+        >
+          Ponów
+        </button>
+      </div>
+    );
+  }
 
-  return <StatystykiScreen summary={summary} viewState={viewState} />;
+  const days = daysQ.data ?? [];
+
+  if (days.length === 0) {
+    return (
+      <div className="screen-shell flex min-h-[60vh] items-center justify-center">
+        <p className="text-muted-foreground">Zacznij dzień, żeby zobaczyć swój postęp.</p>
+      </div>
+    );
+  }
+
+  const summary = buildSummary(days, level, streak);
+
+  return <StatystykiScreen summary={summary} viewState="loaded" />;
 }
