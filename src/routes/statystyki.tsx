@@ -30,7 +30,7 @@ function buildSummary(days: DayProgress[], level: number, streak: number): Stats
   return {
     days,
     currentStreak: streak,
-    longestStreak: longest,
+    longestStreak: Math.max(longest, streak),
     level,
     daysDone: days.filter((d) => d.completed > 0).length,
     todayPct: last && last.planned ? Math.round((last.completed / last.planned) * 100) : 0,
