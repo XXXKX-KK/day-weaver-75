@@ -487,7 +487,7 @@ export default function StatystykiScreen({
                       {m.label}
                     </div>
                   ))}
-                  {calRows.map((row) => (
+                  {calRows.map((row, ri) => (
                     <RowFragment key={row.day} day={row.day}>
                       {row.cells.map((cell, ci) =>
                         cell.empty ? (
@@ -497,7 +497,7 @@ export default function StatystykiScreen({
                             key={ci}
                             {...(cell.today ? { 'data-today': '1' } : {})}
                             onClick={cell.clickable && cell.cd ? (e) => selectDay(cell.cd!, e) : undefined}
-                            className="aspect-square w-full rounded-[3px]"
+                            className={`aspect-square w-full rounded-[3px] ${anim('animate-[cellIn_.35s_ease_both]')}`}
                             style={{
                               background: cell.bg,
                               border: cell.border,
@@ -505,6 +505,7 @@ export default function StatystykiScreen({
                               position: cell.today ? 'relative' : undefined,
                               zIndex: cell.today ? 1 : undefined,
                               boxShadow: cell.today ? `0 0 0 1.5px #14171d, 0 0 0 3px ${accent}` : undefined,
+                              animationDelay: prefersReduced ? '0ms' : `${Math.min(650, ri * 20 + ci * 6)}ms`,
                             }}
                           />
                         )
