@@ -44,7 +44,7 @@ export function SortableList<T extends Identifiable>({
   onLongPress?: (id: string) => void;
   selectedIds?: ReadonlySet<string>;
   onTapInSelectMode?: (id: string) => void;
-  renderItem: (item: T, selected: boolean) => ReactNode;
+  renderItem: (item: T, selected: boolean, isDragActive: boolean) => ReactNode;
   className?: string;
 }) {
   const inSelectMode = selectedIds != null && selectedIds.size > 0;
@@ -132,7 +132,7 @@ export function SortableList<T extends Identifiable>({
               inSelectMode={inSelectMode}
               onTap={() => handleTap(item.id)}
             >
-              {renderItem(item, selectedIds?.has(item.id) ?? false)}
+              {renderItem(item, selectedIds?.has(item.id) ?? false, activeId === item.id)}
             </SortableRow>
           ))}
         </div>
@@ -171,8 +171,8 @@ function SortableRow({
       ref={setNodeRef}
       style={style}
       className={cn(
-        "rounded-2xl transition-shadow duration-200",
-        isDragActive && !inSelectMode && "touch-none ring-2 ring-primary/50 shadow-[0_0_18px_-4px] shadow-primary/40",
+        "rounded-3xl transition-shadow duration-200",
+        isDragActive && !inSelectMode && "touch-none ring-2 ring-primary/50 shadow-[0_0_18px_-4px] shadow-primary/40 animate-[wiggle_.3s_ease-in-out_infinite]",
         selected && "ring-2 ring-destructive/60",
       )}
       onClick={inSelectMode ? onTap : undefined}

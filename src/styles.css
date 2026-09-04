@@ -9,7 +9,7 @@
 /*
  * System projektowy — aplikacja produktywności.
  * Dark mode jest domyślny. Tryb jasny: html[data-theme="light"].
- * Kolor akcentowy: #EE4261 (żywy malinowy róż) -> --primary.
+ * Kolor akcentowy: #3B82F6 (niebieski) -> --primary.
  * Wszystkie kolory w oklch. Nigdy nie używaj kolorów wprost w komponentach.
  */
 
@@ -85,10 +85,10 @@
    * Akcent — jedno źródło prawdy. Zmieniaj wyłącznie --primary
    * (i wyjątkowo --primary-foreground); wszystko poniżej wynika z niego,
    * łącznie z poświatą w tle. Warianty koloru: patrz [data-accent] niżej.
-   * Domyślnie różowy (#EE4261).
+   * Domyślnie niebieski (#3B82F6).
    */
-  --primary: oklch(0.635 0.202 13.5);
-  --primary-foreground: oklch(0.99 0.005 13.5);
+  --primary: oklch(0.62 0.18 255);
+  --primary-foreground: oklch(0.99 0.005 255);
   --primary-soft: color-mix(in oklab, var(--primary) 14%, transparent);
 
   --secondary: oklch(0.31 0.017 300);

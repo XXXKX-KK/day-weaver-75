@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Check, Play, Repeat, SkipForward } from "lucide-react";
 import { Screen, EmptyState } from "@/components/ui-kit";
 import {
@@ -56,7 +56,6 @@ function Today() {
   const startDay = useStartDay();
   const completeDay = useCompleteDay();
   const reorderDayItems = useReorderDayItems();
-  const [wiggleId, setWiggleId] = useState<string | null>(null);
 
   if (isLoading) {
     return (
@@ -201,20 +200,17 @@ function Today() {
             items={items}
             className="flex flex-col gap-2"
             onReorder={(ids) => {
-              setWiggleId(null);
               reorderDayItems.mutate(ids, {
                 onError: () => toast.error("Nie udało się zapisać kolejności."),
               });
             }}
-            onLongPress={(id) => setWiggleId((prev) => (prev === id ? null : id))}
-            renderItem={(item) => (
+            renderItem={(item, _selected, isDragActive) => (
               <DayItemPill
                 item={item}
                 day={today.day}
                 items={items}
                 index={items.indexOf(item)}
-                wiggling={wiggleId === item.id}
-                onClearWiggle={() => setWiggleId(null)}
+                isDragActive={isDragActive}
                 manualAction={item.task_id ? contactActionMap[item.task_id] ?? null : null}
               />
             )}
@@ -243,16 +239,14 @@ function DayItemPill({
   day,
   items,
   index,
-  wiggling,
-  onClearWiggle,
+  isDragActive,
   manualAction,
 }: {
   item: DayItemRow;
   day: DayRow | null;
   items: DayItemRow[];
   index: number;
-  wiggling: boolean;
-  onClearWiggle: () => void;
+  isDragActive: boolean;
   manualAction: ContactActionType | null;
 }) {
   const setItemStatus = useSetItemStatus();
@@ -264,14 +258,13 @@ function DayItemPill({
       className="relative overflow-hidden rounded-3xl bg-foreground/5 px-[18px] py-3.5 transition-colors duration-200 hover:bg-foreground/[0.08] animate-[cascadeIn_.5s_ease-out_both]"
       style={{ animationDelay: `${0.3 + index * 0.06}s` }}
     >
-      {wiggling && (
+      {isDragActive && (
         <div className="pointer-events-none absolute inset-0 rounded-3xl border-[1.5px] border-primary/30 animate-[wiggle_.3s_ease-in-out_infinite]" />
       )}
 
       <div className="flex items-center gap-3">
         <button
           onClick={() => {
-            onClearWiggle();
             setItemStatus.mutate(
               { item, day, items },
               { onError: () => toast.error("Nie udało się zapisać zmiany.") },
@@ -283,7 +276,7 @@ function DayItemPill({
             className={cn(
               "flex h-6 w-6 shrink-0 items-center justify-center rounded-full transition-all duration-200",
               item.status === "done"
-                ? "accent-gradient"
+                ? "accent-gradient animate-[checkPop_.3s_ease-out]"
                 : item.status === "skipped"
                   ? "bg-muted"
                   : "border-2 border-foreground/15",
@@ -291,7 +284,7 @@ function DayItemPill({
           >
             {item.status === "done" && (
               <Check
-                className="h-3.5 w-3.5 text-primary-foreground animate-[checkPop_.3s_ease-out]"
+                className="h-3.5 w-3.5 text-primary-foreground"
                 strokeWidth={3}
               />
             )}
@@ -310,9 +303,12 @@ function DayItemPill({
               >
                 {item.title}
               </span>
-              {item.status === "done" && (
-                <span className="absolute left-0 top-1/2 block h-[1.5px] w-full rounded-sm bg-muted-foreground/60 animate-[strikeIn_.35s_ease-out_both]" />
-              )}
+              <span
+                className={cn(
+                  "absolute left-0 top-1/2 block h-[1.5px] rounded-sm bg-muted-foreground/60",
+                  item.status === "done" ? "w-full animate-[strikeIn_.35s_ease-out_both]" : "w-0",
+                )}
+              />
             </span>
             {(item.source_type === "routine" || item.day_item_subtasks.length > 0) && (
               <span className="mt-0.5 flex items-center gap-1.5 text-xs text-muted-foreground/60">
