@@ -83,7 +83,8 @@ export function summarize(days: DayProgress[]): StatsSummary {
   const last = days[L - 1];
   const todayPct = last && last.planned ? Math.round((last.completed / last.planned) * 100) : 0;
 
-  return { days, currentStreak, longestStreak, level, daysDone, todayPct };
+  const toNext = 720 - (cumXp % 720);
+  return { days, currentStreak, longestStreak, level, daysDone, todayPct, totalXp: cumXp, toNext };
 }
 
 export const MOCK_SUMMARY: StatsSummary = summarize(buildMockDays());

@@ -14,7 +14,7 @@ export const Route = createFileRoute("/statystyki")({
   component: StatsRoute,
 });
 
-function buildSummary(days: DayProgress[], level: number, streak: number): StatsSummary {
+function buildSummary(days: DayProgress[], level: number, streak: number, totalXp: number, toNext: number): StatsSummary {
   let longest = 0;
   let run = 0;
   for (const d of days) {
@@ -34,12 +34,14 @@ function buildSummary(days: DayProgress[], level: number, streak: number): Stats
     level,
     daysDone: days.filter((d) => d.completed > 0).length,
     todayPct: last && last.planned ? Math.round((last.completed / last.planned) * 100) : 0,
+    totalXp,
+    toNext,
   };
 }
 
 function StatsRoute() {
   const daysQ = useDailyProgress();
-  const { level, streak } = useGamification();
+  const { level, streak, totalXp, toNext } = useGamification();
 
   if (daysQ.isLoading) {
     return (
@@ -73,7 +75,7 @@ function StatsRoute() {
     );
   }
 
-  const summary = buildSummary(days, level, streak);
+  const summary = buildSummary(days, level, streak, totalXp, toNext);
 
   return <StatystykiScreen summary={summary} viewState="loaded" />;
 }

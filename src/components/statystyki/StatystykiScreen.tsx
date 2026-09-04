@@ -31,7 +31,6 @@ const fmtFull = (isoStr: string) => {
 const levelFor = (pct: number, completed: number) =>
   completed === 0 ? 0 : pct < 0.3 ? 1 : pct < 0.6 ? 2 : pct < 0.85 ? 3 : 4;
 
-// Wygładzona ścieżka SVG (Catmull-Rom → Bézier).
 function smoothPath(pts: { x: number; y: number }[]): string {
   if (pts.length < 2) return pts.length ? `M ${pts[0].x} ${pts[0].y}` : '';
   let d = `M ${pts[0].x} ${pts[0].y}`;
@@ -91,7 +90,6 @@ export default function StatystykiScreen({
     [summary]
   );
 
-  // Count-up przy wejściu (raz na wizytę).
   const countUpDone = useRef(false);
   useEffect(() => {
     if (!isReady || prefersReduced || countUpDone.current) {
@@ -118,7 +116,6 @@ export default function StatystykiScreen({
     return () => cancelAnimationFrame(raf);
   }, [isReady, prefersReduced, finalCounts]);
 
-  // Przewiń kalendarz do dzisiejszego wiersza.
   const tryScroll = () => {
     if (!pendingScroll.current) return;
     const el = scrollRef.current;
@@ -247,7 +244,7 @@ export default function StatystykiScreen({
           if (cur && lvl === 0) bg = 'rgba(59,130,246,.07)';
           cells.push({
             bg,
-            border: lvl === 0 ? '1px solid #232833' : '1px solid transparent',
+            border: lvl === 0 ? '1px solid var(--border)' : '1px solid transparent',
             clickable: true,
             today: isToday,
             cur,
@@ -256,7 +253,7 @@ export default function StatystykiScreen({
         } else {
           cells.push({
             bg: cur ? 'rgba(59,130,246,.06)' : 'transparent',
-            border: '1px solid #232833',
+            border: '1px solid var(--border)',
             clickable: true,
             today: isToday,
             cur,
@@ -286,21 +283,16 @@ export default function StatystykiScreen({
   const anim = (cls: string) => (prefersReduced ? '' : cls);
 
   return (
-    <div className="flex min-h-screen items-start justify-center bg-[#08090b] px-4 py-8 [background:radial-gradient(120%_80%_at_50%_-10%,#101828_0%,#08090b_60%)]">
-      <div className="relative w-full overflow-hidden rounded-[34px] border border-[#1b1f27] bg-[#0d0f13] px-5 pb-7 pt-[22px] shadow-[0_30px_80px_rgba(0,0,0,.55)]">
+    <div className="flex min-h-screen items-start justify-center bg-background px-4 py-8">
+      <div className="relative w-full overflow-hidden rounded-[34px] border border-border bg-card px-5 pb-7 pt-[22px] shadow-xl">
         {/* Nagłówek */}
-        <div className="mb-[18px] flex items-start justify-between">
-          <div>
-            <div className="text-[26px] font-extrabold tracking-tight text-[#f3f5f8]">Statystyki</div>
-            <div className="mt-[3px] text-[13.5px] font-medium text-[#7b828e]">Twój postęp w czasie</div>
-          </div>
-          <div className="flex h-[38px] w-[38px] items-center justify-center rounded-xl border border-[#22262f] bg-[#14171d] text-[17px] text-[#7b828e]">
-            ☰
-          </div>
+        <div className="mb-[18px]">
+          <div className="text-[26px] font-extrabold tracking-tight text-foreground">Statystyki</div>
+          <div className="mt-[3px] text-[13.5px] font-medium text-muted-foreground">Twój postęp w czasie</div>
         </div>
 
         {/* Segment */}
-        <div className="relative mb-5 flex rounded-[14px] border border-[#1e222b] bg-[#12151b] p-1">
+        <div className="relative mb-5 flex rounded-[14px] border border-border bg-secondary p-1">
           <div
             className="absolute bottom-1 left-1 w-[calc(50%-4px)] rounded-[11px] transition-transform duration-300 ease-[cubic-bezier(.4,0,.2,1)]"
             style={{
@@ -316,7 +308,7 @@ export default function StatystykiScreen({
               key={v}
               onClick={() => changeView(v)}
               className="relative z-[1] flex-1 border-none bg-transparent py-[9px] text-[13.5px] font-bold transition-colors duration-200"
-              style={{ color: (v === 'postep') === isPostep ? '#fff' : '#8b929c' }}
+              style={{ color: (v === 'postep') === isPostep ? '#fff' : 'var(--muted-foreground)' }}
             >
               {v === 'postep' ? 'Postęp' : 'Siatka'}
             </button>
@@ -338,11 +330,11 @@ export default function StatystykiScreen({
 
         {viewState === 'empty' && (
           <div className="flex flex-col items-center px-5 pb-10 pt-[54px] text-center">
-            <div className="mb-5 flex h-[70px] w-[70px] items-center justify-center rounded-[20px] border border-[#20242e] bg-[#12151b] text-3xl">
+            <div className="mb-5 flex h-[70px] w-[70px] items-center justify-center rounded-[20px] border border-border bg-secondary text-3xl">
               📈
             </div>
-            <div className="text-[17px] font-bold text-[#e7eaef]">Zacznij dzień, żeby zobaczyć swój postęp</div>
-            <div className="mt-2 max-w-[250px] text-[13.5px] leading-relaxed text-[#6f7684]">
+            <div className="text-[17px] font-bold text-foreground">Zacznij dzień, żeby zobaczyć swój postęp</div>
+            <div className="mt-2 max-w-[250px] text-[13.5px] leading-relaxed text-muted-foreground">
               Odhaczaj zadania z planu dnia — Twoje statystyki i passa pojawią się tutaj.
             </div>
           </div>
@@ -358,28 +350,39 @@ export default function StatystykiScreen({
                 accent={accent}
                 anim={anim}
                 label="Obecna passa"
-                labelColor="#7fb0f7"
+                labelColor="var(--primary)"
               >
                 <span className="text-[30px] font-extrabold tracking-tight text-white tabular-nums">{counts.streak}</span>
-                <span className="text-[13px] font-semibold text-[#9db8e6]">dni</span>
+                <span className="text-[13px] font-semibold text-primary">dni</span>
                 <span className={`ml-[2px] inline-block text-[15px] ${anim('animate-[flamePulse_1.9s_ease-in-out_1.3s_infinite]')}`}>🔥</span>
               </Tile>
               <Tile delay={0.07} accent={accent} anim={anim} label="Najdłuższa passa">
-                <span className="text-[30px] font-extrabold tracking-tight text-[#eef1f5] tabular-nums">{counts.longest}</span>
-                <span className="text-[13px] font-semibold text-[#7b828e]">dni</span>
+                <span className="text-[30px] font-extrabold tracking-tight text-foreground tabular-nums">{counts.longest}</span>
+                <span className="text-[13px] font-semibold text-muted-foreground">dni</span>
               </Tile>
-              <Tile delay={0.14} accent={accent} anim={anim} label="Poziom">
-                <span className="text-[15px] font-bold text-[#7b828e]">Lv</span>
-                <span className="text-[30px] font-extrabold tracking-tight text-[#eef1f5] tabular-nums">{counts.level}</span>
+              <Tile
+                delay={0.14}
+                accent={accent}
+                anim={anim}
+                label="Poziom"
+                footer={
+                  <div className="mt-1.5 flex flex-col gap-0.5 text-[10.5px] font-semibold text-muted-foreground">
+                    <span>{summary.toNext} XP do poz. {summary.level + 1}</span>
+                    <span>{summary.totalXp.toLocaleString('pl-PL')} XP łącznie</span>
+                  </div>
+                }
+              >
+                <span className="text-[15px] font-bold text-muted-foreground">Lv</span>
+                <span className="text-[30px] font-extrabold tracking-tight text-foreground tabular-nums">{counts.level}</span>
               </Tile>
               <Tile delay={0.21} accent={accent} anim={anim} label="Dni zrobione">
-                <span className="text-[30px] font-extrabold tracking-tight text-[#eef1f5] tabular-nums">{counts.days}</span>
+                <span className="text-[30px] font-extrabold tracking-tight text-foreground tabular-nums">{counts.days}</span>
               </Tile>
             </div>
 
             <div className={`mx-[2px] mb-1 mt-[14px] flex items-center gap-2 ${anim('animate-[fadeUp_.38s_cubic-bezier(.2,.7,.3,1)_.32s_both]')}`}>
               <span className="text-[15px]" style={{ color: accent }}>▹</span>
-              <span className="text-[13.5px] font-semibold text-[#aeb6c2]">{motiv}</span>
+              <span className="text-[13.5px] font-semibold text-muted-foreground">{motiv}</span>
             </div>
 
             {/* Zakres */}
@@ -393,9 +396,9 @@ export default function StatystykiScreen({
                     onClick={() => setRange(key)}
                     className="flex-1 rounded-[10px] py-[7px] text-[12px] font-bold transition-all duration-200"
                     style={{
-                      border: `1px solid ${active ? accent : '#22262f'}`,
-                      background: active ? `${accent}1f` : '#12151b',
-                      color: active ? '#bcd3f8' : '#7b828e',
+                      border: `1px solid ${active ? accent : 'var(--border)'}`,
+                      background: active ? `${accent}1f` : 'var(--secondary)',
+                      color: active ? 'var(--primary-foreground)' : 'var(--muted-foreground)',
                     }}
                   >
                     {label}
@@ -405,14 +408,14 @@ export default function StatystykiScreen({
             </div>
 
             {/* Wykres XP */}
-            <div className="mb-3 rounded-[18px] border border-[#22262f] bg-[#14171d] p-4">
+            <div className="mb-3 rounded-[18px] border border-border bg-card p-4">
               <div className="mb-[10px] flex items-baseline justify-between">
-                <span className="text-[14px] font-bold text-[#e7eaef]">XP w czasie</span>
-                <span className="text-[12.5px] font-bold tabular-nums text-[#7fb0f7]">{xpTotalLabel}</span>
+                <span className="text-[14px] font-bold text-foreground">XP w czasie</span>
+                <span className="text-[12.5px] font-bold tabular-nums text-primary">{xpTotalLabel}</span>
               </div>
               <svg viewBox="0 0 318 104" className="block h-auto w-full overflow-visible">
-                <line x1="0" y1="26" x2="318" y2="26" stroke="#20242e" strokeWidth="1" strokeDasharray="2 4" />
-                <line x1="0" y1="64" x2="318" y2="64" stroke="#20242e" strokeWidth="1" strokeDasharray="2 4" />
+                <line x1="0" y1="26" x2="318" y2="26" stroke="var(--border)" strokeWidth="1" strokeDasharray="2 4" />
+                <line x1="0" y1="64" x2="318" y2="64" stroke="var(--border)" strokeWidth="1" strokeDasharray="2 4" />
                 <defs>
                   <linearGradient id="xpfill" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor={accent} stopOpacity={0.34} />
@@ -436,17 +439,17 @@ export default function StatystykiScreen({
             </div>
 
             {/* Słupki */}
-            <div className="rounded-[18px] border border-[#22262f] bg-[#14171d] p-4">
-              <div className="mb-[14px] text-[14px] font-bold text-[#e7eaef]">Ukończenia — tydzień po tygodniu</div>
+            <div className="rounded-[18px] border border-border bg-card p-4">
+              <div className="mb-[14px] text-[14px] font-bold text-foreground">Ukończenia — tydzień po tygodniu</div>
               <div className="flex h-24 items-end gap-[7px]">
                 {bars.map((b, i) => (
                   <div key={i} className="flex h-full flex-1 flex-col items-center justify-end">
-                    <span className="mb-[5px] text-[10px] font-bold tabular-nums text-[#6f7684]">{b.pct}%</span>
+                    <span className="mb-[5px] text-[10px] font-bold tabular-nums text-muted-foreground">{b.pct}%</span>
                     <div
                       className={`w-full max-w-[30px] origin-bottom rounded-t-[6px] ${anim('animate-[barRise_.6s_cubic-bezier(.4,0,.2,1)_both]')}`}
                       style={{
                         height: `${Math.max(3, Math.round((b.pct / 100) * 90))}px`,
-                        background: b.strong ? `linear-gradient(180deg, ${accent}, ${accent}bb)` : '#2a3038',
+                        background: b.strong ? `linear-gradient(180deg, ${accent}, ${accent}bb)` : 'var(--secondary)',
                         animationDelay: prefersReduced ? '0ms' : `${i * 70}ms`,
                       }}
                     />
@@ -455,7 +458,7 @@ export default function StatystykiScreen({
               </div>
               <div className="mt-2 flex gap-[7px]">
                 {bars.map((b, i) => (
-                  <span key={i} className="flex-1 text-center text-[10px] font-semibold text-[#5c636f]">{b.label}</span>
+                  <span key={i} className="flex-1 text-center text-[10px] font-semibold text-muted-foreground">{b.label}</span>
                 ))}
               </div>
             </div>
@@ -465,22 +468,22 @@ export default function StatystykiScreen({
         {/* Widok: Siatka (kalendarz) */}
         {isReady && !isPostep && (
           <div className={anim('animate-[fadeUp_.45s_ease_both]')}>
-            <div ref={gridRef} className="relative rounded-[18px] border border-[#22262f] bg-[#14171d] px-[14px] py-4">
+            <div ref={gridRef} className="relative rounded-[18px] border border-border bg-card px-[14px] py-4">
               <div className="mb-3 flex items-baseline justify-between">
-                <span className="text-[14px] font-bold text-[#e7eaef]">Aktywność dzienna</span>
-                <span className="text-[12px] font-bold tabular-nums text-[#6f7684]">{new Date(summary.days[summary.days.length - 1].date).getFullYear()}</span>
+                <span className="text-[14px] font-bold text-foreground">Aktywność dzienna</span>
+                <span className="text-[12px] font-bold tabular-nums text-muted-foreground">{new Date(summary.days[summary.days.length - 1].date).getFullYear()}</span>
               </div>
 
               <div ref={scrollRef} className="-mx-1 max-h-[290px] overflow-y-auto overflow-x-hidden px-1">
                 <div className="grid items-center gap-[3px]" style={{ gridTemplateColumns: '16px repeat(12, 1fr)' }}>
-                  <div className="sticky top-0 z-[2] h-[22px] bg-[#14171d]" />
+                  <div className="sticky top-0 z-[2] h-[22px]" style={{ background: 'var(--card)' }} />
                   {months.map((m, i) => (
                     <div
                       key={i}
                       className="sticky top-0 z-[2] h-[22px] text-center text-[9.5px] font-bold leading-[22px]"
                       style={{
-                        background: m.cur ? '#182236' : '#14171d',
-                        color: m.cur ? accent : '#6f7684',
+                        background: m.cur ? 'var(--primary-soft)' : 'var(--card)',
+                        color: m.cur ? accent : 'var(--muted-foreground)',
                         borderRadius: m.cur ? '6px 6px 0 0' : 0,
                       }}
                     >
@@ -504,7 +507,7 @@ export default function StatystykiScreen({
                               cursor: cell.clickable ? 'pointer' : 'default',
                               position: cell.today ? 'relative' : undefined,
                               zIndex: cell.today ? 1 : undefined,
-                              boxShadow: cell.today ? `0 0 0 1.5px #14171d, 0 0 0 3px ${accent}` : undefined,
+                              boxShadow: cell.today ? `0 0 0 1.5px var(--card), 0 0 0 3px ${accent}` : undefined,
                               animationDelay: prefersReduced ? '0ms' : `${Math.min(650, ri * 20 + ci * 6)}ms`,
                             }}
                           />
@@ -516,19 +519,19 @@ export default function StatystykiScreen({
               </div>
 
               <div className="mt-[14px] flex items-center justify-between">
-                <span className="text-[12px] font-semibold text-[#7b828e]">
+                <span className="text-[12px] font-semibold text-muted-foreground">
                   Dziś zrobione <span className="font-extrabold" style={{ color: accent }}>{todayPct}%</span>
                 </span>
                 <div className="flex items-center gap-[5px]">
-                  <span className="text-[10.5px] font-semibold text-[#6f7684]">mniej</span>
+                  <span className="text-[10.5px] font-semibold text-muted-foreground">mniej</span>
                   {LEVEL_COLORS.map((c, l) => (
                     <div
                       key={l}
                       className="h-[11px] w-[11px] rounded-[3px]"
-                      style={{ background: c, border: l === 0 ? '1px solid #22262f' : 'none' }}
+                      style={{ background: c, border: l === 0 ? '1px solid var(--border)' : 'none' }}
                     />
                   ))}
-                  <span className="text-[10.5px] font-semibold text-[#6f7684]">więcej</span>
+                  <span className="text-[10.5px] font-semibold text-muted-foreground">więcej</span>
                 </div>
               </div>
 
@@ -537,22 +540,22 @@ export default function StatystykiScreen({
                 <>
                   <div onClick={() => setSel(null)} className="fixed inset-0 z-40" />
                   <div
-                    className={`absolute z-50 rounded-xl border border-[#2c313c] bg-[#1b1f27] px-[13px] py-[11px] shadow-[0_16px_40px_rgba(0,0,0,.6)] ${anim('animate-[popIn_.18s_ease_both]')}`}
+                    className={`absolute z-50 rounded-xl border border-border bg-elevated px-[13px] py-[11px] shadow-[0_16px_40px_rgba(0,0,0,.6)] ${anim('animate-[popIn_.18s_ease_both]')}`}
                     style={{ left: sel.x, top: sel.y + 10, width: sel.w }}
                   >
                     <div
-                      className="absolute h-[11px] w-[11px] rotate-45 border-l border-t border-[#2c313c] bg-[#1b1f27]"
+                      className="absolute h-[11px] w-[11px] rotate-45 border-l border-t border-border bg-elevated"
                       style={{ top: -6, left: sel.caret - 6 }}
                     />
-                    <div className="text-[12.5px] font-bold capitalize text-[#f3f5f8]">{sel.label}</div>
+                    <div className="text-[12.5px] font-bold capitalize text-foreground">{sel.label}</div>
                     <div className="mt-2 flex justify-between gap-[14px]">
                       <div>
-                        <div className="text-[10px] font-semibold uppercase tracking-wide text-[#7b828e]">Zrobione</div>
-                        <div className="text-[15px] font-extrabold tabular-nums text-[#4ade80]">{sel.pctInt}%</div>
+                        <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Zrobione</div>
+                        <div className="text-[15px] font-extrabold tabular-nums text-success">{sel.pctInt}%</div>
                       </div>
                       <div>
-                        <div className="text-[10px] font-semibold uppercase tracking-wide text-[#7b828e]">XP</div>
-                        <div className="text-[15px] font-extrabold tabular-nums text-[#7fb0f7]">+{sel.xp}</div>
+                        <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">XP</div>
+                        <div className="text-[15px] font-extrabold tabular-nums text-primary">+{sel.xp}</div>
                       </div>
                     </div>
                   </div>
@@ -571,9 +574,9 @@ export default function StatystykiScreen({
 function Skeleton({ className = '' }: { className?: string }) {
   return (
     <div
-      className={`rounded-[16px] border border-[#1e222b] ${className}`}
+      className={`rounded-[16px] border border-border ${className}`}
       style={{
-        background: 'linear-gradient(90deg,#14171d 0px,#1c2028 120px,#14171d 240px)',
+        background: 'linear-gradient(90deg,var(--card) 0px,var(--elevated) 120px,var(--card) 240px)',
         backgroundSize: '400px 100%',
         animation: 'shimmer 1.3s infinite linear',
       }}
@@ -583,14 +586,16 @@ function Skeleton({ className = '' }: { className?: string }) {
 
 function Tile({
   children,
+  footer,
   label,
-  labelColor = '#767d8a',
+  labelColor = 'var(--muted-foreground)',
   delay,
   accentTile = false,
   accent,
   anim,
 }: {
   children: React.ReactNode;
+  footer?: React.ReactNode;
   label: string;
   labelColor?: string;
   delay: number;
@@ -605,25 +610,25 @@ function Tile({
       }`}
       style={{
         animationDelay: `${delay}s`,
-        border: accentTile ? '1px solid rgba(59,130,246,.32)' : '1px solid #22262f',
+        border: accentTile ? '1px solid rgba(59,130,246,.32)' : '1px solid var(--border)',
         background: accentTile
           ? 'linear-gradient(160deg, rgba(59,130,246,.16), rgba(59,130,246,.04))'
-          : '#14171d',
+          : 'var(--card)',
       }}
     >
       <div className="text-[11px] font-bold uppercase tracking-[.06em]" style={{ color: labelColor }}>
         {label}
       </div>
       <div className="mt-2 flex items-baseline gap-[5px]">{children}</div>
+      {footer}
     </div>
   );
 }
 
-// Fragment: numer dnia + komórki (jedna „linia" gridu).
 function RowFragment({ day, children }: { day: number; children: React.ReactNode }) {
   return (
     <>
-      <div className="pr-px text-right text-[8.5px] font-bold leading-none tabular-nums text-[#565d69]">{day}</div>
+      <div className="pr-px text-right text-[8.5px] font-bold leading-none tabular-nums text-muted-foreground">{day}</div>
       {children}
     </>
   );

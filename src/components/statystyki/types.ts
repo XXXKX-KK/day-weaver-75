@@ -20,6 +20,8 @@ export interface StatsSummary {
   level: number;
   daysDone: number;
   todayPct: number;
+  totalXp: number;
+  toNext: number;
 }
 
 export type ViewState = 'loaded' | 'loading' | 'empty';
