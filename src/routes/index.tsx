@@ -16,6 +16,7 @@ import { XpBar } from "@/components/xp-bar";
 import { SortableList } from "@/components/sortable-list";
 import { useRoutines } from "@/lib/routines";
 import { useTasks } from "@/lib/tasks";
+import { useProfile } from "@/lib/profile";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { ContactActionButtons } from "@/components/contact-action-buttons";
@@ -49,6 +50,20 @@ const dateLabel = () =>
 function todayIsoWeekday(): number {
   const jsDay = new Date().getDay();
   return jsDay === 0 ? 7 : jsDay;
+}
+
+function isEveningWindow(dayEndTime: string | null | undefined): boolean {
+  let endMinutes = 22 * 60;
+  if (dayEndTime) {
+    const [h, m] = dayEndTime.split(":");
+    const hour = Number(h);
+    const minute = Number(m);
+    if (Number.isInteger(hour) && Number.isInteger(minute) && hour >= 0 && hour <= 23 && minute >= 0 && minute <= 59) {
+      endMinutes = hour * 60 + minute;
+    }
+  }
+  const now = new Date();
+  return now.getHours() * 60 + now.getMinutes() >= endMinutes - 120;
 }
 
 function Today() {
@@ -107,6 +122,8 @@ function Today() {
   }
 
   const { data: allTasks } = useTasks();
+  const { data: profile } = useProfile();
+  const showEndDay = isEveningWindow(profile?.day_end_time);
   const items = today.items;
   const done = items.filter((i) => i.status === "done").length;
   const total = items.length;
@@ -216,18 +233,20 @@ function Today() {
             )}
           />
 
-          <button
-            onClick={() => {
-              if (!today.day) return;
-              completeDay.mutate(today.day.id, {
-                onError: () => toast.error("Nie udało się zakończyć dnia."),
-              });
-            }}
-            disabled={completeDay.isPending}
-            className="accent-gradient accent-glow mt-8 h-16 w-full rounded-3xl text-lg font-bold text-primary-foreground transition-transform active:scale-[0.98] disabled:opacity-50"
-          >
-            {completeDay.isPending ? "Kończenie…" : "Zakończ dzień"}
-          </button>
+          {showEndDay && (
+            <button
+              onClick={() => {
+                if (!today.day) return;
+                completeDay.mutate(today.day.id, {
+                  onError: () => toast.error("Nie udało się zakończyć dnia."),
+                });
+              }}
+              disabled={completeDay.isPending}
+              className="accent-gradient accent-glow mt-8 h-16 w-full rounded-3xl text-lg font-bold text-primary-foreground transition-transform active:scale-[0.98] disabled:opacity-50"
+            >
+              {completeDay.isPending ? "Kończenie…" : "Zakończ dzień"}
+            </button>
+          )}
         </>
       )}
     </Screen>
@@ -255,14 +274,14 @@ function DayItemPill({
 
   return (
     <div
-      className="relative overflow-hidden rounded-3xl bg-foreground/5 px-[18px] py-3.5 transition-colors duration-200 hover:bg-foreground/[0.08] animate-[cascadeIn_.5s_ease-out_both]"
+      className="relative overflow-hidden rounded-3xl bg-foreground/5 px-4 py-2.5 transition-colors duration-200 hover:bg-foreground/[0.08] animate-[cascadeIn_.5s_ease-out_both]"
       style={{ animationDelay: `${0.3 + index * 0.06}s` }}
     >
       {isDragActive && (
         <div className="pointer-events-none absolute inset-0 rounded-3xl border-[1.5px] border-primary/30 animate-[wiggle_.3s_ease-in-out_infinite]" />
       )}
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2.5">
         <button
           onClick={() => {
             setItemStatus.mutate(
@@ -270,7 +289,7 @@ function DayItemPill({
               { onError: () => toast.error("Nie udało się zapisać zmiany.") },
             );
           }}
-          className="flex min-w-0 flex-1 items-center gap-3 text-left transition-transform active:scale-[0.99]"
+          className="flex min-w-0 flex-1 items-center gap-2.5 text-left transition-transform active:scale-[0.99]"
         >
           <span
             className={cn(
@@ -336,7 +355,7 @@ function DayItemPill({
       </div>
 
       {item.day_item_subtasks.length > 0 && (
-        <ul className="ml-9 mt-2 flex flex-col gap-1.5">
+        <ul className="ml-[34px] mt-1.5 flex flex-col gap-1">
           {item.day_item_subtasks.map((s) => (
             <li key={s.id}>
               <button
