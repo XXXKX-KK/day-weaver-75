@@ -94,15 +94,16 @@ export const PodsumowanieScreen: React.FC<Props> = ({ tasks, onClose }) => {
       width: '100%', height: '100%', position: 'relative',
       overflow: 'hidden', color: 'var(--foreground)', display: 'flex', flexDirection: 'column',
       fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
+      background: 'var(--background)',
     }}>
-      {/* Glow overlay */}
-      <div style={{ position: 'absolute', inset: 0, zIndex: 0, pointerEvents: 'none' }}>
-        <div style={{
-          position: 'absolute', top: -80, left: '50%', transform: 'translateX(-50%)',
-          width: 400, height: 400,
-          background: `radial-gradient(circle, ${colors.glow}0.10) 0%, ${colors.glow}0.04) 40%, transparent 70%)`,
-        }} />
-      </div>
+      {/* Accent glow (same as body::before) */}
+      <div style={{
+        position: 'absolute', inset: 0, zIndex: 0, pointerEvents: 'none',
+        background: `
+          radial-gradient(86% 50% at 50% 22%, color-mix(in oklab, var(--primary) 15%, transparent) 0%, transparent 60%),
+          radial-gradient(100% 56% at 50% 70%, color-mix(in oklab, var(--primary) 20%, transparent) 0%, color-mix(in oklab, var(--primary) 8%, transparent) 42%, transparent 72%)
+        `,
+      }} />
 
       {/* Scrollable content */}
       <div style={{ position: 'relative', zIndex: 1, flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden', padding: '24px 20px 16px' }}>
