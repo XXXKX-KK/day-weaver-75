@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Check, Play, Repeat, SkipForward } from "lucide-react";
 import { Screen, EmptyState } from "@/components/ui-kit";
 import {
@@ -21,6 +21,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { ContactActionButtons } from "@/components/contact-action-buttons";
 import type { ContactActionType } from "@/lib/contact-action";
+import { PodsumowanieScreen } from "@/components/podsumowanie-screen";
 import "../today.css";
 
 export const Route = createFileRoute("/")({
@@ -71,6 +72,8 @@ function Today() {
   const startDay = useStartDay();
   const completeDay = useCompleteDay();
   const reorderDayItems = useReorderDayItems();
+  const [showSummary, setShowSummary] = useState(false);
+  const summaryTasksRef = useRef<{ id: string; title: string; done: boolean }[]>([]);
 
   if (isLoading) {
     return (
@@ -175,6 +178,15 @@ function Today() {
             </ul>
           </div>
         )}
+
+        {showSummary && (
+          <div className="fixed inset-0 z-50">
+            <PodsumowanieScreen
+              tasks={summaryTasksRef.current}
+              onClose={() => setShowSummary(false)}
+            />
+          </div>
+        )}
       </Screen>
     );
   }
@@ -237,7 +249,16 @@ function Today() {
             <button
               onClick={() => {
                 if (!today.day) return;
+                const snapshot = items.map((it) => ({
+                  id: it.id,
+                  title: it.title,
+                  done: it.status === "done",
+                }));
                 completeDay.mutate(today.day.id, {
+                  onSuccess: () => {
+                    summaryTasksRef.current = snapshot;
+                    setShowSummary(true);
+                  },
                   onError: () => toast.error("Nie udało się zakończyć dnia."),
                 });
               }}
@@ -248,6 +269,15 @@ function Today() {
             </button>
           )}
         </>
+      )}
+
+      {showSummary && (
+        <div className="fixed inset-0 z-50">
+          <PodsumowanieScreen
+            tasks={summaryTasksRef.current}
+            onClose={() => setShowSummary(false)}
+          />
+        </div>
       )}
     </Screen>
   );
