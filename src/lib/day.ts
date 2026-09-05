@@ -103,10 +103,28 @@ export function useAutoCloseYesterday() {
   });
 }
 
-/** Local (device-local) YYYY-MM-DD — matches how tasks store scheduled_date,
- *  and avoids the UTC day shift a plain toISOString() would cause. */
+const DAY_CUTOFF_HOUR = 3;
+
+/** Local (device-local) YYYY-MM-DD using the "logical day" boundary at 3:00.
+ *  Before 3:00 the date is treated as yesterday's. */
 export function todayLocalISO(): string {
-  return new Date().toLocaleDateString("en-CA");
+  const d = new Date();
+  if (d.getHours() < DAY_CUTOFF_HOUR) {
+    d.setDate(d.getDate() - 1);
+  }
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+/** Returns a Date object representing the logical "today" (shifted before 3:00). */
+export function logicalToday(): Date {
+  const d = new Date();
+  if (d.getHours() < DAY_CUTOFF_HOUR) {
+    d.setDate(d.getDate() - 1);
+  }
+  return d;
 }
 
 const DAY_ITEM_COLUMNS =

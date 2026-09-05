@@ -11,6 +11,7 @@ import {
   useReorderDayItems,
   useYesterday,
   useAutoCloseYesterday,
+  logicalToday,
   type DayItemRow,
   type DayRow,
 } from "@/lib/day";
@@ -47,11 +48,11 @@ export const Route = createFileRoute("/")({
 
 const dateLabel = () =>
   new Intl.DateTimeFormat("pl-PL", { weekday: "long", day: "numeric", month: "long" }).format(
-    new Date(),
+    logicalToday(),
   );
 
 function todayIsoWeekday(): number {
-  const jsDay = new Date().getDay();
+  const jsDay = logicalToday().getDay();
   return jsDay === 0 ? 7 : jsDay;
 }
 
