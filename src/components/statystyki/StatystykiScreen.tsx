@@ -283,8 +283,7 @@ export default function StatystykiScreen({
   const anim = (cls: string) => (prefersReduced ? '' : cls);
 
   return (
-    <div className="flex min-h-screen items-start justify-center bg-background px-4 py-8">
-      <div className="relative w-full overflow-hidden rounded-[34px] border border-border bg-card px-5 pb-7 pt-[22px] shadow-xl">
+    <div className="px-5 pb-7 pt-[22px]">
         {/* Nagłówek */}
         <div className="mb-[18px]">
           <div className="text-[26px] font-extrabold tracking-tight text-foreground">Statystyki</div>
@@ -292,7 +291,7 @@ export default function StatystykiScreen({
         </div>
 
         {/* Segment */}
-        <div className="relative mb-5 flex rounded-[14px] border border-border bg-secondary p-1">
+        <div className="relative mb-5 flex rounded-[14px] bg-foreground/5 p-1">
           <div
             className="absolute bottom-1 left-1 w-[calc(50%-4px)] rounded-[11px] transition-transform duration-300 ease-[cubic-bezier(.4,0,.2,1)]"
             style={{
@@ -330,7 +329,7 @@ export default function StatystykiScreen({
 
         {viewState === 'empty' && (
           <div className="flex flex-col items-center px-5 pb-10 pt-[54px] text-center">
-            <div className="mb-5 flex h-[70px] w-[70px] items-center justify-center rounded-[20px] border border-border bg-secondary text-3xl">
+            <div className="mb-5 flex h-[70px] w-[70px] items-center justify-center rounded-[20px] bg-foreground/5 text-3xl">
               📈
             </div>
             <div className="text-[17px] font-bold text-foreground">Zacznij dzień, żeby zobaczyć swój postęp</div>
@@ -394,10 +393,10 @@ export default function StatystykiScreen({
                   <button
                     key={key}
                     onClick={() => setRange(key)}
-                    className="flex-1 rounded-[10px] py-[7px] text-[12px] font-bold transition-all duration-200"
+                    className={`flex-1 rounded-[10px] py-[7px] text-[12px] font-bold transition-all duration-200 ${!active ? 'bg-foreground/5' : ''}`}
                     style={{
-                      border: `1px solid ${active ? accent : 'var(--border)'}`,
-                      background: active ? `${accent}1f` : 'var(--secondary)',
+                      border: active ? `1px solid ${accent}` : undefined,
+                      background: active ? `${accent}1f` : undefined,
                       color: active ? 'var(--primary-foreground)' : 'var(--muted-foreground)',
                     }}
                   >
@@ -408,7 +407,7 @@ export default function StatystykiScreen({
             </div>
 
             {/* Wykres XP */}
-            <div className="mb-3 rounded-[18px] border border-border bg-card p-4">
+            <div className="mb-3 rounded-[18px] bg-foreground/5 p-4">
               <div className="mb-[10px] flex items-baseline justify-between">
                 <span className="text-[14px] font-bold text-foreground">XP w czasie</span>
                 <span className="text-[12.5px] font-bold tabular-nums text-primary">{xpTotalLabel}</span>
@@ -439,7 +438,7 @@ export default function StatystykiScreen({
             </div>
 
             {/* Słupki */}
-            <div className="rounded-[18px] border border-border bg-card p-4">
+            <div className="rounded-[18px] bg-foreground/5 p-4">
               <div className="mb-[14px] text-[14px] font-bold text-foreground">Ukończenia — tydzień po tygodniu</div>
               <div className="flex h-24 items-end gap-[7px]">
                 {bars.map((b, i) => (
@@ -449,7 +448,7 @@ export default function StatystykiScreen({
                       className={`w-full max-w-[30px] origin-bottom rounded-t-[6px] ${anim('animate-[barRise_.6s_cubic-bezier(.4,0,.2,1)_both]')}`}
                       style={{
                         height: `${Math.max(3, Math.round((b.pct / 100) * 90))}px`,
-                        background: b.strong ? `linear-gradient(180deg, ${accent}, ${accent}bb)` : 'var(--secondary)',
+                        background: b.strong ? `linear-gradient(180deg, ${accent}, ${accent}bb)` : 'color-mix(in oklch, var(--foreground) 6%, transparent)',
                         animationDelay: prefersReduced ? '0ms' : `${i * 70}ms`,
                       }}
                     />
@@ -468,7 +467,7 @@ export default function StatystykiScreen({
         {/* Widok: Siatka (kalendarz) */}
         {isReady && !isPostep && (
           <div className={anim('animate-[fadeUp_.45s_ease_both]')}>
-            <div ref={gridRef} className="relative rounded-[18px] border border-border bg-card px-[14px] py-4">
+            <div ref={gridRef} className="relative rounded-[18px] bg-foreground/5 px-[14px] py-4">
               <div className="mb-3 flex items-baseline justify-between">
                 <span className="text-[14px] font-bold text-foreground">Aktywność dzienna</span>
                 <span className="text-[12px] font-bold tabular-nums text-muted-foreground">{new Date(summary.days[summary.days.length - 1].date).getFullYear()}</span>
@@ -476,13 +475,13 @@ export default function StatystykiScreen({
 
               <div ref={scrollRef} className="-mx-1 max-h-[290px] overflow-y-auto overflow-x-hidden px-1">
                 <div className="grid items-center gap-[3px]" style={{ gridTemplateColumns: '16px repeat(12, 1fr)' }}>
-                  <div className="sticky top-0 z-[2] h-[22px]" style={{ background: 'var(--card)' }} />
+                  <div className="sticky top-0 z-[2] h-[22px]" style={{ background: 'transparent' }} />
                   {months.map((m, i) => (
                     <div
                       key={i}
                       className="sticky top-0 z-[2] h-[22px] text-center text-[9.5px] font-bold leading-[22px]"
                       style={{
-                        background: m.cur ? 'var(--primary-soft)' : 'var(--card)',
+                        background: m.cur ? 'var(--primary-soft)' : 'transparent',
                         color: m.cur ? accent : 'var(--muted-foreground)',
                         borderRadius: m.cur ? '6px 6px 0 0' : 0,
                       }}
@@ -540,11 +539,11 @@ export default function StatystykiScreen({
                 <>
                   <div onClick={() => setSel(null)} className="fixed inset-0 z-40" />
                   <div
-                    className={`absolute z-50 rounded-xl border border-border bg-elevated px-[13px] py-[11px] shadow-[0_16px_40px_rgba(0,0,0,.6)] ${anim('animate-[popIn_.18s_ease_both]')}`}
+                    className={`absolute z-50 rounded-xl bg-foreground/5 px-[13px] py-[11px] shadow-[0_16px_40px_rgba(0,0,0,.6)] backdrop-blur-xl ${anim('animate-[popIn_.18s_ease_both]')}`}
                     style={{ left: sel.x, top: sel.y + 10, width: sel.w }}
                   >
                     <div
-                      className="absolute h-[11px] w-[11px] rotate-45 border-l border-t border-border bg-elevated"
+                      className="absolute h-[11px] w-[11px] rotate-45 bg-foreground/5"
                       style={{ top: -6, left: sel.caret - 6 }}
                     />
                     <div className="text-[12.5px] font-bold capitalize text-foreground">{sel.label}</div>
@@ -564,7 +563,6 @@ export default function StatystykiScreen({
             </div>
           </div>
         )}
-      </div>
     </div>
   );
 }
@@ -574,10 +572,8 @@ export default function StatystykiScreen({
 function Skeleton({ className = '' }: { className?: string }) {
   return (
     <div
-      className={`rounded-[16px] border border-border ${className}`}
+      className={`rounded-[16px] bg-foreground/5 ${className}`}
       style={{
-        background: 'linear-gradient(90deg,var(--card) 0px,var(--elevated) 120px,var(--card) 240px)',
-        backgroundSize: '400px 100%',
         animation: 'shimmer 1.3s infinite linear',
       }}
     />
@@ -605,15 +601,15 @@ function Tile({
 }) {
   return (
     <div
-      className={`rounded-[16px] px-[15px] py-[14px] ${anim('animate-[fadeUp_.38s_cubic-bezier(.2,.7,.3,1)_both]')} ${
+      className={`rounded-[16px] px-[15px] py-[14px] ${!accentTile ? 'bg-foreground/5' : ''} ${anim('animate-[fadeUp_.38s_cubic-bezier(.2,.7,.3,1)_both]')} ${
         accentTile ? anim('[animation:fadeUp_.38s_cubic-bezier(.2,.7,.3,1)_both,pulseGlow_2.8s_ease-in-out_1.1s_infinite]') : ''
       }`}
       style={{
         animationDelay: `${delay}s`,
-        border: accentTile ? '1px solid rgba(59,130,246,.32)' : '1px solid var(--border)',
+        border: accentTile ? '1px solid rgba(59,130,246,.32)' : undefined,
         background: accentTile
           ? 'linear-gradient(160deg, rgba(59,130,246,.16), rgba(59,130,246,.04))'
-          : 'var(--card)',
+          : undefined,
       }}
     >
       <div className="text-[11px] font-bold uppercase tracking-[.06em]" style={{ color: labelColor }}>

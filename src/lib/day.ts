@@ -57,6 +57,51 @@ export type TodayData = {
 };
 
 const TODAY_KEY = ["today"] as const;
+const YESTERDAY_KEY = ["yesterday"] as const;
+
+export type YesterdayData = {
+  day: DayRow | null;
+  items: DayItemRow[];
+};
+
+export function useYesterday() {
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: [...YESTERDAY_KEY, user?.id],
+    enabled: isSupabaseConfigured && !!user,
+    staleTime: Infinity,
+    queryFn: async (): Promise<YesterdayData> => {
+      const today = todayLocalISO();
+      const { data, error } = await supabase
+        .from("days")
+        .select(`id, date, status, planned_count, completed_count, streak_counted, day_items(${DAY_ITEM_COLUMNS})`)
+        .lt("date", today)
+        .order("date", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      if (!data) return { day: null, items: [] };
+      const { day_items, ...day } = data as DayRow & { day_items: DayItemRow[] };
+      return { day, items: sortItems((day_items ?? []) as DayItemRow[]) };
+    },
+  });
+}
+
+export function useAutoCloseYesterday() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (dayId: string) => {
+      const { error } = await supabase
+        .from("days")
+        .update({ status: "completed", completed_at: new Date().toISOString() })
+        .eq("id", dayId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: YESTERDAY_KEY });
+    },
+  });
+}
 
 /** Local (device-local) YYYY-MM-DD — matches how tasks store scheduled_date,
  *  and avoids the UTC day shift a plain toISOString() would cause. */

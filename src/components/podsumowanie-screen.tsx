@@ -33,7 +33,7 @@ const Gauge: React.FC<{ pct: number; arcColor: string; arcColorLight: string }> 
           <stop offset="100%" stopColor={arcColorLight} />
         </linearGradient>
       </defs>
-      <path d={trackD} fill="none" stroke="var(--border)" strokeWidth={14} strokeLinecap="round" />
+      <path d={trackD} fill="none" stroke="color-mix(in oklch, var(--foreground) 6%, transparent)" strokeWidth={14} strokeLinecap="round" />
       {fillD && <path d={fillD} fill="none" stroke="url(#gaugeGrad)" strokeWidth={14} strokeLinecap="round" />}
     </svg>
   );
@@ -95,8 +95,8 @@ export const PodsumowanieScreen: React.FC<Props> = ({ tasks, onClose }) => {
       overflow: 'hidden', color: 'var(--foreground)', display: 'flex', flexDirection: 'column',
       fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
     }}>
-      {/* Fixed glow background */}
-      <div style={{ position: 'absolute', inset: 0, background: 'var(--background)', zIndex: 0, pointerEvents: 'none' }}>
+      {/* Glow overlay */}
+      <div style={{ position: 'absolute', inset: 0, zIndex: 0, pointerEvents: 'none' }}>
         <div style={{
           position: 'absolute', top: -80, left: '50%', transform: 'translateX(-50%)',
           width: 400, height: 400,
@@ -125,10 +125,11 @@ export const PodsumowanieScreen: React.FC<Props> = ({ tasks, onClose }) => {
 
         {/* Two-column card */}
         <div style={{
-          border: '1px solid var(--border)', borderRadius: 20,
+          borderRadius: 20,
           padding: '16px 14px', marginBottom: 24,
           animation: 'cascadeIn 0.5s ease-out 0.3s both',
           display: 'flex', gap: 12,
+          background: 'color-mix(in oklch, var(--foreground) 5%, transparent)',
         }}>
           {/* Done column */}
           <div style={{ flex: 1, minWidth: 0 }}>

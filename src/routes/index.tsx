@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Check, Play, Repeat, SkipForward } from "lucide-react";
 import { Screen, EmptyState } from "@/components/ui-kit";
 import {
@@ -9,6 +9,8 @@ import {
   useToggleDayItemSubtask,
   useCompleteDay,
   useReorderDayItems,
+  useYesterday,
+  useAutoCloseYesterday,
   type DayItemRow,
   type DayRow,
 } from "@/lib/day";
@@ -67,6 +69,46 @@ function isEveningWindow(dayEndTime: string | null | undefined): boolean {
   return now.getHours() * 60 + now.getMinutes() >= endMinutes - 120;
 }
 
+const LS_KEY = "dl-last-summary-seen";
+
+function useYesterdaySummary() {
+  const { data: yesterday, isLoading } = useYesterday();
+  const autoClose = useAutoCloseYesterday();
+  const [showYesterday, setShowYesterday] = useState(false);
+  const [yesterdayTasks, setYesterdayTasks] = useState<{ id: string; title: string; done: boolean }[]>([]);
+  const didRun = useRef(false);
+
+  useEffect(() => {
+    if (isLoading || didRun.current || !yesterday?.day) return;
+    didRun.current = true;
+
+    const day = yesterday.day;
+
+    if (day.status !== "completed") {
+      autoClose.mutate(day.id);
+    }
+
+    let lastSeen: string | null = null;
+    try { lastSeen = localStorage.getItem(LS_KEY); } catch { /* noop */ }
+
+    if (lastSeen !== day.date) {
+      setYesterdayTasks(
+        yesterday.items.map((it) => ({ id: it.id, title: it.title, done: it.status === "done" })),
+      );
+      setShowYesterday(true);
+    }
+  }, [isLoading, yesterday, autoClose]);
+
+  const dismiss = () => {
+    if (yesterday?.day) {
+      try { localStorage.setItem(LS_KEY, yesterday.day.date); } catch { /* noop */ }
+    }
+    setShowYesterday(false);
+  };
+
+  return { showYesterday, yesterdayTasks, dismissYesterday: dismiss };
+}
+
 function Today() {
   const { data: today, isLoading, isError, refetch } = useToday();
   const startDay = useStartDay();
@@ -74,53 +116,75 @@ function Today() {
   const reorderDayItems = useReorderDayItems();
   const [showSummary, setShowSummary] = useState(false);
   const summaryTasksRef = useRef<{ id: string; title: string; done: boolean }[]>([]);
+  const { showYesterday, yesterdayTasks, dismissYesterday } = useYesterdaySummary();
 
   if (isLoading) {
     return (
-      <Screen>
-        <div className="mb-5 animate-[cascadeIn_.5s_ease-out_both]">
-          <div className="text-[11px] font-semibold uppercase tracking-[1.5px] text-muted-foreground mb-1">
-            {dateLabel()}
+      <>
+        <Screen>
+          <div className="mb-5 animate-[cascadeIn_.5s_ease-out_both]">
+            <div className="text-[11px] font-semibold uppercase tracking-[1.5px] text-muted-foreground mb-1">
+              {dateLabel()}
+            </div>
+            <h1 className="text-[28px] font-extrabold tracking-tight text-foreground">Dziś</h1>
           </div>
-          <h1 className="text-[28px] font-extrabold tracking-tight text-foreground">Dziś</h1>
-        </div>
-        <p className="px-1 text-sm text-muted-foreground">Wczytywanie dnia…</p>
-      </Screen>
+          <p className="px-1 text-sm text-muted-foreground">Wczytywanie dnia…</p>
+        </Screen>
+        {showYesterday && (
+          <div className="fixed inset-0 z-50">
+            <PodsumowanieScreen tasks={yesterdayTasks} onClose={dismissYesterday} />
+          </div>
+        )}
+      </>
     );
   }
 
   if (isError) {
     return (
-      <Screen>
-        <div className="mb-5">
-          <div className="text-[11px] font-semibold uppercase tracking-[1.5px] text-muted-foreground mb-1">
-            {dateLabel()}
+      <>
+        <Screen>
+          <div className="mb-5">
+            <div className="text-[11px] font-semibold uppercase tracking-[1.5px] text-muted-foreground mb-1">
+              {dateLabel()}
+            </div>
+            <h1 className="text-[28px] font-extrabold tracking-tight text-foreground">Dziś</h1>
           </div>
-          <h1 className="text-[28px] font-extrabold tracking-tight text-foreground">Dziś</h1>
-        </div>
-        <div className="flex flex-col items-center gap-3 rounded-3xl bg-foreground/5 px-5 py-8 text-center">
-          <p className="text-sm text-muted-foreground">Nie udało się wczytać dnia.</p>
-          <button
-            onClick={() => refetch()}
-            className="h-10 rounded-2xl bg-secondary px-4 text-sm font-semibold text-secondary-foreground"
-          >
-            Spróbuj ponownie
-          </button>
-        </div>
-      </Screen>
+          <div className="flex flex-col items-center gap-3 rounded-3xl bg-foreground/5 px-5 py-8 text-center">
+            <p className="text-sm text-muted-foreground">Nie udało się wczytać dnia.</p>
+            <button
+              onClick={() => refetch()}
+              className="h-10 rounded-2xl bg-secondary px-4 text-sm font-semibold text-secondary-foreground"
+            >
+              Spróbuj ponownie
+            </button>
+          </div>
+        </Screen>
+        {showYesterday && (
+          <div className="fixed inset-0 z-50">
+            <PodsumowanieScreen tasks={yesterdayTasks} onClose={dismissYesterday} />
+          </div>
+        )}
+      </>
     );
   }
 
   if (!today || today.status === "planned") {
     return (
-      <NotStarted
-        starting={startDay.isPending}
-        onStart={() =>
-          startDay.mutate(undefined, {
-            onError: () => toast.error("Nie udało się rozpocząć dnia."),
-          })
-        }
-      />
+      <>
+        <NotStarted
+          starting={startDay.isPending}
+          onStart={() =>
+            startDay.mutate(undefined, {
+              onError: () => toast.error("Nie udało się rozpocząć dnia."),
+            })
+          }
+        />
+        {showYesterday && (
+          <div className="fixed inset-0 z-50">
+            <PodsumowanieScreen tasks={yesterdayTasks} onClose={dismissYesterday} />
+          </div>
+        )}
+      </>
     );
   }
 
@@ -185,6 +249,11 @@ function Today() {
               tasks={summaryTasksRef.current}
               onClose={() => setShowSummary(false)}
             />
+          </div>
+        )}
+        {showYesterday && (
+          <div className="fixed inset-0 z-50">
+            <PodsumowanieScreen tasks={yesterdayTasks} onClose={dismissYesterday} />
           </div>
         )}
       </Screen>
@@ -277,6 +346,11 @@ function Today() {
             tasks={summaryTasksRef.current}
             onClose={() => setShowSummary(false)}
           />
+        </div>
+      )}
+      {showYesterday && (
+        <div className="fixed inset-0 z-50">
+          <PodsumowanieScreen tasks={yesterdayTasks} onClose={dismissYesterday} />
         </div>
       )}
     </Screen>
