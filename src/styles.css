@@ -294,3 +294,19 @@
   /* Room for the floating nav pill + its bottom offset + safe area. */
   padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 7rem);
 }
+
+@keyframes drumSlideUp {
+  from { transform: translateY(30%); opacity: 0.4; }
+  to   { transform: translateY(0);   opacity: 1; }
+}
+@keyframes drumSlideDown {
+  from { transform: translateY(-30%); opacity: 0.4; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+@utility drum-slide-up {
+  animation: drumSlideUp 0.18s ease-out both;
+}
+@utility drum-slide-down {
+  animation: drumSlideDown 0.18s ease-out both;
+}
