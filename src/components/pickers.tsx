@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { todayLocalISO } from "@/lib/day";
@@ -67,7 +67,7 @@ export function CalendarPicker({
   return (
     <div className="fixed inset-0 z-[60] flex items-end bg-black/40 backdrop-blur-sm" onClick={onClose}>
       <div
-        className="safe-bottom w-full rounded-t-3xl bg-background px-5 pt-5 pb-6"
+        className="safe-bottom w-full rounded-t-3xl border border-foreground/[0.06] bg-foreground/5 px-5 pt-5 pb-6 backdrop-blur-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-5 flex items-center justify-between px-2">
@@ -135,44 +135,76 @@ function DrumColumn({
   onChange: (n: number) => void;
 }) {
   const touchY = useRef<number | null>(null);
+  const [dir, setDir] = useState<"up" | "down" | null>(null);
+  const [animating, setAnimating] = useState(false);
 
-  const up = useCallback(() => onChange(wrap(value + step)), [value, step, wrap, onChange]);
-  const down = useCallback(() => onChange(wrap(value - step)), [value, step, wrap, onChange]);
+  useEffect(() => {
+    if (!animating) return;
+    const id = setTimeout(() => {
+      setAnimating(false);
+      setDir(null);
+    }, 180);
+    return () => clearTimeout(id);
+  }, [animating]);
+
+  const go = useCallback(
+    (direction: "up" | "down") => {
+      setDir(direction);
+      setAnimating(true);
+      onChange(wrap(direction === "up" ? value + step : value - step));
+    },
+    [value, step, wrap, onChange],
+  );
 
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    e.preventDefault();
     touchY.current = e.touches[0]!.clientY;
+  }, []);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    e.preventDefault();
   }, []);
 
   const handleTouchEnd = useCallback(
     (e: React.TouchEvent) => {
+      e.preventDefault();
       if (touchY.current === null) return;
       const delta = touchY.current - e.changedTouches[0]!.clientY;
       touchY.current = null;
       if (Math.abs(delta) > 20) {
-        if (delta > 0) up();
-        else down();
+        go(delta > 0 ? "up" : "down");
       }
     },
-    [up, down],
+    [go],
   );
+
+  const slideClass = animating
+    ? dir === "up"
+      ? "drum-slide-up"
+      : "drum-slide-down"
+    : "";
 
   return (
     <div
       className="flex w-[6.5rem] flex-col items-center gap-3"
+      style={{ touchAction: "none" }}
       onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
     >
       <button
-        onClick={down}
+        onClick={() => go("down")}
         className="text-[34px] font-medium text-muted-foreground/40 transition-colors active:text-muted-foreground/70"
       >
         {pad(wrap(value - step))}
       </button>
-      <div className="rounded-2xl bg-foreground/5 px-5 py-1 text-[60px] font-extrabold leading-tight">
-        {pad(value)}
+      <div className={cn("overflow-hidden rounded-2xl bg-foreground/5 px-5 py-1")}>
+        <div className={cn("text-[60px] font-extrabold leading-tight", slideClass)}>
+          {pad(value)}
+        </div>
       </div>
       <button
-        onClick={up}
+        onClick={() => go("up")}
         className="text-[34px] font-medium text-muted-foreground/40 transition-colors active:text-muted-foreground/70"
       >
         {pad(wrap(value + step))}
@@ -211,7 +243,8 @@ export function TimePicker({
   return (
     <div className="fixed inset-0 z-[60] flex items-end bg-black/40 backdrop-blur-sm" onClick={onClose}>
       <div
-        className="safe-bottom w-full rounded-t-3xl bg-background px-5 pt-5 pb-6"
+        className="safe-bottom w-full rounded-t-3xl border border-foreground/[0.06] bg-foreground/5 px-5 pt-5 pb-6 backdrop-blur-2xl"
+        style={{ overscrollBehavior: "none" }}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-2 text-center text-[22px] font-extrabold tracking-tight">
