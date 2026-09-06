@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useRef, useState } from "react";
-import { Calendar, Check, Clock, Plus, Repeat, Trash2, X } from "lucide-react";
+import { Calendar, Check, ChevronDown, Clock, Plus, Repeat, Trash2, X } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -11,7 +11,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Screen, ScreenHeader, Card, EmptyState } from "@/components/ui-kit";
+import { Screen, ScreenHeader } from "@/components/ui-kit";
 import { PRIORITY_LABELS, type Priority } from "@/lib/store";
 import {
   useAddTask,
@@ -39,6 +39,7 @@ import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { scheduleTaskReminder, cancelTaskReminder } from "@/lib/notifications";
+import { todayLocalISO } from "@/lib/day";
 
 /** ISO weekday order 1=Mon .. 7=Sun, with short PL labels. */
 const WEEKDAYS: { n: number; short: string }[] = [
@@ -164,10 +165,13 @@ function TasksScreen() {
   return (
     <Screen>
       {inSelectMode ? (
-        <div className="mb-4 flex items-center justify-between">
+        <div
+          className="mb-4 flex items-center justify-between"
+          style={{ animation: "cascadeIn 0.4s ease-out both" }}
+        >
           <button
             onClick={() => setSelectedIds(new Set())}
-            className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary"
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-foreground/5"
           >
             <X className="h-4 w-4" />
           </button>
@@ -182,10 +186,15 @@ function TasksScreen() {
           </button>
         </div>
       ) : (
-        <ScreenHeader eyebrow="Biblioteka" title="Zadania" />
+        <div style={{ animation: "cascadeIn 0.5s ease-out both" }}>
+          <ScreenHeader eyebrow="Biblioteka" title="Zadania" />
+        </div>
       )}
 
-      <div className="mb-6 grid grid-cols-2 gap-1 rounded-2xl bg-secondary p-1">
+      <div
+        className="mb-6 grid grid-cols-2 gap-1 rounded-2xl bg-foreground/5 p-1"
+        style={{ animation: "cascadeIn 0.5s ease-out 0.1s both" }}
+      >
         {(["tasks", "routines"] as const).map((t) => (
           <button
             key={t}
@@ -200,75 +209,77 @@ function TasksScreen() {
         ))}
       </div>
 
-      {tab === "tasks" ? (
-        isLoading ? (
-          <p className="px-1 text-sm text-muted-foreground">Wczytywanie zadań…</p>
-        ) : isError ? (
-          <RetryCard label="Nie udało się wczytać zadań." onRetry={() => refetch()} />
-        ) : !tasks || tasks.length === 0 ? (
-          <EmptyState
-            title="Brak zadań"
-            description="Dodaj pierwsze zadanie jednorazowe, a pojawi się w planie dnia."
+      <div style={{ animation: "cascadeIn 0.4s ease-out 0.2s both" }}>
+        {tab === "tasks" ? (
+          isLoading ? (
+            <p className="px-1 text-sm text-muted-foreground">Wczytywanie zadań…</p>
+          ) : isError ? (
+            <RetryCard label="Nie udało się wczytać zadań." onRetry={() => refetch()} />
+          ) : !tasks || tasks.length === 0 ? (
+            <GlassyEmptyState
+              title="Brak zadań"
+              description="Dodaj pierwsze zadanie jednorazowe, a pojawi się w planie dnia."
+            />
+          ) : (
+            <TasksWithCompleted
+              tasks={tasks}
+              inSelectMode={inSelectMode}
+              selectedIds={selectedIds}
+              onToggle={(t) => toggleDone.mutate({ id: t.id, status: t.status })}
+              onReorder={(ids) =>
+                reorderTasks.mutate(ids, {
+                  onError: () => toast.error("Nie udało się zapisać kolejności."),
+                })
+              }
+              onLongPress={handleLongPress}
+              onTapInSelectMode={handleTapInSelectMode}
+              onDelete={(id) =>
+                deleteTask.mutate(id, {
+                  onSuccess: () => {
+                    void cancelTaskReminder(id);
+                    toast.success("Zadanie usunięte");
+                  },
+                  onError: () => toast.error("Nie udało się usunąć zadania."),
+                })
+              }
+            />
+          )
+        ) : routinesLoading ? (
+          <p className="px-1 text-sm text-muted-foreground">Wczytywanie rutyn…</p>
+        ) : routinesError ? (
+          <RetryCard label="Nie udało się wczytać rutyn." onRetry={() => refetchRoutines()} />
+        ) : !routines || routines.length === 0 ? (
+          <GlassyEmptyState
+            title="Brak rutyn"
+            description="Dodaj pierwszą rutynę, a będzie wracać w wybrane dni tygodnia."
           />
         ) : (
-          <TasksWithCompleted
-            tasks={tasks}
-            inSelectMode={inSelectMode}
-            selectedIds={selectedIds}
-            onToggle={(t) => toggleDone.mutate({ id: t.id, status: t.status })}
+          <SortableList
+            items={routines}
             onReorder={(ids) =>
-              reorderTasks.mutate(ids, {
+              reorderRoutines.mutate(ids, {
                 onError: () => toast.error("Nie udało się zapisać kolejności."),
               })
             }
             onLongPress={handleLongPress}
+            selectedIds={selectedIds}
             onTapInSelectMode={handleTapInSelectMode}
-            onDelete={(id) =>
-              deleteTask.mutate(id, {
-                onSuccess: () => {
-                  void cancelTaskReminder(id);
-                  toast.success("Zadanie usunięte");
-                },
-                onError: () => toast.error("Nie udało się usunąć zadania."),
-              })
-            }
+            renderItem={(r) => (
+              <RoutineCard
+                routine={r}
+                onEdit={() => !inSelectMode && setEditingRoutine(r)}
+                onToggle={() =>
+                  !inSelectMode &&
+                  toggleRoutineActive.mutate(
+                    { id: r.id, is_active: r.is_active },
+                    { onError: () => toast.error("Nie udało się zmienić rutyny.") },
+                  )
+                }
+              />
+            )}
           />
-        )
-      ) : routinesLoading ? (
-        <p className="px-1 text-sm text-muted-foreground">Wczytywanie rutyn…</p>
-      ) : routinesError ? (
-        <RetryCard label="Nie udało się wczytać rutyn." onRetry={() => refetchRoutines()} />
-      ) : !routines || routines.length === 0 ? (
-        <EmptyState
-          title="Brak rutyn"
-          description="Dodaj pierwszą rutynę, a będzie wracać w wybrane dni tygodnia."
-        />
-      ) : (
-        <SortableList
-          items={routines}
-          onReorder={(ids) =>
-            reorderRoutines.mutate(ids, {
-              onError: () => toast.error("Nie udało się zapisać kolejności."),
-            })
-          }
-          onLongPress={handleLongPress}
-          selectedIds={selectedIds}
-          onTapInSelectMode={handleTapInSelectMode}
-          renderItem={(r) => (
-            <RoutineCard
-              routine={r}
-              onEdit={() => !inSelectMode && setEditingRoutine(r)}
-              onToggle={() =>
-                !inSelectMode &&
-                toggleRoutineActive.mutate(
-                  { id: r.id, is_active: r.is_active },
-                  { onError: () => toast.error("Nie udało się zmienić rutyny.") },
-                )
-              }
-            />
-          )}
-        />
-      )}
+        )}
+      </div>
 
       <div className="h-24" />
       {!inSelectMode ? (
@@ -377,21 +388,29 @@ function TasksScreen() {
   );
 }
 
-function RetryCard({ label, onRetry }: { label: string; onRetry: () => void }) {
+function GlassyEmptyState({ title, description }: { title: string; description: string }) {
   return (
-    <Card className="flex flex-col items-center gap-3 py-8 text-center">
-      <p className="text-sm text-muted-foreground">{label}</p>
-      <button
-        onClick={onRetry}
-        className="h-10 rounded-2xl bg-secondary px-4 text-sm font-semibold text-secondary-foreground"
-      >
-        Spróbuj ponownie
-      </button>
-    </Card>
+    <div className="flex flex-col items-center gap-2 rounded-3xl bg-foreground/5 px-6 py-12 text-center">
+      <p className="text-base font-semibold">{title}</p>
+      <p className="max-w-[22rem] text-sm text-muted-foreground">{description}</p>
+    </div>
   );
 }
 
-// TODO auto-usuwanie po 30 dniach
+function RetryCard({ label, onRetry }: { label: string; onRetry: () => void }) {
+  return (
+    <div className="flex flex-col items-center gap-3 rounded-3xl bg-foreground/5 py-8 text-center">
+      <p className="text-sm text-muted-foreground">{label}</p>
+      <button
+        onClick={onRetry}
+        className="h-10 rounded-2xl bg-foreground/5 px-4 text-sm font-semibold text-foreground"
+      >
+        Spróbuj ponownie
+      </button>
+    </div>
+  );
+}
+
 function TasksWithCompleted({
   tasks,
   inSelectMode,
@@ -413,11 +432,12 @@ function TasksWithCompleted({
 }) {
   const active = tasks.filter((t) => t.status === "open");
   const completed = tasks.filter((t) => t.status === "done");
+  const [showCompleted, setShowCompleted] = useState(false);
 
   return (
     <>
       {active.length === 0 && completed.length > 0 ? (
-        <EmptyState
+        <GlassyEmptyState
           title="Wszystko zrobione"
           description="Brak aktywnych zadań. Dodaj nowe lub odznacz ukończone."
         />
@@ -439,19 +459,30 @@ function TasksWithCompleted({
 
       {completed.length > 0 ? (
         <div className="mt-6">
-          <h2 className="mb-3 px-1 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-            Ukończone
-          </h2>
-          <div className="flex flex-col gap-2">
-            {completed.map((t) => (
-              <CompletedTaskCard
-                key={t.id}
-                task={t}
-                onToggle={() => onToggle(t)}
-                onDelete={() => onDelete(t.id)}
-              />
-            ))}
-          </div>
+          <button
+            onClick={() => setShowCompleted((p) => !p)}
+            className="mb-3 flex items-center gap-2 px-1 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground"
+          >
+            <ChevronDown
+              className={cn(
+                "h-3.5 w-3.5 transition-transform duration-200",
+                showCompleted && "rotate-180",
+              )}
+            />
+            Ukończone ({completed.length})
+          </button>
+          {showCompleted ? (
+            <div className="flex flex-col gap-2">
+              {completed.map((t) => (
+                <CompletedTaskCard
+                  key={t.id}
+                  task={t}
+                  onToggle={() => onToggle(t)}
+                  onDelete={() => onDelete(t.id)}
+                />
+              ))}
+            </div>
+          ) : null}
         </div>
       ) : null}
     </>
@@ -468,7 +499,7 @@ function CompletedTaskCard({
   onDelete: () => void;
 }) {
   return (
-    <Card className="flex items-center gap-3">
+    <div className="flex items-center gap-3 rounded-3xl bg-foreground/5 p-5">
       <button
         onClick={onToggle}
         aria-label="Oznacz jako niezrobione"
@@ -486,7 +517,7 @@ function CompletedTaskCard({
       >
         <Trash2 className="h-4 w-4" />
       </button>
-    </Card>
+    </div>
   );
 }
 
@@ -500,7 +531,7 @@ function TaskCard({
   const done = task.status === "done";
   const setContactAction = useSetContactAction();
   return (
-    <Card className="flex flex-col gap-2">
+    <div className="flex flex-col gap-2 rounded-3xl bg-foreground/5 p-5">
       <div className="flex items-start gap-3">
         <button
           onClick={onToggle}
@@ -548,7 +579,7 @@ function TaskCard({
           ))}
         </ul>
       ) : null}
-    </Card>
+    </div>
   );
 }
 
@@ -562,7 +593,7 @@ function RoutineCard({
   onToggle: () => void;
 }) {
   return (
-    <Card className="flex items-center gap-4 py-4">
+    <div className="flex items-center gap-4 rounded-3xl bg-foreground/5 px-5 py-4">
       <button
         onClick={onEdit}
         aria-label={`Edytuj rutynę ${routine.title}`}
@@ -582,6 +613,7 @@ function RoutineCard({
           </p>
           <p className="truncate text-xs text-muted-foreground">
             {formatWeekdays(routine.weekdays)}
+            {routine.scheduled_time ? ` · ${routine.scheduled_time.slice(0, 5)}` : ""}
             {routine.routine_subtasks.length > 0
               ? ` · ${routine.routine_subtasks.length} podzadań`
               : ""}
@@ -589,11 +621,11 @@ function RoutineCard({
         </div>
       </button>
       <Switch checked={routine.is_active} onCheckedChange={onToggle} />
-    </Card>
+    </div>
   );
 }
 
-/** Shared priority picker (the one control both forms kept). */
+/** Shared priority picker. */
 function PriorityPicker({ value, onChange }: { value: Priority; onChange: (p: Priority) => void }) {
   return (
     <>
@@ -605,7 +637,7 @@ function PriorityPicker({ value, onChange }: { value: Priority; onChange: (p: Pr
             onClick={() => onChange(p)}
             className={cn(
               "h-11 rounded-2xl text-sm font-medium transition-colors",
-              value === p ? "bg-primary-soft text-primary" : "bg-elevated text-muted-foreground",
+              value === p ? "bg-primary-soft text-primary" : "bg-foreground/5 text-muted-foreground",
             )}
           >
             {PRIORITY_LABELS[p]}
@@ -635,7 +667,7 @@ function SubtaskEditor({
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           placeholder={placeholder}
-          className="h-12 flex-1 rounded-2xl border border-input bg-elevated px-4 text-sm outline-none focus:border-primary"
+          className="h-12 flex-1 rounded-2xl border border-input bg-foreground/5 px-4 text-sm outline-none focus:border-primary"
         />
         <button
           onClick={() => {
@@ -643,7 +675,7 @@ function SubtaskEditor({
             setSubtasks((p) => [...p, draft.trim()]);
             setDraft("");
           }}
-          className="flex h-12 w-12 items-center justify-center rounded-2xl bg-secondary"
+          className="flex h-12 w-12 items-center justify-center rounded-2xl bg-foreground/5"
         >
           <Plus className="h-5 w-5" />
         </button>
@@ -653,7 +685,7 @@ function SubtaskEditor({
           {subtasks.map((s, idx) => (
             <li
               key={`${s}-${idx}`}
-              className="flex items-center justify-between rounded-xl bg-elevated px-4 py-2.5 text-sm"
+              className="flex items-center justify-between rounded-xl bg-foreground/5 px-4 py-2.5 text-sm"
             >
               {s}
               <button onClick={() => setSubtasks((p) => p.filter((_, i) => i !== idx))}>
@@ -687,7 +719,7 @@ function Sheet({
             {headerExtra}
             <button
               onClick={onClose}
-              className="flex h-9 w-9 items-center justify-center rounded-full bg-secondary"
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-foreground/5"
             >
               <X className="h-4 w-4" />
             </button>
@@ -697,10 +729,6 @@ function Sheet({
       </div>
     </div>
   );
-}
-
-function todayLocalISO(): string {
-  return new Date().toLocaleDateString("en-CA");
 }
 
 function formatDateShort(dateStr: string): string {
@@ -741,7 +769,7 @@ function TaskForm({
           <button
             type="button"
             onClick={() => dateRef.current?.showPicker?.()}
-            className="relative flex h-9 items-center gap-1.5 rounded-full bg-secondary px-3 text-xs font-semibold text-secondary-foreground"
+            className="relative flex h-9 items-center gap-1.5 rounded-full bg-foreground/5 px-3 text-xs font-semibold text-foreground"
           >
             <Calendar className="h-3.5 w-3.5" />
             {formatDateShort(scheduledDate)}
@@ -756,7 +784,7 @@ function TaskForm({
           <button
             type="button"
             onClick={() => timeRef.current?.showPicker?.()}
-            className="relative flex h-9 items-center gap-1.5 rounded-full bg-secondary px-3 text-xs font-semibold text-secondary-foreground"
+            className="relative flex h-9 items-center gap-1.5 rounded-full bg-foreground/5 px-3 text-xs font-semibold text-foreground"
           >
             <Clock className="h-3.5 w-3.5" />
             {scheduledTime || "Godz."}
@@ -776,7 +804,7 @@ function TaskForm({
         value={title}
         onChange={(e) => setTitle(e.target.value)}
         placeholder="np. Dokończ aplikację"
-        className="mb-4 h-13 w-full rounded-2xl border border-input bg-elevated px-4 py-3.5 text-sm outline-none focus:border-primary"
+        className="mb-4 h-13 w-full rounded-2xl border border-input bg-foreground/5 px-4 py-3.5 text-sm outline-none focus:border-primary"
       />
 
       <PriorityPicker value={priority} onChange={setPriority} />
@@ -816,9 +844,11 @@ function RoutineForm({
   const [title, setTitle] = useState(initial?.title ?? "");
   const [priority, setPriority] = useState<Priority>(initial?.priority ?? "normal");
   const [weekdays, setWeekdays] = useState<number[]>(initial?.weekdays ?? ALL_WEEKDAYS);
+  const [scheduledTime, setScheduledTime] = useState(initial?.scheduled_time?.slice(0, 5) ?? "");
   const [subtasks, setSubtasks] = useState<string[]>(
     initial?.routine_subtasks.map((s) => s.title) ?? [],
   );
+  const timeRef = useRef<HTMLInputElement>(null);
 
   const toggleDay = (n: number) =>
     setWeekdays((prev) =>
@@ -826,13 +856,33 @@ function RoutineForm({
     );
 
   return (
-    <Sheet title={isEdit ? "Edytuj rutynę" : "Nowa rutyna"} onClose={onClose}>
+    <Sheet
+      title={isEdit ? "Edytuj rutynę" : "Nowa rutyna"}
+      onClose={onClose}
+      headerExtra={
+        <button
+          type="button"
+          onClick={() => timeRef.current?.showPicker?.()}
+          className="relative flex h-9 items-center gap-1.5 rounded-full bg-foreground/5 px-3 text-xs font-semibold text-foreground"
+        >
+          <Clock className="h-3.5 w-3.5" />
+          {scheduledTime || "Godz."}
+          <input
+            ref={timeRef}
+            type="time"
+            value={scheduledTime}
+            onChange={(e) => setScheduledTime(e.target.value)}
+            className="absolute inset-0 cursor-pointer opacity-0"
+          />
+        </button>
+      }
+    >
       <label className="mb-1 block text-xs font-semibold text-muted-foreground">Tytuł</label>
       <input
         value={title}
         onChange={(e) => setTitle(e.target.value)}
         placeholder="np. Poranna medytacja"
-        className="mb-4 h-13 w-full rounded-2xl border border-input bg-elevated px-4 py-3.5 text-sm outline-none focus:border-primary"
+        className="mb-4 h-13 w-full rounded-2xl border border-input bg-foreground/5 px-4 py-3.5 text-sm outline-none focus:border-primary"
       />
 
       <label className="mb-2 block text-xs font-semibold text-muted-foreground">Dni tygodnia</label>
@@ -846,7 +896,7 @@ function RoutineForm({
               aria-pressed={on}
               className={cn(
                 "h-11 rounded-2xl text-sm font-semibold transition-colors",
-                on ? "bg-primary-soft text-primary" : "bg-elevated text-muted-foreground",
+                on ? "bg-primary-soft text-primary" : "bg-foreground/5 text-muted-foreground",
               )}
             >
               {d.short}
@@ -860,7 +910,7 @@ function RoutineForm({
 
       <button
         disabled={!title.trim() || weekdays.length === 0 || saving}
-        onClick={() => onSave({ title: title.trim(), priority, weekdays, subtasks })}
+        onClick={() => onSave({ title: title.trim(), priority, weekdays, subtasks, scheduled_time: scheduledTime || undefined })}
         className="accent-gradient mb-4 h-16 w-full rounded-3xl text-lg font-bold text-primary-foreground transition-opacity disabled:opacity-40"
       >
         {saving ? "Zapisywanie…" : isEdit ? "Zapisz zmiany" : "Zapisz rutynę"}

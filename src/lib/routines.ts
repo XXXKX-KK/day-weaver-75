@@ -22,6 +22,7 @@ export type RoutineRow = {
   /** Manual order shared across all routines (drag-and-drop). Nulls sort last. */
   position: number | null;
   priority: Priority;
+  scheduled_time: string | null;
   is_active: boolean;
   archived_at: string | null;
   created_at: string;
@@ -37,6 +38,7 @@ export type NewRoutineInput = {
   /** 1=Mon .. 7=Sun; at least one, defaults to all seven in the form. */
   weekdays: number[];
   subtasks: string[];
+  scheduled_time?: string | undefined;
 };
 
 /** Same payload as adding, plus the id of the routine being edited. */
@@ -76,7 +78,7 @@ export function useRoutines() {
       const { data, error } = await supabase
         .from("routines")
         .select(
-          "id, title, description, weekdays, position, priority, is_active, archived_at, created_at, routine_subtasks(id, title, position)",
+          "id, title, description, weekdays, position, priority, scheduled_time, is_active, archived_at, created_at, routine_subtasks(id, title, position)",
         )
         .is("archived_at", null);
       if (error) throw error;
@@ -109,6 +111,7 @@ export function useAddRoutine() {
           description: input.description ?? null,
           priority: input.priority,
           weekdays: normalizeWeekdays(input.weekdays),
+          scheduled_time: input.scheduled_time ?? null,
           position: await nextRoutinePosition(),
           is_active: true,
         })
@@ -146,6 +149,7 @@ export function useUpdateRoutine() {
           description: input.description ?? null,
           priority: input.priority,
           weekdays: normalizeWeekdays(input.weekdays),
+          scheduled_time: input.scheduled_time ?? null,
         })
         .eq("id", input.id);
       if (error) throw error;
