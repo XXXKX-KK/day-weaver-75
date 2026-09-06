@@ -18,12 +18,9 @@ const KEYFRAMES = `
 // ─── Gauge SVG ───────────────────────────────────────────────────
 const Gauge: React.FC<{ pct: number; arcColor: string; arcColorLight: string }> = ({ pct, arcColor, arcColorLight }) => {
   const cx = 110, cy = 105, r = 90;
-  const trackD = `M ${cx - r} ${cy} A ${r} ${r} 0 1 1 ${cx + r} ${cy}`;
-  const angle = Math.PI - (pct / 100) * Math.PI;
-  const x2 = cx + r * Math.cos(angle);
-  const y2 = cy - r * Math.sin(angle);
-  const largeArc = pct > 50 ? 1 : 0;
-  const fillD = pct > 0 ? `M ${cx - r} ${cy} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2}` : '';
+  const arcD = `M ${cx - r} ${cy} A ${r} ${r} 0 1 1 ${cx + r} ${cy}`;
+  const halfCirc = Math.PI * r;
+  const fillLen = (pct / 100) * halfCirc;
 
   return (
     <svg viewBox="0 0 220 115" width={220} height={115} style={{ display: 'block' }}>
@@ -33,8 +30,11 @@ const Gauge: React.FC<{ pct: number; arcColor: string; arcColorLight: string }> 
           <stop offset="100%" stopColor={arcColorLight} />
         </linearGradient>
       </defs>
-      <path d={trackD} fill="none" stroke="color-mix(in oklch, var(--foreground) 6%, transparent)" strokeWidth={14} strokeLinecap="round" />
-      {fillD && <path d={fillD} fill="none" stroke="url(#gaugeGrad)" strokeWidth={14} strokeLinecap="round" />}
+      <path d={arcD} fill="none" stroke="color-mix(in oklch, var(--foreground) 6%, transparent)" strokeWidth={14} strokeLinecap="round" />
+      {pct > 0 && (
+        <path d={arcD} fill="none" stroke="url(#gaugeGrad)" strokeWidth={14} strokeLinecap="round"
+          strokeDasharray={`${fillLen} ${halfCirc}`} />
+      )}
     </svg>
   );
 };
@@ -192,9 +192,9 @@ export const PodsumowanieScreen: React.FC<Props> = ({ tasks, onClose }) => {
         <div
           onClick={onClose}
           style={{
-            background: `linear-gradient(135deg, ${colors.arc}, ${colors.arcLight})`,
+            backgroundImage: 'var(--gradient-primary)',
             borderRadius: 28, padding: 16, textAlign: 'center',
-            cursor: 'pointer', fontSize: 16, fontWeight: 700, color: '#fff',
+            cursor: 'pointer', fontSize: 16, fontWeight: 700, color: 'var(--primary-foreground)',
             transition: 'all 0.2s', animation: 'fadeIn 0.5s ease-out 0.8s both',
           }}
         >
