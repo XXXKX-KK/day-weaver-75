@@ -713,7 +713,7 @@ function Sheet({
 }) {
   return (
     <div className="fixed inset-0 z-50 flex items-end bg-background/80 backdrop-blur-sm">
-      <div className="card-surface safe-bottom max-h-[88vh] w-full overflow-y-auto rounded-b-none px-5 pt-5">
+      <div className="safe-bottom max-h-[88vh] w-full overflow-y-auto rounded-t-3xl border border-foreground/[0.06] bg-foreground/5 px-5 pt-5 backdrop-blur-2xl">
         <div className="mb-5 flex items-center justify-between">
           <h2 className="text-xl font-bold">{title}</h2>
           <div className="flex items-center gap-2">
