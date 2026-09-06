@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { Calendar, Check, ChevronDown, Clock, Plus, Repeat, Trash2, X } from "lucide-react";
+import { CalendarPicker, TimePicker } from "@/components/pickers";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -712,7 +713,7 @@ function Sheet({
 }) {
   return (
     <div className="fixed inset-0 z-50 flex items-end bg-background/80 backdrop-blur-sm">
-      <div className="card-surface safe-bottom max-h-[88vh] w-full overflow-y-auto rounded-b-none px-5 pt-5">
+      <div className="safe-bottom max-h-[88vh] w-full overflow-y-auto rounded-t-3xl border border-foreground/[0.06] bg-foreground/5 px-5 pt-5 backdrop-blur-2xl">
         <div className="mb-5 flex items-center justify-between">
           <h2 className="text-xl font-bold">{title}</h2>
           <div className="flex items-center gap-2">
@@ -757,8 +758,8 @@ function TaskForm({
   const [subtasks, setSubtasks] = useState<string[]>([]);
   const [scheduledDate, setScheduledDate] = useState(todayLocalISO());
   const [scheduledTime, setScheduledTime] = useState("");
-  const dateRef = useRef<HTMLInputElement>(null);
-  const timeRef = useRef<HTMLInputElement>(null);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
 
   return (
     <Sheet
@@ -768,33 +769,19 @@ function TaskForm({
         <>
           <button
             type="button"
-            onClick={() => dateRef.current?.showPicker?.()}
-            className="relative flex h-9 items-center gap-1.5 rounded-full bg-foreground/5 px-3 text-xs font-semibold text-foreground"
+            onClick={() => setShowDatePicker(true)}
+            className="flex h-9 items-center gap-1.5 rounded-full bg-foreground/5 px-3 text-xs font-semibold text-foreground"
           >
             <Calendar className="h-3.5 w-3.5" />
             {formatDateShort(scheduledDate)}
-            <input
-              ref={dateRef}
-              type="date"
-              value={scheduledDate}
-              onChange={(e) => setScheduledDate(e.target.value || todayLocalISO())}
-              className="absolute inset-0 cursor-pointer opacity-0"
-            />
           </button>
           <button
             type="button"
-            onClick={() => timeRef.current?.showPicker?.()}
-            className="relative flex h-9 items-center gap-1.5 rounded-full bg-foreground/5 px-3 text-xs font-semibold text-foreground"
+            onClick={() => setShowTimePicker(true)}
+            className="flex h-9 items-center gap-1.5 rounded-full bg-foreground/5 px-3 text-xs font-semibold text-foreground"
           >
             <Clock className="h-3.5 w-3.5" />
             {scheduledTime || "Godz."}
-            <input
-              ref={timeRef}
-              type="time"
-              value={scheduledTime}
-              onChange={(e) => setScheduledTime(e.target.value)}
-              className="absolute inset-0 cursor-pointer opacity-0"
-            />
           </button>
         </>
       }
@@ -825,6 +812,21 @@ function TaskForm({
       >
         {saving ? "Zapisywanie…" : "Zapisz zadanie"}
       </button>
+
+      {showDatePicker && (
+        <CalendarPicker
+          value={scheduledDate}
+          onChange={(d) => setScheduledDate(d)}
+          onClose={() => setShowDatePicker(false)}
+        />
+      )}
+      {showTimePicker && (
+        <TimePicker
+          value={scheduledTime}
+          onChange={(t) => setScheduledTime(t)}
+          onClose={() => setShowTimePicker(false)}
+        />
+      )}
     </Sheet>
   );
 }
@@ -848,7 +850,7 @@ function RoutineForm({
   const [subtasks, setSubtasks] = useState<string[]>(
     initial?.routine_subtasks.map((s) => s.title) ?? [],
   );
-  const timeRef = useRef<HTMLInputElement>(null);
+  const [showTimePicker, setShowTimePicker] = useState(false);
 
   const toggleDay = (n: number) =>
     setWeekdays((prev) =>
@@ -862,18 +864,11 @@ function RoutineForm({
       headerExtra={
         <button
           type="button"
-          onClick={() => timeRef.current?.showPicker?.()}
-          className="relative flex h-9 items-center gap-1.5 rounded-full bg-foreground/5 px-3 text-xs font-semibold text-foreground"
+          onClick={() => setShowTimePicker(true)}
+          className="flex h-9 items-center gap-1.5 rounded-full bg-foreground/5 px-3 text-xs font-semibold text-foreground"
         >
           <Clock className="h-3.5 w-3.5" />
           {scheduledTime || "Godz."}
-          <input
-            ref={timeRef}
-            type="time"
-            value={scheduledTime}
-            onChange={(e) => setScheduledTime(e.target.value)}
-            className="absolute inset-0 cursor-pointer opacity-0"
-          />
         </button>
       }
     >
@@ -915,6 +910,14 @@ function RoutineForm({
       >
         {saving ? "Zapisywanie…" : isEdit ? "Zapisz zmiany" : "Zapisz rutynę"}
       </button>
+
+      {showTimePicker && (
+        <TimePicker
+          value={scheduledTime}
+          onChange={(t) => setScheduledTime(t)}
+          onClose={() => setShowTimePicker(false)}
+        />
+      )}
     </Sheet>
   );
 }
