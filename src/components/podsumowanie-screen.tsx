@@ -19,8 +19,6 @@ const KEYFRAMES = `
 const Gauge: React.FC<{ pct: number; arcColor: string; arcColorLight: string }> = ({ pct, arcColor, arcColorLight }) => {
   const cx = 110, cy = 105, r = 90;
   const arcD = `M ${cx - r} ${cy} A ${r} ${r} 0 1 1 ${cx + r} ${cy}`;
-  const halfCirc = Math.PI * r;
-  const fillLen = (pct / 100) * halfCirc;
 
   return (
     <svg viewBox="0 0 220 115" width={220} height={115} style={{ display: 'block' }}>
@@ -29,11 +27,14 @@ const Gauge: React.FC<{ pct: number; arcColor: string; arcColorLight: string }> 
           <stop offset="0%" stopColor={arcColor} />
           <stop offset="100%" stopColor={arcColorLight} />
         </linearGradient>
+        <mask id="gaugeMask">
+          <path d={arcD} fill="none" stroke="white" strokeWidth={14} strokeLinecap="round" />
+        </mask>
       </defs>
       <path d={arcD} fill="none" stroke="color-mix(in oklch, var(--foreground) 6%, transparent)" strokeWidth={14} strokeLinecap="round" />
       {pct > 0 && (
-        <path d={arcD} fill="none" stroke="url(#gaugeGrad)" strokeWidth={14} strokeLinecap="round"
-          strokeDasharray={`${fillLen} ${halfCirc}`} />
+        <path d={arcD} fill="none" stroke="url(#gaugeGrad)" strokeWidth={16} strokeLinecap="round"
+          pathLength={100} strokeDasharray={`${pct} 100`} mask="url(#gaugeMask)" />
       )}
     </svg>
   );
