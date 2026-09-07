@@ -65,11 +65,18 @@ export function CalendarPicker({
   };
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-end bg-black/40 backdrop-blur-sm" onClick={onClose}>
-      <div
-        className="safe-bottom w-full rounded-t-3xl border border-foreground/[0.06] bg-foreground/5 px-5 pt-5 pb-6 backdrop-blur-2xl"
-        onClick={(e) => e.stopPropagation()}
-      >
+    <div className="fixed inset-0 z-[60] bg-background">
+      <div className="safe-bottom flex h-full flex-col px-5 pt-5">
+        <div className="mb-6 flex items-center gap-3">
+          <button
+            onClick={onClose}
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-foreground/5"
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </button>
+          <h2 className="text-[22px] font-extrabold tracking-tight">Wybierz datę</h2>
+        </div>
+
         <div className="mb-5 flex items-center justify-between px-2">
           <button onClick={prev} className="flex h-10 w-10 items-center justify-center rounded-full bg-foreground/5">
             <ChevronLeft className="h-5 w-5" />
@@ -241,23 +248,28 @@ export function TimePicker({
   };
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-end bg-black/40 backdrop-blur-sm" onClick={onClose}>
+    <div className="fixed inset-0 z-[60] bg-background">
       <div
-        className="safe-bottom w-full rounded-t-3xl border border-foreground/[0.06] bg-foreground/5 px-5 pt-5 pb-6 backdrop-blur-2xl"
+        className="safe-bottom flex h-full flex-col px-5 pt-5"
         style={{ overscrollBehavior: "none" }}
-        onClick={(e) => e.stopPropagation()}
       >
-        <div className="mb-2 text-center text-[22px] font-extrabold tracking-tight">
-          Wybierz godzinę
+        <div className="mb-6 flex items-center gap-3">
+          <button
+            onClick={onClose}
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-foreground/5"
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </button>
+          <h2 className="text-[22px] font-extrabold tracking-tight">Wybierz godzinę</h2>
         </div>
 
-        <div className="flex items-center justify-center gap-0 py-10">
+        <div className="flex flex-1 items-center justify-center gap-0">
           <DrumColumn value={hour} wrap={wrapH} step={1} onChange={setHour} />
           <div className="-mt-2 select-none text-[60px] font-extrabold px-1">:</div>
           <DrumColumn value={minute} wrap={wrapM} step={5} onChange={setMinute} />
         </div>
 
-        <div className="flex gap-3">
+        <div className="flex gap-3 pb-6">
           <button
             onClick={clear}
             className="h-14 flex-1 rounded-[28px] bg-foreground/5 text-[15px] font-bold text-muted-foreground"
