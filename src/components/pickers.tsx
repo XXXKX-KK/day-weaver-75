@@ -95,8 +95,8 @@ export function CalendarPicker({
   );
 
   return (
-    <div className="fixed inset-0 z-[60] bg-background">
-      <div className="safe-bottom flex h-full flex-col px-5 pt-5">
+    <div className="overlay-bg fixed inset-0 z-[60] sheet-slide-up">
+      <div className="safe-bottom relative z-10 flex h-full flex-col px-5 pt-5">
         <div className="mb-6 flex items-center gap-3">
           <button
             onClick={onClose}
@@ -240,7 +240,7 @@ function DrumColumn({
         setCenterIdx(middleIdx);
         requestAnimationFrame(() => { isUserScroll.current = true; });
       }
-    }, 80);
+    }, 150);
   }, [allItems, count, onChange]);
 
   return (
@@ -252,6 +252,7 @@ function DrumColumn({
         height: CONTAINER_H,
         overflowY: "auto",
         scrollSnapType: "y mandatory",
+        scrollBehavior: "smooth",
         overscrollBehavior: "contain",
       }}
     >
@@ -271,6 +272,7 @@ function DrumColumn({
             style={{
               height: ITEM_H,
               scrollSnapAlign: "center",
+              scrollSnapStop: "always",
               opacity,
               fontSize: isCenter ? 48 : 32,
               fontWeight: isCenter ? 800 : 500,
@@ -313,9 +315,9 @@ export function TimePicker({
   };
 
   return (
-    <div className="fixed inset-0 z-[60] bg-background">
+    <div className="overlay-bg fixed inset-0 z-[60] sheet-slide-up">
       <div
-        className="safe-bottom flex h-full flex-col px-5 pt-5"
+        className="safe-bottom relative z-10 flex h-full flex-col px-5 pt-5"
         style={{ overscrollBehavior: "none" }}
       >
         <div className="mb-6 flex items-center gap-3">
@@ -330,7 +332,7 @@ export function TimePicker({
 
         <div className="flex flex-1 items-center justify-center gap-0">
           <DrumColumn items={HOURS} value={hour} onChange={setHour} />
-          <div className="-mt-2 select-none text-[60px] font-extrabold px-1">:</div>
+          <div className="-mt-2 select-none text-[60px] font-extrabold text-primary px-1">:</div>
           <DrumColumn items={MINUTES} value={minute} onChange={setMinute} />
         </div>
 

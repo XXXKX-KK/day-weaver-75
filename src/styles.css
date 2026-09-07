@@ -271,6 +271,31 @@
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
+
+  .overlay-bg {
+    background-color: var(--background);
+  }
+  .overlay-bg::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+      radial-gradient(
+        86% 50% at 50% 22%,
+        color-mix(in oklab, var(--primary) 15%, transparent) 0%,
+        transparent 60%
+      ),
+      radial-gradient(
+        100% 56% at 50% 70%,
+        color-mix(in oklab, var(--primary) 20%, transparent) 0%,
+        color-mix(in oklab, var(--primary) 8%, transparent) 42%,
+        transparent 72%
+      );
+  }
+  [data-theme="light"] .overlay-bg::before {
+    display: none;
+  }
 }
 
 /* Duża, miękka karta — podstawowy budulec interfejsu */
