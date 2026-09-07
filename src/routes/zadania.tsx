@@ -714,8 +714,8 @@ function Sheet({
   children: React.ReactNode;
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-end bg-background/80 backdrop-blur-sm">
-      <div className="safe-bottom max-h-[88vh] w-full overflow-y-auto rounded-t-3xl border border-foreground/[0.06] bg-foreground/5 px-5 pt-5 backdrop-blur-2xl">
+    <div className="fixed inset-0 z-50 flex items-end bg-black/40 backdrop-blur-sm">
+      <div className="sheet-slide-up safe-bottom max-h-[88vh] w-full overflow-y-auto rounded-t-3xl border border-foreground/[0.06] bg-foreground/5 px-5 pt-5 backdrop-blur-2xl">
         <div className="mb-5 flex items-center gap-3">
           <button
             onClick={onClose}
