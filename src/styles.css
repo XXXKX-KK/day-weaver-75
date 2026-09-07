@@ -310,3 +310,19 @@
 @utility sheet-slide-up {
   animation: sheetSlideUp 0.3s ease-out both;
 }
+
+@keyframes calSlideFromLeft {
+  from { transform: translateX(-28%); opacity: 0; }
+  to   { transform: translateX(0); opacity: 1; }
+}
+@keyframes calSlideFromRight {
+  from { transform: translateX(28%); opacity: 0; }
+  to   { transform: translateX(0); opacity: 1; }
+}
+
+@utility cal-slide-left {
+  animation: calSlideFromLeft 0.22s ease-out both;
+}
+@utility cal-slide-right {
+  animation: calSlideFromRight 0.22s ease-out both;
+}

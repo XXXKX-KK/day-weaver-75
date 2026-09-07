@@ -58,18 +58,41 @@ export function CalendarPicker({
   const parts = value.split("-").map(Number);
   const [viewYear, setViewYear] = useState(parts[0] ?? new Date().getFullYear());
   const [viewMonth, setViewMonth] = useState((parts[1] ?? new Date().getMonth() + 1) - 1);
+  const [slideDir, setSlideDir] = useState<"left" | "right" | null>(null);
+  const [slideKey, setSlideKey] = useState(0);
+  const touchStartX = useRef(0);
 
   const logical = todayLocalISO();
   const cells = generateCalendar(viewYear, viewMonth);
 
-  const prev = () => {
+  const prev = useCallback(() => {
+    setSlideDir("left");
+    setSlideKey((k) => k + 1);
     if (viewMonth === 0) { setViewMonth(11); setViewYear((y) => y - 1); }
     else setViewMonth((m) => m - 1);
-  };
-  const next = () => {
+  }, [viewMonth]);
+
+  const next = useCallback(() => {
+    setSlideDir("right");
+    setSlideKey((k) => k + 1);
     if (viewMonth === 11) { setViewMonth(0); setViewYear((y) => y + 1); }
     else setViewMonth((m) => m + 1);
-  };
+  }, [viewMonth]);
+
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0]!.clientX;
+  }, []);
+
+  const handleTouchEnd = useCallback(
+    (e: React.TouchEvent) => {
+      const dx = e.changedTouches[0]!.clientX - touchStartX.current;
+      if (Math.abs(dx) > 50) {
+        if (dx > 0) prev();
+        else next();
+      }
+    },
+    [prev, next],
+  );
 
   return (
     <div className="fixed inset-0 z-[60] bg-background">
@@ -110,27 +133,40 @@ export function CalendarPicker({
           ))}
         </div>
 
-        <div className="grid grid-cols-7 gap-[3px]">
-          {cells.map((c, i) => {
-            const sel = c.iso === value;
-            const today = c.iso === logical;
-            const isSunday = i % 7 === 6;
-            return (
-              <button
-                key={i}
-                onClick={() => { onChange(c.iso); onClose(); }}
-                className={cn(
-                  "flex aspect-square items-center justify-center rounded-full text-sm transition-colors",
-                  !c.current && "text-muted-foreground/30",
-                  c.current && !sel && (isSunday ? "text-destructive/70" : "text-foreground"),
-                  today && !sel && "bg-foreground/8 font-bold",
-                  sel && "accent-gradient font-bold text-primary-foreground",
-                )}
-              >
-                {c.day}
-              </button>
-            );
-          })}
+        <div
+          className="overflow-hidden"
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
+        >
+          <div
+            key={slideKey}
+            className={cn(
+              "grid grid-cols-7 gap-[3px]",
+              slideDir === "left" && "cal-slide-left",
+              slideDir === "right" && "cal-slide-right",
+            )}
+          >
+            {cells.map((c, i) => {
+              const sel = c.iso === value;
+              const today = c.iso === logical;
+              const isSunday = i % 7 === 6;
+              return (
+                <button
+                  key={i}
+                  onClick={() => { onChange(c.iso); onClose(); }}
+                  className={cn(
+                    "flex aspect-square items-center justify-center rounded-full text-sm transition-transform duration-150 active:scale-[0.82] active:opacity-70",
+                    !c.current && "text-muted-foreground/30",
+                    c.current && !sel && (isSunday ? "text-destructive/70" : "text-foreground"),
+                    today && !sel && "ring-2 ring-primary/30 font-bold",
+                    sel && "accent-gradient font-bold text-primary-foreground",
+                  )}
+                >
+                  {c.day}
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
     </div>
