@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { todayLocalISO } from "@/lib/day";
@@ -12,6 +12,13 @@ const PL_DAYS_SHORT = ["Pn", "Wt", "Śr", "Cz", "Pt", "So", "Nd"];
 const pad = (n: number) => String(n).padStart(2, "0");
 const wrapH = (h: number) => ((h % 24) + 24) % 24;
 const wrapM = (m: number) => ((m % 60) + 60) % 60;
+
+const HOURS = Array.from({ length: 24 }, (_, i) => i);
+const MINUTES = Array.from({ length: 12 }, (_, i) => i * 5);
+const ITEM_H = 56;
+const VISIBLE_COUNT = 5;
+const CONTAINER_H = ITEM_H * VISIBLE_COUNT;
+const PAD_SLOTS = Math.floor(VISIBLE_COUNT / 2);
 
 function generateCalendar(year: number, month: number) {
   let startDay = new Date(year, month, 1).getDay() - 1;
@@ -51,18 +58,41 @@ export function CalendarPicker({
   const parts = value.split("-").map(Number);
   const [viewYear, setViewYear] = useState(parts[0] ?? new Date().getFullYear());
   const [viewMonth, setViewMonth] = useState((parts[1] ?? new Date().getMonth() + 1) - 1);
+  const [slideDir, setSlideDir] = useState<"left" | "right" | null>(null);
+  const [slideKey, setSlideKey] = useState(0);
+  const touchStartX = useRef(0);
 
   const logical = todayLocalISO();
   const cells = generateCalendar(viewYear, viewMonth);
 
-  const prev = () => {
+  const prev = useCallback(() => {
+    setSlideDir("left");
+    setSlideKey((k) => k + 1);
     if (viewMonth === 0) { setViewMonth(11); setViewYear((y) => y - 1); }
     else setViewMonth((m) => m - 1);
-  };
-  const next = () => {
+  }, [viewMonth]);
+
+  const next = useCallback(() => {
+    setSlideDir("right");
+    setSlideKey((k) => k + 1);
     if (viewMonth === 11) { setViewMonth(0); setViewYear((y) => y + 1); }
     else setViewMonth((m) => m + 1);
-  };
+  }, [viewMonth]);
+
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0]!.clientX;
+  }, []);
+
+  const handleTouchEnd = useCallback(
+    (e: React.TouchEvent) => {
+      const dx = e.changedTouches[0]!.clientX - touchStartX.current;
+      if (Math.abs(dx) > 50) {
+        if (dx > 0) prev();
+        else next();
+      }
+    },
+    [prev, next],
+  );
 
   return (
     <div className="fixed inset-0 z-[60] bg-background">
@@ -103,27 +133,40 @@ export function CalendarPicker({
           ))}
         </div>
 
-        <div className="grid grid-cols-7 gap-[3px]">
-          {cells.map((c, i) => {
-            const sel = c.iso === value;
-            const today = c.iso === logical;
-            const isSunday = i % 7 === 6;
-            return (
-              <button
-                key={i}
-                onClick={() => { onChange(c.iso); onClose(); }}
-                className={cn(
-                  "flex aspect-square items-center justify-center rounded-full text-sm transition-colors",
-                  !c.current && "text-muted-foreground/30",
-                  c.current && !sel && (isSunday ? "text-destructive/70" : "text-foreground"),
-                  today && !sel && "bg-foreground/8 font-bold",
-                  sel && "accent-gradient font-bold text-primary-foreground",
-                )}
-              >
-                {c.day}
-              </button>
-            );
-          })}
+        <div
+          className="overflow-hidden"
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
+        >
+          <div
+            key={slideKey}
+            className={cn(
+              "grid grid-cols-7 gap-[3px]",
+              slideDir === "left" && "cal-slide-left",
+              slideDir === "right" && "cal-slide-right",
+            )}
+          >
+            {cells.map((c, i) => {
+              const sel = c.iso === value;
+              const today = c.iso === logical;
+              const isSunday = i % 7 === 6;
+              return (
+                <button
+                  key={i}
+                  onClick={() => { onChange(c.iso); onClose(); }}
+                  className={cn(
+                    "flex aspect-square items-center justify-center rounded-full text-sm transition-transform duration-150 active:scale-[0.82] active:opacity-70",
+                    !c.current && "text-muted-foreground/30",
+                    c.current && !sel && (isSunday ? "text-destructive/70" : "text-foreground"),
+                    today && !sel && "ring-2 ring-primary/30 font-bold",
+                    sel && "accent-gradient font-bold text-primary-foreground",
+                  )}
+                >
+                  {c.day}
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
     </div>
@@ -131,91 +174,113 @@ export function CalendarPicker({
 }
 
 function DrumColumn({
+  items,
   value,
-  wrap,
-  step,
   onChange,
 }: {
+  items: number[];
   value: number;
-  wrap: (n: number) => number;
-  step: number;
   onChange: (n: number) => void;
 }) {
-  const touchY = useRef<number | null>(null);
-  const [dir, setDir] = useState<"up" | "down" | null>(null);
-  const [animating, setAnimating] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const count = items.length;
+  const allItems = useMemo(() => [...items, ...items, ...items], [items]);
+  const scrollTimer = useRef<ReturnType<typeof setTimeout>>();
+  const isUserScroll = useRef(false);
+
+  const valueIndex = items.indexOf(value);
+  const initIdx = count + (valueIndex >= 0 ? valueIndex : 0);
+  const [centerIdx, setCenterIdx] = useState(initIdx);
 
   useEffect(() => {
-    if (!animating) return;
-    const id = setTimeout(() => {
-      setAnimating(false);
-      setDir(null);
-    }, 180);
-    return () => clearTimeout(id);
-  }, [animating]);
+    const el = ref.current;
+    if (!el) return;
+    el.scrollTop = initIdx * ITEM_H;
+    setCenterIdx(initIdx);
+    requestAnimationFrame(() => { isUserScroll.current = true; });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const go = useCallback(
-    (direction: "up" | "down") => {
-      setDir(direction);
-      setAnimating(true);
-      onChange(wrap(direction === "up" ? value + step : value - step));
-    },
-    [value, step, wrap, onChange],
-  );
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || !isUserScroll.current) return;
+    const currentVal = allItems[centerIdx];
+    if (currentVal === value) return;
+    const vi = items.indexOf(value);
+    if (vi < 0) return;
+    const targetIdx = count + vi;
+    isUserScroll.current = false;
+    el.scrollTo({ top: targetIdx * ITEM_H, behavior: "smooth" });
+    setTimeout(() => { isUserScroll.current = true; }, 350);
+  }, [value]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const handleTouchStart = useCallback((e: React.TouchEvent) => {
-    e.preventDefault();
-    touchY.current = e.touches[0]!.clientY;
-  }, []);
+  const handleScroll = useCallback(() => {
+    const el = ref.current;
+    if (!el) return;
 
-  const handleTouchMove = useCallback((e: React.TouchEvent) => {
-    e.preventDefault();
-  }, []);
+    const idx = Math.round(el.scrollTop / ITEM_H);
+    setCenterIdx(idx);
 
-  const handleTouchEnd = useCallback(
-    (e: React.TouchEvent) => {
-      e.preventDefault();
-      if (touchY.current === null) return;
-      const delta = touchY.current - e.changedTouches[0]!.clientY;
-      touchY.current = null;
-      if (Math.abs(delta) > 20) {
-        go(delta > 0 ? "up" : "down");
+    clearTimeout(scrollTimer.current);
+    scrollTimer.current = setTimeout(() => {
+      const snappedIdx = Math.round(el.scrollTop / ITEM_H);
+      const val = allItems[snappedIdx];
+
+      if (val !== undefined && isUserScroll.current) {
+        onChange(val);
       }
-    },
-    [go],
-  );
 
-  const slideClass = animating
-    ? dir === "up"
-      ? "drum-slide-up"
-      : "drum-slide-down"
-    : "";
+      const copyNum = Math.floor(snappedIdx / count);
+      if (copyNum !== 1) {
+        const posInCopy = ((snappedIdx % count) + count) % count;
+        const middleIdx = count + posInCopy;
+        isUserScroll.current = false;
+        el.style.scrollBehavior = "auto";
+        el.scrollTop = middleIdx * ITEM_H;
+        el.style.scrollBehavior = "";
+        setCenterIdx(middleIdx);
+        requestAnimationFrame(() => { isUserScroll.current = true; });
+      }
+    }, 80);
+  }, [allItems, count, onChange]);
 
   return (
     <div
-      className="flex w-[6.5rem] flex-col items-center gap-3"
-      style={{ touchAction: "none" }}
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
+      ref={ref}
+      onScroll={handleScroll}
+      className="scrollbar-hide w-[6.5rem]"
+      style={{
+        height: CONTAINER_H,
+        overflowY: "auto",
+        scrollSnapType: "y mandatory",
+        overscrollBehavior: "contain",
+      }}
     >
-      <button
-        onClick={() => go("down")}
-        className="text-[34px] font-medium text-muted-foreground/40 transition-colors active:text-muted-foreground/70"
-      >
-        {pad(wrap(value - step))}
-      </button>
-      <div className={cn("overflow-hidden rounded-2xl bg-foreground/5 px-5 py-1")}>
-        <div className={cn("text-[60px] font-extrabold leading-tight", slideClass)}>
-          {pad(value)}
-        </div>
-      </div>
-      <button
-        onClick={() => go("up")}
-        className="text-[34px] font-medium text-muted-foreground/40 transition-colors active:text-muted-foreground/70"
-      >
-        {pad(wrap(value + step))}
-      </button>
+      <div style={{ height: PAD_SLOTS * ITEM_H }} />
+      {allItems.map((item, i) => {
+        const dist = Math.abs(i - centerIdx);
+        const isCenter = dist === 0;
+        const opacity = dist === 0 ? 1 : dist === 1 ? 0.5 : dist === 2 ? 0.25 : 0.12;
+
+        return (
+          <div
+            key={i}
+            className={cn(
+              "flex items-center justify-center select-none",
+              isCenter ? "text-primary" : "text-foreground",
+            )}
+            style={{
+              height: ITEM_H,
+              scrollSnapAlign: "center",
+              opacity,
+              fontSize: isCenter ? 48 : 32,
+              fontWeight: isCenter ? 800 : 500,
+            }}
+          >
+            {pad(item)}
+          </div>
+        );
+      })}
+      <div style={{ height: PAD_SLOTS * ITEM_H }} />
     </div>
   );
 }
@@ -264,9 +329,9 @@ export function TimePicker({
         </div>
 
         <div className="flex flex-1 items-center justify-center gap-0">
-          <DrumColumn value={hour} wrap={wrapH} step={1} onChange={setHour} />
+          <DrumColumn items={HOURS} value={hour} onChange={setHour} />
           <div className="-mt-2 select-none text-[60px] font-extrabold px-1">:</div>
-          <DrumColumn value={minute} wrap={wrapM} step={5} onChange={setMinute} />
+          <DrumColumn items={MINUTES} value={minute} onChange={setMinute} />
         </div>
 
         <div className="flex gap-3 pb-6">

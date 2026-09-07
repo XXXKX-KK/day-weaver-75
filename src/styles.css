@@ -264,6 +264,13 @@
     font-family: var(--font-display);
     letter-spacing: -0.02em;
   }
+
+  .scrollbar-hide {
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 /* Duża, miękka karta — podstawowy budulec interfejsu */
@@ -295,18 +302,27 @@
   padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 7rem);
 }
 
-@keyframes drumSlideUp {
-  from { transform: translateY(30%); opacity: 0.4; }
-  to   { transform: translateY(0);   opacity: 1; }
-}
-@keyframes drumSlideDown {
-  from { transform: translateY(-30%); opacity: 0.4; }
-  to   { transform: translateY(0);    opacity: 1; }
+@keyframes sheetSlideUp {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
 }
 
-@utility drum-slide-up {
-  animation: drumSlideUp 0.18s ease-out both;
+@utility sheet-slide-up {
+  animation: sheetSlideUp 0.3s ease-out both;
 }
-@utility drum-slide-down {
-  animation: drumSlideDown 0.18s ease-out both;
+
+@keyframes calSlideFromLeft {
+  from { transform: translateX(-28%); opacity: 0; }
+  to   { transform: translateX(0); opacity: 1; }
+}
+@keyframes calSlideFromRight {
+  from { transform: translateX(28%); opacity: 0; }
+  to   { transform: translateX(0); opacity: 1; }
+}
+
+@utility cal-slide-left {
+  animation: calSlideFromLeft 0.22s ease-out both;
+}
+@utility cal-slide-right {
+  animation: calSlideFromRight 0.22s ease-out both;
 }
