@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { Calendar, Check, ChevronDown, Clock, Plus, Repeat, Trash2, X } from "lucide-react";
+import { Calendar, Check, ChevronDown, ChevronLeft, Clock, Plus, Repeat, Trash2, X } from "lucide-react";
 import { CalendarPicker, TimePicker } from "@/components/pickers";
 import {
   AlertDialog,
@@ -626,11 +626,10 @@ function RoutineCard({
   );
 }
 
-/** Shared priority picker. */
 function PriorityPicker({ value, onChange }: { value: Priority; onChange: (p: Priority) => void }) {
   return (
     <>
-      <label className="mb-2 block text-xs font-semibold text-muted-foreground">Priorytet</label>
+      <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">Priorytet</label>
       <div className="mb-4 grid grid-cols-3 gap-2">
         {(["low", "normal", "high"] as const).map((p) => (
           <button
@@ -638,7 +637,7 @@ function PriorityPicker({ value, onChange }: { value: Priority; onChange: (p: Pr
             onClick={() => onChange(p)}
             className={cn(
               "h-11 rounded-2xl text-sm font-medium transition-colors",
-              value === p ? "bg-primary-soft text-primary" : "bg-foreground/5 text-muted-foreground",
+              value === p ? "accent-gradient text-primary-foreground" : "bg-foreground/5 text-muted-foreground",
             )}
           >
             {PRIORITY_LABELS[p]}
@@ -649,7 +648,6 @@ function PriorityPicker({ value, onChange }: { value: Priority; onChange: (p: Pr
   );
 }
 
-/** Shared subtask editor. */
 function SubtaskEditor({
   subtasks,
   setSubtasks,
@@ -660,42 +658,48 @@ function SubtaskEditor({
   placeholder: string;
 }) {
   const [draft, setDraft] = useState("");
+
+  const addSubtask = () => {
+    if (!draft.trim()) return;
+    setSubtasks((p) => [...p, draft.trim()]);
+    setDraft("");
+  };
+
   return (
     <>
-      <label className="mb-2 block text-xs font-semibold text-muted-foreground">Podzadania</label>
-      <div className="mb-2 flex gap-2">
-        <input
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          placeholder={placeholder}
-          className="h-12 flex-1 rounded-2xl border border-input bg-foreground/5 px-4 text-sm outline-none focus:border-primary"
-        />
-        <button
-          onClick={() => {
-            if (!draft.trim()) return;
-            setSubtasks((p) => [...p, draft.trim()]);
-            setDraft("");
-          }}
-          className="flex h-12 w-12 items-center justify-center rounded-2xl bg-foreground/5"
-        >
-          <Plus className="h-5 w-5" />
-        </button>
-      </div>
+      <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">Podzadania</label>
       {subtasks.length > 0 ? (
-        <ul className="mb-4 flex flex-col gap-1">
+        <ul className="mb-3 flex flex-col gap-1">
           {subtasks.map((s, idx) => (
             <li
               key={`${s}-${idx}`}
               className="flex items-center justify-between rounded-xl bg-foreground/5 px-4 py-2.5 text-sm"
             >
               {s}
-              <button onClick={() => setSubtasks((p) => p.filter((_, i) => i !== idx))}>
-                <X className="h-4 w-4 text-muted-foreground" />
+              <button
+                onClick={() => setSubtasks((p) => p.filter((_, i) => i !== idx))}
+                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-foreground/5"
+              >
+                <X className="h-3.5 w-3.5 text-muted-foreground" />
               </button>
             </li>
           ))}
         </ul>
       ) : null}
+      <input
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onKeyDown={(e) => e.key === "Enter" && addSubtask()}
+        placeholder={placeholder}
+        className="mb-2 h-12 w-full rounded-2xl border border-input bg-foreground/5 px-4 text-sm outline-none focus:border-primary"
+      />
+      <button
+        onClick={addSubtask}
+        className="accent-gradient mb-4 flex h-12 w-full items-center justify-center gap-2 rounded-[22px] text-sm font-bold text-primary-foreground"
+      >
+        <Plus className="h-4 w-4" strokeWidth={3} />
+        Dodaj podzadanie
+      </button>
     </>
   );
 }
@@ -703,28 +707,23 @@ function SubtaskEditor({
 function Sheet({
   title,
   onClose,
-  headerExtra,
   children,
 }: {
   title: string;
   onClose: () => void;
-  headerExtra?: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
     <div className="fixed inset-0 z-50 flex items-end bg-background/80 backdrop-blur-sm">
       <div className="safe-bottom max-h-[88vh] w-full overflow-y-auto rounded-t-3xl border border-foreground/[0.06] bg-foreground/5 px-5 pt-5 backdrop-blur-2xl">
-        <div className="mb-5 flex items-center justify-between">
-          <h2 className="text-xl font-bold">{title}</h2>
-          <div className="flex items-center gap-2">
-            {headerExtra}
-            <button
-              onClick={onClose}
-              className="flex h-9 w-9 items-center justify-center rounded-full bg-foreground/5"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
+        <div className="mb-5 flex items-center gap-3">
+          <button
+            onClick={onClose}
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-foreground/5"
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </button>
+          <h2 className="text-[22px] font-extrabold tracking-tight">{title}</h2>
         </div>
         {children}
       </div>
@@ -762,31 +761,8 @@ function TaskForm({
   const [showTimePicker, setShowTimePicker] = useState(false);
 
   return (
-    <Sheet
-      title="Nowe zadanie"
-      onClose={onClose}
-      headerExtra={
-        <>
-          <button
-            type="button"
-            onClick={() => setShowDatePicker(true)}
-            className="flex h-9 items-center gap-1.5 rounded-full bg-foreground/5 px-3 text-xs font-semibold text-foreground"
-          >
-            <Calendar className="h-3.5 w-3.5" />
-            {formatDateShort(scheduledDate)}
-          </button>
-          <button
-            type="button"
-            onClick={() => setShowTimePicker(true)}
-            className="flex h-9 items-center gap-1.5 rounded-full bg-foreground/5 px-3 text-xs font-semibold text-foreground"
-          >
-            <Clock className="h-3.5 w-3.5" />
-            {scheduledTime || "Godz."}
-          </button>
-        </>
-      }
-    >
-      <label className="mb-1 block text-xs font-semibold text-muted-foreground">Tytuł</label>
+    <Sheet title="Nowe zadanie" onClose={onClose}>
+      <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">Tytuł</label>
       <input
         value={title}
         onChange={(e) => setTitle(e.target.value)}
@@ -796,6 +772,26 @@ function TaskForm({
 
       <PriorityPicker value={priority} onChange={setPriority} />
       <SubtaskEditor subtasks={subtasks} setSubtasks={setSubtasks} placeholder="np. Popraw logo" />
+
+      <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">Termin</label>
+      <div className="mb-4 grid grid-cols-2 gap-2">
+        <button
+          type="button"
+          onClick={() => setShowDatePicker(true)}
+          className="flex h-12 items-center gap-2 rounded-[22px] bg-foreground/5 px-4 text-sm font-semibold text-foreground"
+        >
+          <Calendar className="h-4 w-4 text-muted-foreground" />
+          {formatDateShort(scheduledDate)}
+        </button>
+        <button
+          type="button"
+          onClick={() => setShowTimePicker(true)}
+          className="flex h-12 items-center gap-2 rounded-[22px] bg-foreground/5 px-4 text-sm font-semibold text-foreground"
+        >
+          <Clock className="h-4 w-4 text-muted-foreground" />
+          {scheduledTime || "Godzina"}
+        </button>
+      </div>
 
       <button
         disabled={!title.trim() || saving}
@@ -808,7 +804,7 @@ function TaskForm({
             scheduled_time: scheduledTime || undefined,
           })
         }
-        className="accent-gradient mb-4 h-16 w-full rounded-3xl text-lg font-bold text-primary-foreground transition-opacity disabled:opacity-40"
+        className="accent-gradient mb-4 h-16 w-full rounded-[28px] text-lg font-bold text-primary-foreground transition-opacity disabled:opacity-40"
       >
         {saving ? "Zapisywanie…" : "Zapisz zadanie"}
       </button>
@@ -858,21 +854,8 @@ function RoutineForm({
     );
 
   return (
-    <Sheet
-      title={isEdit ? "Edytuj rutynę" : "Nowa rutyna"}
-      onClose={onClose}
-      headerExtra={
-        <button
-          type="button"
-          onClick={() => setShowTimePicker(true)}
-          className="flex h-9 items-center gap-1.5 rounded-full bg-foreground/5 px-3 text-xs font-semibold text-foreground"
-        >
-          <Clock className="h-3.5 w-3.5" />
-          {scheduledTime || "Godz."}
-        </button>
-      }
-    >
-      <label className="mb-1 block text-xs font-semibold text-muted-foreground">Tytuł</label>
+    <Sheet title={isEdit ? "Edytuj rutynę" : "Nowa rutyna"} onClose={onClose}>
+      <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">Tytuł</label>
       <input
         value={title}
         onChange={(e) => setTitle(e.target.value)}
@@ -880,8 +863,8 @@ function RoutineForm({
         className="mb-4 h-13 w-full rounded-2xl border border-input bg-foreground/5 px-4 py-3.5 text-sm outline-none focus:border-primary"
       />
 
-      <label className="mb-2 block text-xs font-semibold text-muted-foreground">Dni tygodnia</label>
-      <div className="mb-4 grid grid-cols-7 gap-1.5">
+      <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">Dni tygodnia</label>
+      <div className="mb-4 grid grid-cols-7 gap-2">
         {WEEKDAYS.map((d) => {
           const on = weekdays.includes(d.n);
           return (
@@ -890,8 +873,8 @@ function RoutineForm({
               onClick={() => toggleDay(d.n)}
               aria-pressed={on}
               className={cn(
-                "h-11 rounded-2xl text-sm font-semibold transition-colors",
-                on ? "bg-primary-soft text-primary" : "bg-foreground/5 text-muted-foreground",
+                "aspect-square rounded-full text-sm font-semibold transition-colors",
+                on ? "accent-gradient text-primary-foreground" : "bg-foreground/5 text-muted-foreground",
               )}
             >
               {d.short}
@@ -900,13 +883,23 @@ function RoutineForm({
         })}
       </div>
 
+      <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">Godzina</label>
+      <button
+        type="button"
+        onClick={() => setShowTimePicker(true)}
+        className="mb-4 flex h-12 w-full items-center gap-2 rounded-[22px] bg-foreground/5 px-4 text-sm font-semibold text-foreground"
+      >
+        <Clock className="h-4 w-4 text-muted-foreground" />
+        {scheduledTime || "Wybierz godzinę"}
+      </button>
+
       <PriorityPicker value={priority} onChange={setPriority} />
       <SubtaskEditor subtasks={subtasks} setSubtasks={setSubtasks} placeholder="np. Rozgrzewka" />
 
       <button
         disabled={!title.trim() || weekdays.length === 0 || saving}
         onClick={() => onSave({ title: title.trim(), priority, weekdays, subtasks, scheduled_time: scheduledTime || undefined })}
-        className="accent-gradient mb-4 h-16 w-full rounded-3xl text-lg font-bold text-primary-foreground transition-opacity disabled:opacity-40"
+        className="accent-gradient mb-4 h-16 w-full rounded-[28px] text-lg font-bold text-primary-foreground transition-opacity disabled:opacity-40"
       >
         {saving ? "Zapisywanie…" : isEdit ? "Zapisz zmiany" : "Zapisz rutynę"}
       </button>
