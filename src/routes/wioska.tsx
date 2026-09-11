@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeft, Castle } from "lucide-react";
-import { Screen, ScreenHeader, Card } from "@/components/ui-kit";
+import { Screen, ScreenHeader } from "@/components/ui-kit";
 
 export const Route = createFileRoute("/wioska")({
   head: () => ({
@@ -32,8 +32,8 @@ function VillageScreen() {
         }
       />
 
-      <Card className="flex flex-col items-center gap-3 py-12 text-center">
-        <span className="flex h-14 w-14 items-center justify-center rounded-3xl bg-elevated">
+      <div className="flex flex-col items-center gap-3 rounded-3xl bg-foreground/5 px-5 py-12 text-center">
+        <span className="flex h-14 w-14 items-center justify-center rounded-3xl bg-foreground/5">
           <Castle className="h-6 w-6 text-muted-foreground" />
         </span>
         <p className="text-base font-semibold">Twoja wioska pojawi się tutaj</p>
@@ -41,7 +41,7 @@ function VillageScreen() {
           Za zdobywane XP i utrzymaną passę rozbudujesz swoją wioskę. Grafika jest w drodze — na
           razie liczą się punkty.
         </p>
-      </Card>
+      </div>
     </Screen>
   );
 }

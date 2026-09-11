@@ -725,7 +725,9 @@ function Sheet({
           </button>
           <h2 className="text-[22px] font-extrabold tracking-tight">{title}</h2>
         </div>
-        {children}
+        <div className="mt-auto pb-6">
+          {children}
+        </div>
       </div>
     </div>
   );
