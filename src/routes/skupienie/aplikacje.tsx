@@ -149,7 +149,7 @@ function AppPickerScreen() {
 
   return (
     <Screen>
-      <div className="mb-5 flex items-center gap-3">
+      <div className="mb-5 flex items-center gap-3" style={{ animation: "cascadeIn 0.5s ease-out both" }}>
         <Link
           to="/skupienie"
           className="flex h-10 w-10 items-center justify-center rounded-2xl bg-foreground/5"
@@ -160,7 +160,7 @@ function AppPickerScreen() {
         <h1 className="text-2xl font-bold leading-tight">Blokowane aplikacje</h1>
       </div>
 
-      <div className="relative mb-5">
+      <div className="relative mb-5" style={{ animation: "cascadeIn 0.5s ease-out 0.1s both" }}>
         <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <input
           value={query}
@@ -171,7 +171,7 @@ function AppPickerScreen() {
       </div>
 
       {!native ? (
-        <div className="flex flex-col items-center gap-2 rounded-3xl bg-foreground/5 px-6 py-12 text-center">
+        <div className="flex flex-col items-center gap-2 rounded-3xl bg-foreground/5 px-6 py-12 text-center" style={{ animation: "cascadeIn 0.5s ease-out 0.2s both" }}>
           <p className="text-base font-semibold">Dostępne na telefonie</p>
           <p className="max-w-[22rem] text-sm text-muted-foreground">
             Lista zainstalowanych aplikacji jest odczytywana z urządzenia — otwórz ekran w aplikacji
@@ -179,7 +179,7 @@ function AppPickerScreen() {
           </p>
         </div>
       ) : blockedError ? (
-        <div className="flex flex-col items-center gap-3 rounded-3xl bg-foreground/5 px-6 py-10 text-center">
+        <div className="flex flex-col items-center gap-3 rounded-3xl bg-foreground/5 px-6 py-10 text-center" style={{ animation: "cascadeIn 0.5s ease-out 0.2s both" }}>
           <p className="text-sm text-muted-foreground">Nie udało się wczytać wyboru z konta.</p>
           <button
             onClick={() => refetch()}
@@ -191,7 +191,7 @@ function AppPickerScreen() {
       ) : loading ? (
         <p className="px-1 text-sm text-muted-foreground">Wczytywanie aplikacji…</p>
       ) : (
-        <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-6" style={{ animation: "cascadeIn 0.5s ease-out 0.2s both" }}>
           {suggested.length > 0 && (
             <AppSection
               title="Sugerowane"
