@@ -4,6 +4,7 @@ import { useAuth } from "@/lib/auth";
 import { reorderByIds } from "@/lib/reorder";
 import type { Priority } from "@/lib/store";
 import type { ContactActionType } from "@/lib/contact-action";
+import { todayLocalISO } from "@/lib/day";
 
 /** A task row (tasks table) with its subtasks (task_subtasks). */
 export type TaskSubtaskRow = {
@@ -41,11 +42,7 @@ export type NewTaskInput = {
 };
 
 const TASKS_KEY = ["tasks"] as const;
-
-/** Local (Europe/Warsaw on device) YYYY-MM-DD — avoids UTC day shift. */
-function todayLocalISO(): string {
-  return new Date().toLocaleDateString("en-CA");
-}
+const TODAY_KEY = ["today"] as const;
 
 function sortTasks(rows: TaskRow[]): TaskRow[] {
   return [...rows]
@@ -125,9 +122,18 @@ export function useAddTask() {
         if (subError) throw subError;
       }
 
+      const today = todayLocalISO();
+      const taskDate = input.scheduled_date ?? today;
+      if (taskDate <= today) {
+        await supabase.rpc("start_day", { target_date: today }).catch(() => {});
+      }
+
       return task.id as string;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: TASKS_KEY }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: TASKS_KEY });
+      queryClient.invalidateQueries({ queryKey: TODAY_KEY });
+    },
   });
 }
 
