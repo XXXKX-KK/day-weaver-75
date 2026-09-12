@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   Bell,
   BellRing,
@@ -11,6 +11,7 @@ import {
   Plus,
   ShieldCheck,
   StickyNote,
+  Target,
   Trash2,
   User,
 } from "lucide-react";
@@ -32,6 +33,7 @@ import {
   refreshNotifications,
   setNotificationsEnabledLocal,
 } from "@/lib/notifications";
+import { Blocker, isNativeBlocker } from "@/lib/blocker";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/ustawienia/")({
@@ -201,6 +203,8 @@ function SettingsScreen() {
         </div>
       </Card>
 
+      <CurrentTaskSection />
+
       <FocusNotesSection
         enabled={profile?.focus_notes_enabled ?? false}
         onToggle={(v) => save({ focus_notes_enabled: v })}
@@ -263,6 +267,79 @@ function SettingsScreen() {
       </button>
       <p className="mt-6 text-center text-xs text-muted-foreground">TENAX · Wersja 0.1</p>
     </Screen>
+  );
+}
+
+function CurrentTaskSection() {
+  const native = isNativeBlocker();
+  const [currentTask, setCurrentTask] = useState("");
+  const [taskInput, setTaskInput] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!native) return;
+    Blocker.getCurrentTask()
+      .then((r) => {
+        setCurrentTask(r.title);
+        setTaskInput(r.title);
+      })
+      .catch((e) => console.error("getCurrentTask failed", e));
+  }, [native]);
+
+  const saveTask = useCallback(async () => {
+    if (!native) {
+      toast.info("Zapis zadania działa tylko w aplikacji na telefonie.");
+      return;
+    }
+    setSaving(true);
+    try {
+      const r = await Blocker.setCurrentTask({ title: taskInput });
+      setCurrentTask(r.title);
+      setTaskInput(r.title);
+      toast.success("Zapisano bieżące zadanie.");
+    } catch (e) {
+      console.error(e);
+      toast.error("Nie udało się zapisać zadania.");
+    } finally {
+      setSaving(false);
+    }
+  }, [native, taskInput]);
+
+  return (
+    <>
+      <h2 className="mb-3 px-1 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+        Nakładka
+      </h2>
+      <Card className="mb-6 flex flex-col gap-3 py-5">
+        <div className="flex items-center gap-3">
+          <span className="accent-gradient flex h-10 w-10 items-center justify-center rounded-2xl">
+            <Target className="h-5 w-5 text-primary-foreground" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold">Na czym się teraz skupiasz?</p>
+            <p className="truncate text-xs text-muted-foreground">
+              {currentTask
+                ? `Nakładka pokaże: „Wróć do: ${currentTask}"`
+                : "Nakładka pokaże tekst zapasowy"}
+            </p>
+          </div>
+        </div>
+        <input
+          value={taskInput}
+          onChange={(e) => setTaskInput(e.target.value)}
+          placeholder="np. Dokończ raport"
+          maxLength={80}
+          className="h-12 w-full rounded-2xl border border-input bg-elevated px-4 text-sm outline-none focus:border-primary/40"
+        />
+        <button
+          onClick={saveTask}
+          disabled={saving || taskInput.trim() === currentTask}
+          className="accent-gradient h-12 w-full rounded-2xl font-semibold text-primary-foreground transition-opacity disabled:opacity-40"
+        >
+          Zapisz zadanie
+        </button>
+      </Card>
+    </>
   );
 }
 

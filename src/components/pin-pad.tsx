@@ -2,11 +2,12 @@ import { useState, useMemo, useEffect } from "react";
 import { Delete, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-type PinPadMode = "set" | "verify";
+type PinPadMode = "set" | "verify" | "change";
 
 interface PinPadProps {
   mode: PinPadMode;
   onComplete: (pin: string) => void;
+  onVerifyCurrent?: (pin: string) => Promise<boolean>;
   onCancel: () => void;
   onForgot?: (() => void) | undefined;
   error?: string;
@@ -25,27 +26,42 @@ function shuffle(arr: number[]): number[] {
   return copy;
 }
 
-export function PinPad({ mode, onComplete, onCancel, onForgot, error }: PinPadProps) {
-  const [phase, setPhase] = useState<"enter" | "confirm">("enter");
+export function PinPad({ mode, onComplete, onVerifyCurrent, onCancel, onForgot, error }: PinPadProps) {
+  const [phase, setPhase] = useState<"verify-current" | "enter" | "confirm">(
+    mode === "change" ? "verify-current" : "enter",
+  );
   const [pin, setPin] = useState("");
   const [firstPin, setFirstPin] = useState("");
   const [localError, setLocalError] = useState("");
 
   const digits = useMemo(
     () =>
-      mode === "verify"
+      mode === "verify" || phase === "verify-current"
         ? shuffle([1, 2, 3, 4, 5, 6, 7, 8, 9, 0])
         : [1, 2, 3, 4, 5, 6, 7, 8, 9, 0],
-    [mode],
+    [mode, phase],
   );
 
   useEffect(() => {
     if (error) setPin("");
   }, [error]);
 
-  const handleFull = (completed: string) => {
+  const handleFull = async (completed: string) => {
     if (mode === "verify") {
       onComplete(completed);
+      return;
+    }
+    if (phase === "verify-current") {
+      if (onVerifyCurrent) {
+        const valid = await onVerifyCurrent(completed);
+        if (!valid) {
+          setLocalError("Nieprawidłowy PIN");
+          setPin("");
+          return;
+        }
+      }
+      setPin("");
+      setPhase("enter");
       return;
     }
     if (phase === "enter") {
@@ -93,9 +109,11 @@ export function PinPad({ mode, onComplete, onCancel, onForgot, error }: PinPadPr
       <p className="mb-2 text-sm font-semibold text-muted-foreground">
         {mode === "verify"
           ? "Podaj PIN"
-          : phase === "enter"
-            ? "Ustaw PIN"
-            : "Potwierdź PIN"}
+          : phase === "verify-current"
+            ? "Obecny PIN"
+            : phase === "enter"
+              ? mode === "change" ? "Nowy PIN" : "Ustaw PIN"
+              : "Potwierdź PIN"}
       </p>
 
       <div className="mb-6 flex gap-3">
@@ -140,7 +158,7 @@ export function PinPad({ mode, onComplete, onCancel, onForgot, error }: PinPadPr
         </button>
       </div>
 
-      {mode === "verify" && onForgot && (
+      {(mode === "verify" || (mode === "change" && phase === "verify-current")) && onForgot && (
         <button
           onClick={onForgot}
           className="mt-6 text-sm text-muted-foreground underline underline-offset-2"

@@ -1,27 +1,64 @@
 import * as React from "react";
-import * as SwitchPrimitives from "@radix-ui/react-switch";
-
 import { cn } from "@/lib/utils";
 
-const Switch = React.forwardRef<
-  React.ElementRef<typeof SwitchPrimitives.Root>,
-  React.ComponentPropsWithoutRef<typeof SwitchPrimitives.Root>
->(({ className, ...props }, ref) => (
-  <SwitchPrimitives.Root
-    className={cn(
-      "peer inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-primary data-[state=unchecked]:bg-input",
-      className,
-    )}
-    {...props}
-    ref={ref}
-  >
-    <SwitchPrimitives.Thumb
-      className={cn(
-        "pointer-events-none block h-4 w-4 rounded-full bg-background shadow-lg ring-0 transition-transform data-[state=checked]:translate-x-4 data-[state=unchecked]:translate-x-0",
-      )}
-    />
-  </SwitchPrimitives.Root>
-));
-Switch.displayName = SwitchPrimitives.Root.displayName;
+function vibrate() {
+  try {
+    navigator.vibrate?.(50);
+  } catch {}
+}
+
+interface SwitchProps {
+  checked?: boolean;
+  defaultChecked?: boolean;
+  onCheckedChange?: (checked: boolean) => void;
+  disabled?: boolean;
+  className?: string;
+  id?: string;
+  name?: string;
+}
+
+const Switch = React.forwardRef<HTMLButtonElement, SwitchProps>(
+  ({ checked: controlledChecked, defaultChecked = false, onCheckedChange, disabled, className, ...props }, ref) => {
+    const [internal, setInternal] = React.useState(defaultChecked);
+    const isControlled = controlledChecked !== undefined;
+    const on = isControlled ? controlledChecked : internal;
+
+    const toggle = React.useCallback(() => {
+      if (disabled) return;
+      const next = !on;
+      if (!isControlled) setInternal(next);
+      vibrate();
+      onCheckedChange?.(next);
+    }, [disabled, on, isControlled, onCheckedChange]);
+
+    return (
+      <button
+        type="button"
+        role="switch"
+        aria-checked={on}
+        disabled={disabled}
+        ref={ref}
+        onClick={toggle}
+        className={cn(
+          "peer relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full transition-colors duration-200 ease-[cubic-bezier(0.34,1.56,0.64,1)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50",
+          on
+            ? "bg-primary border border-primary/60"
+            : "bg-foreground/10 backdrop-blur-sm border border-foreground/10",
+          className,
+        )}
+        {...props}
+      >
+        <span
+          className={cn(
+            "pointer-events-none block h-5 w-5 rounded-full bg-white shadow-md transition-transform duration-200 ease-[cubic-bezier(0.34,1.56,0.64,1)]",
+            on ? "translate-x-[22px]" : "translate-x-[3px]",
+          )}
+        />
+      </button>
+    );
+  },
+);
+Switch.displayName = "Switch";
 
 export { Switch };
+export type { SwitchProps };
