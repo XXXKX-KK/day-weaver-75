@@ -6,10 +6,9 @@ import {
   ShieldCheck,
   ShieldOff,
   Smartphone,
-  Target,
   TriangleAlert,
 } from "lucide-react";
-import { Screen, ScreenHeader, Card } from "@/components/ui-kit";
+import { Screen, ScreenHeader } from "@/components/ui-kit";
 import { Switch } from "@/components/ui/switch";
 import { PinPad } from "@/components/pin-pad";
 import { PinReset } from "@/components/pin-reset";
@@ -45,11 +44,8 @@ function FocusScreen() {
   const [overlayGranted, setOverlayGranted] = useState(false);
   const [blockedCount, setBlockedCount] = useState(0);
   const [busy, setBusy] = useState(false);
-  const [currentTask, setCurrentTask] = useState("");
-  const [taskInput, setTaskInput] = useState("");
-  const [savingTask, setSavingTask] = useState(false);
   const [pinSet, setPinSet] = useState(false);
-  const [pinAction, setPinAction] = useState<"verify-disable" | "set" | "reset-disable" | null>(null);
+  const [pinAction, setPinAction] = useState<"verify-disable" | "set" | "change" | "reset-disable" | null>(null);
   const [pinError, setPinError] = useState("");
 
   const refresh = useCallback(async () => {
@@ -74,25 +70,12 @@ function FocusScreen() {
 
   useEffect(() => {
     refresh();
-    // Re-check after returning from the system accessibility settings.
     const onVisible = () => {
       if (document.visibilityState === "visible") refresh();
     };
     document.addEventListener("visibilitychange", onVisible);
     return () => document.removeEventListener("visibilitychange", onVisible);
   }, [refresh]);
-
-  // Seed the current-task field once on mount (kept out of refresh so a
-  // re-focus never clobbers what the user is typing).
-  useEffect(() => {
-    if (!native) return;
-    Blocker.getCurrentTask()
-      .then((r) => {
-        setCurrentTask(r.title);
-        setTaskInput(r.title);
-      })
-      .catch((e) => console.error("getCurrentTask failed", e));
-  }, [native]);
 
   const bothGranted = usageAccessGranted && overlayGranted;
 
@@ -125,34 +108,32 @@ function FocusScreen() {
     await doSetBlocking(next);
   };
 
-  const onPinComplete = async (pin: string) => {
-    if (pinAction === "verify-disable") {
-      try {
-        const { valid } = await Blocker.verifyPin({ pin });
-        if (!valid) {
-          setPinError("Nieprawidłowy PIN");
-          return;
-        }
-        setPinAction(null);
-        await doSetBlocking(false);
-      } catch (e) {
-        console.error(e);
-        setPinError("Błąd weryfikacji");
-      }
-      return;
+  const onPinSetComplete = async (pin: string) => {
+    try {
+      await Blocker.setPin({ pin });
+      setPinSet(true);
+      setPinAction(null);
+      toast.success(pinAction === "change" ? "PIN zmieniony." : "PIN ustawiony.");
+    } catch (e) {
+      console.error(e);
+      toast.error("Nie udało się ustawić PIN-u.");
+      setPinAction(null);
     }
-    if (pinAction === "set") {
-      try {
-        await Blocker.setPin({ pin });
-        setPinSet(true);
-        setPinAction(null);
-        toast.success("PIN ustawiony.");
-      } catch (e) {
-        console.error(e);
-        toast.error("Nie udało się ustawić PIN-u.");
-        setPinAction(null);
-      }
+  };
+
+  const verifyPin = async (pin: string): Promise<boolean> => {
+    try {
+      const { valid } = await Blocker.verifyPin({ pin });
+      return valid;
+    } catch (e) {
+      console.error(e);
+      return false;
     }
+  };
+
+  const onVerifyDisableSuccess = async () => {
+    setPinAction(null);
+    await doSetBlocking(false);
   };
 
   const openUsageSettings = async () => {
@@ -173,39 +154,21 @@ function FocusScreen() {
     }
   };
 
-  const saveTask = async () => {
-    if (!native) {
-      toast.info("Zapis zadania działa tylko w aplikacji na telefonie.");
-      return;
-    }
-    setSavingTask(true);
-    try {
-      const r = await Blocker.setCurrentTask({ title: taskInput });
-      setCurrentTask(r.title);
-      setTaskInput(r.title);
-      toast.success("Zapisano bieżące zadanie.");
-    } catch (e) {
-      console.error(e);
-      toast.error("Nie udało się zapisać zadania.");
-    } finally {
-      setSavingTask(false);
-    }
-  };
-
   return (
     <Screen>
       <ScreenHeader eyebrow="Tryb skupienia" title="Blokada aplikacji" />
 
-      <Card
+      {/* 1. Blokada toggle */}
+      <div
         className={cn(
-          "mb-4 flex items-center gap-4 py-5 transition-shadow",
+          "mb-3 flex items-center gap-4 rounded-3xl bg-foreground/5 p-5 transition-shadow",
           blockingEnabled && "accent-glow",
         )}
       >
         <span
           className={cn(
             "flex h-12 w-12 items-center justify-center rounded-2xl",
-            blockingEnabled ? "accent-gradient" : "bg-elevated",
+            blockingEnabled ? "accent-gradient" : "bg-foreground/10",
           )}
         >
           {blockingEnabled ? (
@@ -221,18 +184,19 @@ function FocusScreen() {
           <p className="text-xs text-muted-foreground">{blockedCount} blokowanych aplikacji</p>
         </div>
         <Switch checked={blockingEnabled} disabled={busy} onCheckedChange={onToggleBlocking} />
-      </Card>
+      </div>
 
+      {/* 2. Uprawnienia */}
       {native ? (
         bothGranted ? (
-          <Card className="mb-4 flex items-center gap-3 border-primary/25 py-4">
+          <div className="mb-3 flex items-center gap-3 rounded-3xl bg-foreground/5 px-5 py-4">
             <ShieldCheck className="h-4 w-4 shrink-0 text-primary" />
             <p className="flex-1 text-xs leading-relaxed text-muted-foreground">
               Uprawnienia nadane. Blokada może działać.
             </p>
-          </Card>
+          </div>
         ) : (
-          <Card className="mb-4 flex flex-col gap-4 border-warning/25 py-4 px-4">
+          <div className="mb-3 flex flex-col gap-4 rounded-3xl bg-foreground/5 px-5 py-4">
             <div className="flex items-start gap-3">
               <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
               <p className="text-xs leading-relaxed text-muted-foreground">
@@ -249,7 +213,7 @@ function FocusScreen() {
               {!usageAccessGranted && (
                 <button
                   onClick={openUsageSettings}
-                  className="h-8 rounded-xl bg-secondary px-3 text-xs font-semibold text-secondary-foreground"
+                  className="h-8 rounded-xl bg-foreground/10 px-3 text-xs font-semibold text-foreground"
                 >
                   Nadaj
                 </button>
@@ -265,77 +229,28 @@ function FocusScreen() {
               {!overlayGranted && (
                 <button
                   onClick={openOverlay}
-                  className="h-8 rounded-xl bg-secondary px-3 text-xs font-semibold text-secondary-foreground"
+                  className="h-8 rounded-xl bg-foreground/10 px-3 text-xs font-semibold text-foreground"
                 >
                   Nadaj
                 </button>
               )}
             </div>
-          </Card>
+          </div>
         )
       ) : (
-        <Card className="mb-4 flex items-start gap-3 border-warning/25 py-4">
+        <div className="mb-3 flex items-start gap-3 rounded-3xl bg-foreground/5 px-5 py-4">
           <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
           <p className="text-xs leading-relaxed text-muted-foreground">
             Realna blokada wymaga uprawnień Androida. W podglądzie webowym widzisz wyłącznie
             interfejs sterowania.
           </p>
-        </Card>
-      )}
-
-      {blockingEnabled && !pinSet && native && (
-        <Card className="mb-4 flex items-start gap-3 border-primary/25 py-4">
-          <Lock className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-          <div className="flex-1">
-            <p className="text-xs leading-relaxed text-muted-foreground">
-              Ustaw PIN, żeby nikt nie wyłączył blokady bez Twojej zgody.
-            </p>
-            <button
-              onClick={() => {
-                setPinError("");
-                setPinAction("set");
-              }}
-              className="mt-3 h-10 rounded-2xl bg-secondary px-4 text-sm font-semibold text-secondary-foreground"
-            >
-              Ustaw PIN
-            </button>
-          </div>
-        </Card>
-      )}
-
-      <Card className="mb-4 flex flex-col gap-3 py-5">
-        <div className="flex items-center gap-3">
-          <span className="accent-gradient flex h-10 w-10 items-center justify-center rounded-2xl">
-            <Target className="h-5 w-5 text-primary-foreground" />
-          </span>
-          <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold">Na czym się teraz skupiasz?</p>
-            <p className="truncate text-xs text-muted-foreground">
-              {currentTask
-                ? `Nakładka pokaże: „Wróć do: ${currentTask}”`
-                : "Nakładka pokaże tekst zapasowy"}
-            </p>
-          </div>
         </div>
-        <input
-          value={taskInput}
-          onChange={(e) => setTaskInput(e.target.value)}
-          placeholder="np. Dokończ raport"
-          maxLength={80}
-          className="h-12 w-full rounded-2xl border border-input bg-elevated px-4 text-sm outline-none focus:border-primary/40"
-        />
-        <button
-          onClick={saveTask}
-          disabled={savingTask || taskInput.trim() === currentTask}
-          className="accent-gradient h-12 w-full rounded-2xl font-semibold text-primary-foreground transition-opacity disabled:opacity-40"
-        >
-          Zapisz zadanie
-        </button>
-      </Card>
+      )}
 
+      {/* 3. Blokowane aplikacje */}
       <Link to="/skupienie/aplikacje" className="block">
-        <Card className="flex items-center gap-4 py-4">
-          <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-elevated">
+        <div className="mb-3 flex items-center gap-4 rounded-3xl bg-foreground/5 px-5 py-4">
+          <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-foreground/10">
             <Smartphone className="h-4 w-4 text-muted-foreground" />
           </span>
           <div className="min-w-0 flex-1">
@@ -345,14 +260,42 @@ function FocusScreen() {
             </p>
           </div>
           <ChevronRight className="h-5 w-5 shrink-0 text-muted-foreground" />
-        </Card>
+        </div>
       </Link>
+
+      {/* 4. Ustaw / Zmień PIN */}
+      {native && (
+        <div className="mb-3 flex items-center gap-4 rounded-3xl bg-foreground/5 px-5 py-4">
+          <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-foreground/10">
+            <Lock className="h-4 w-4 text-muted-foreground" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold">{pinSet ? "Zmień PIN" : "Ustaw PIN"}</p>
+            <p className="text-xs text-muted-foreground">
+              {pinSet
+                ? "PIN chroni przed wyłączeniem blokady"
+                : "Zabezpiecz blokadę kodem PIN"}
+            </p>
+          </div>
+          <button
+            onClick={() => {
+              setPinError("");
+              setPinAction(pinSet ? "change" : "set");
+            }}
+            className="h-9 rounded-2xl bg-foreground/10 px-4 text-xs font-semibold text-foreground"
+          >
+            {pinSet ? "Zmień" : "Ustaw"}
+          </button>
+        </div>
+      )}
 
       {pinAction === "verify-disable" && (
         <PinPad
           mode="verify"
           error={pinError}
-          onComplete={onPinComplete}
+          onComplete={() => {}}
+          onVerify={verifyPin}
+          onVerifySuccess={onVerifyDisableSuccess}
           onCancel={() => setPinAction(null)}
           onForgot={user?.email ? () => setPinAction("reset-disable") : undefined}
         />
@@ -361,8 +304,18 @@ function FocusScreen() {
         <PinPad
           mode="set"
           error={pinError}
-          onComplete={onPinComplete}
+          onComplete={onPinSetComplete}
           onCancel={() => setPinAction(null)}
+        />
+      )}
+      {pinAction === "change" && (
+        <PinPad
+          mode="change"
+          error={pinError}
+          onComplete={onPinSetComplete}
+          onVerify={verifyPin}
+          onCancel={() => setPinAction(null)}
+          onForgot={user?.email ? () => setPinAction("reset-disable") : undefined}
         />
       )}
       {pinAction === "reset-disable" && user?.email && (

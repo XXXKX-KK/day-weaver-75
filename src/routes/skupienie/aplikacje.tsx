@@ -111,21 +111,21 @@ function AppPickerScreen() {
     );
   };
 
-  const onPinComplete = async (pin: string) => {
-    if (!pendingUnblock) return;
+  const verifyPin = async (pin: string): Promise<boolean> => {
     try {
       const { valid } = await Blocker.verifyPin({ pin });
-      if (!valid) {
-        setPinError("Nieprawidłowy PIN");
-        return;
-      }
-      const app = pendingUnblock;
-      setPendingUnblock(null);
-      doUnblock(app);
+      return valid;
     } catch (e) {
       console.error(e);
-      setPinError("Błąd weryfikacji");
+      return false;
     }
+  };
+
+  const onVerifySuccess = () => {
+    if (!pendingUnblock) return;
+    const app = pendingUnblock;
+    setPendingUnblock(null);
+    doUnblock(app);
   };
 
   const filtered = useMemo(() => {
@@ -152,7 +152,7 @@ function AppPickerScreen() {
       <div className="mb-5 flex items-center gap-3">
         <Link
           to="/skupienie"
-          className="flex h-10 w-10 items-center justify-center rounded-2xl bg-elevated"
+          className="flex h-10 w-10 items-center justify-center rounded-2xl bg-foreground/5"
           aria-label="Wróć"
         >
           <ChevronLeft className="h-5 w-5" />
@@ -166,12 +166,12 @@ function AppPickerScreen() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Szukaj aplikacji"
-          className="h-12 w-full rounded-2xl border border-input bg-elevated pl-11 pr-4 text-sm outline-none focus:border-primary/40"
+          className="h-12 w-full rounded-2xl border border-foreground/10 bg-foreground/5 pl-11 pr-4 text-sm outline-none focus:border-primary/40"
         />
       </div>
 
       {!native ? (
-        <div className="card-surface flex flex-col items-center gap-2 px-6 py-12 text-center">
+        <div className="flex flex-col items-center gap-2 rounded-3xl bg-foreground/5 px-6 py-12 text-center">
           <p className="text-base font-semibold">Dostępne na telefonie</p>
           <p className="max-w-[22rem] text-sm text-muted-foreground">
             Lista zainstalowanych aplikacji jest odczytywana z urządzenia — otwórz ekran w aplikacji
@@ -179,11 +179,11 @@ function AppPickerScreen() {
           </p>
         </div>
       ) : blockedError ? (
-        <div className="card-surface flex flex-col items-center gap-3 px-6 py-10 text-center">
+        <div className="flex flex-col items-center gap-3 rounded-3xl bg-foreground/5 px-6 py-10 text-center">
           <p className="text-sm text-muted-foreground">Nie udało się wczytać wyboru z konta.</p>
           <button
             onClick={() => refetch()}
-            className="h-10 rounded-2xl bg-secondary px-4 text-sm font-semibold text-secondary-foreground"
+            className="h-10 rounded-2xl bg-foreground/10 px-4 text-sm font-semibold text-foreground"
           >
             Spróbuj ponownie
           </button>
@@ -213,7 +213,9 @@ function AppPickerScreen() {
         <PinPad
           mode="verify"
           error={pinError}
-          onComplete={onPinComplete}
+          onComplete={() => {}}
+          onVerify={verifyPin}
+          onVerifySuccess={onVerifySuccess}
           onCancel={() => setPendingUnblock(null)}
           onForgot={user?.email ? () => setShowPinReset(true) : undefined}
         />
@@ -263,8 +265,8 @@ function AppSection({
       <SectionTitle>{title}</SectionTitle>
       <div className="flex flex-col gap-2">
         {apps.map((app) => (
-          <div key={app.packageName} className="card-surface flex items-center gap-4 px-4 py-3">
-            <span className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-2xl bg-elevated">
+          <div key={app.packageName} className="flex items-center gap-4 rounded-3xl bg-foreground/5 px-4 py-3">
+            <span className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-2xl bg-foreground/10">
               {app.icon ? (
                 <img src={app.icon} alt="" className="h-8 w-8 rounded-xl" />
               ) : (
