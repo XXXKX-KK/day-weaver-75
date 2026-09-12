@@ -24,7 +24,7 @@ function VillageScreen() {
         action={
           <Link
             to="/"
-            className="mt-1 flex items-center gap-1 rounded-full bg-secondary px-3 py-2 text-xs font-semibold text-secondary-foreground"
+            className="mt-1 flex items-center gap-1 rounded-full bg-foreground/5 px-3 py-2 text-xs font-semibold text-foreground backdrop-blur-xl"
           >
             <ArrowLeft className="h-4 w-4" />
             Dziś
