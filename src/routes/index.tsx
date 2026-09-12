@@ -475,14 +475,22 @@ function DayItemPill({
                 <span
                   className={cn(
                     "flex h-4 w-4 shrink-0 items-center justify-center rounded-full transition-all duration-200",
-                    s.is_done ? "accent-gradient" : "border border-foreground/15",
+                    s.is_done ? "accent-gradient animate-[checkPop_.3s_ease-out]" : "border border-foreground/15",
                   )}
                 >
                   {s.is_done && (
                     <Check className="h-2.5 w-2.5 text-primary-foreground" strokeWidth={3} />
                   )}
                 </span>
-                <span className={cn(s.is_done && "line-through")}>{s.title}</span>
+                <span className="relative">
+                  {s.title}
+                  <span
+                    className={cn(
+                      "absolute left-0 top-1/2 block h-[1px] rounded-sm bg-muted-foreground/60",
+                      s.is_done ? "w-full animate-[strikeIn_.35s_ease-out_both]" : "w-0",
+                    )}
+                  />
+                </span>
               </button>
             </li>
           ))}
