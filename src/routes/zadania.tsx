@@ -226,7 +226,12 @@ function TasksScreen() {
               tasks={tasks}
               inSelectMode={inSelectMode}
               selectedIds={selectedIds}
-              onToggle={(t) => toggleDone.mutate({ id: t.id, status: t.status })}
+              onToggle={(t) =>
+                toggleDone.mutate(
+                  { id: t.id, status: t.status },
+                  { onError: () => toast.error("Nie udało się zmienić statusu.") },
+                )
+              }
               onReorder={(ids) =>
                 reorderTasks.mutate(ids, {
                   onError: () => toast.error("Nie udało się zapisać kolejności."),
@@ -532,25 +537,31 @@ function TaskCard({
   const done = task.status === "done";
   const setContactAction = useSetContactAction();
   return (
-    <div className="flex flex-col gap-2 rounded-3xl bg-foreground/5 p-5">
+    <div className={cn(
+      "flex flex-col gap-2 rounded-3xl bg-foreground/5 p-5 transition-opacity duration-300",
+      done && "opacity-60",
+    )}>
       <div className="flex items-start gap-3">
         <button
           onClick={onToggle}
           aria-label={done ? "Oznacz jako niezrobione" : "Oznacz jako zrobione"}
           className={cn(
-            "mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border transition-colors",
-            done ? "border-primary bg-primary text-primary-foreground" : "border-input",
+            "mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full transition-all duration-200",
+            done
+              ? "accent-gradient border-0 text-primary-foreground animate-[checkPop_.3s_ease-out]"
+              : "border border-input",
           )}
         >
           {done ? <Check className="h-4 w-4" /> : null}
         </button>
-        <h3
-          className={cn(
-            "min-w-0 flex-1 text-base font-semibold",
-            done && "text-muted-foreground line-through",
-          )}
-        >
-          {task.title}
+        <h3 className="relative min-w-0 flex-1 text-base font-semibold">
+          <span className={cn(done && "text-muted-foreground")}>{task.title}</span>
+          <span
+            className={cn(
+              "absolute left-0 top-1/2 block h-[1.5px] rounded-sm bg-muted-foreground/60",
+              done ? "w-full animate-[strikeIn_.35s_ease-out_both]" : "w-0",
+            )}
+          />
         </h3>
         {!done && (
           <ContactActionButtons

@@ -84,7 +84,7 @@ function MessagePickerPopover({ onClose }: { onClose: () => void }) {
   return (
     <>
       <div className="fixed inset-0 z-50" onClick={onClose} />
-      <div className="absolute right-0 top-full z-50 mt-1 w-40 rounded-2xl border border-border bg-popover p-1 shadow-lg">
+      <div className="absolute right-0 top-full z-50 mt-1 w-40 rounded-2xl border border-border/50 bg-foreground/5 p-1 shadow-lg backdrop-blur-xl">
         <PickerItem
           label="SMS"
           onClick={() => {
@@ -131,7 +131,7 @@ function ManualPickerPopover({
   return (
     <>
       <div className="fixed inset-0 z-50" onClick={onClose} />
-      <div className="absolute right-0 top-full z-50 mt-1 w-36 rounded-2xl border border-border bg-popover p-1 shadow-lg">
+      <div className="absolute right-0 top-full z-50 mt-1 w-36 rounded-2xl border border-border/50 bg-foreground/5 p-1 shadow-lg backdrop-blur-xl">
         {options.map((opt) => (
           <button
             key={String(opt.value)}

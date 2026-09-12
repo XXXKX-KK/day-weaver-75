@@ -363,7 +363,17 @@ export function useToggleDayItemSubtask() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   return useMutation({
-    mutationFn: async ({ item, subtask }: { item: DayItemRow; subtask: DayItemSubtaskRow }) => {
+    mutationFn: async ({
+      item,
+      subtask,
+      day,
+      items,
+    }: {
+      item: DayItemRow;
+      subtask: DayItemSubtaskRow;
+      day?: DayRow | null;
+      items?: DayItemRow[];
+    }) => {
       const next = !subtask.is_done;
       const xpValue = xpValueForItem(item);
       const share = shareForSubtask(item, item.day_item_subtasks, subtask.id);
@@ -376,32 +386,95 @@ export function useToggleDayItemSubtask() {
         .eq("id", subtask.id);
       if (subError) throw subError;
 
+      const allSubsDone =
+        next && item.day_item_subtasks.every((s) => (s.id === subtask.id ? true : s.is_done));
+
+      const parentStatus: DayItemStatus = allSubsDone ? "done" : item.status === "done" && !next ? "pending" : item.status;
+      const parentAwarded = allSubsDone ? xpValue : newAwarded;
+      const actualDelta = parentAwarded - item.xp_awarded;
+
       const { error: itemError } = await supabase
         .from("day_items")
-        .update({ xp_value: xpValue, xp_awarded: newAwarded })
+        .update({
+          xp_value: xpValue,
+          xp_awarded: parentAwarded,
+          ...(parentStatus !== item.status
+            ? { status: parentStatus, completed_at: parentStatus === "done" ? new Date().toISOString() : null }
+            : {}),
+        })
         .eq("id", item.id);
       if (itemError) throw itemError;
 
-      if (user) await persistXpDelta(queryClient, delta);
+      if (allSubsDone && item.source_type === "task" && item.task_id) {
+        const { error: taskError } = await supabase
+          .from("tasks")
+          .update({ status: "done", completed_at: new Date().toISOString() })
+          .eq("id", item.task_id);
+        if (taskError) throw taskError;
+      }
+
+      if (user) await persistXpDelta(queryClient, actualDelta);
+
+      if (user && allSubsDone && day && items && !day.streak_counted) {
+        const doneCount = (items ?? []).filter((i) =>
+          i.id === item.id ? true : i.status === "done",
+        ).length;
+        if (items.length > 0 && doneCount / items.length >= STREAK_THRESHOLD) {
+          const { data: prof } = await supabase
+            .from("profiles")
+            .select("streak_count, last_completed_date")
+            .maybeSingle();
+          const streak = nextStreak(prof?.last_completed_date ?? null, prof?.streak_count ?? 0);
+          const { error: profError } = await supabase
+            .from("profiles")
+            .update({ streak_count: streak, last_completed_date: todayLocalISO() })
+            .eq("id", user.id);
+          if (profError) throw profError;
+          const { error: dayError } = await supabase
+            .from("days")
+            .update({ streak_counted: true })
+            .eq("id", day.id);
+          if (dayError) throw dayError;
+        }
+      }
     },
-    onMutate: async ({ item, subtask }) => {
+    onMutate: async ({ item, subtask, day, items }) => {
       await queryClient.cancelQueries({ queryKey: TODAY_KEY });
       const snap = snapshotCaches(queryClient);
+      const next = !subtask.is_done;
       const xpValue = xpValueForItem(item);
       const share = shareForSubtask(item, item.day_item_subtasks, subtask.id);
-      const newAwarded = clamp(item.xp_awarded + (!subtask.is_done ? share : -share), 0, xpValue);
+      const newAwarded = clamp(item.xp_awarded + (next ? share : -share), 0, xpValue);
+
+      const allSubsDone =
+        next && item.day_item_subtasks.every((s) => (s.id === subtask.id ? true : s.is_done));
+      const parentStatus: DayItemStatus = allSubsDone ? "done" : item.status === "done" && !next ? "pending" : item.status;
+      const parentAwarded = allSubsDone ? xpValue : newAwarded;
+
+      const shouldCountStreak =
+        allSubsDone &&
+        day &&
+        !day.streak_counted &&
+        items &&
+        items.length > 0 &&
+        items.filter((i) => (i.id === item.id ? true : i.status === "done")).length /
+          items.length >=
+          STREAK_THRESHOLD;
+
       queryClient.setQueriesData<TodayData>({ queryKey: TODAY_KEY }, (old) =>
         old
           ? {
               ...old,
+              day: old.day && shouldCountStreak ? { ...old.day, streak_counted: true } : old.day,
               items: old.items.map((i) =>
                 i.id === item.id
                   ? {
                       ...i,
+                      status: parentStatus,
                       xp_value: xpValue,
-                      xp_awarded: newAwarded,
+                      xp_awarded: parentAwarded,
                       day_item_subtasks: i.day_item_subtasks.map((s) =>
-                        s.id === subtask.id ? { ...s, is_done: !subtask.is_done } : s,
+                        s.id === subtask.id ? { ...s, is_done: next } : s,
                       ),
                     }
                   : i,
@@ -409,19 +482,37 @@ export function useToggleDayItemSubtask() {
             }
           : old,
       );
-      bumpCachedXp(queryClient, newAwarded - item.xp_awarded);
+      bumpCachedXp(queryClient, parentAwarded - item.xp_awarded);
+      if (shouldCountStreak) {
+        queryClient.setQueriesData<ProfileRow | null>({ queryKey: PROFILE_KEY }, (old) =>
+          old
+            ? {
+                ...old,
+                streak_count: nextStreak(old.last_completed_date, old.streak_count),
+                last_completed_date: todayLocalISO(),
+              }
+            : old,
+        );
+      }
       return snap;
     },
     onError: (_err, _vars, ctx) => restoreCaches(queryClient, ctx),
-    onSettled: () => invalidateDayAndProfile(queryClient),
+    onSettled: () => {
+      invalidateDayAndProfile(queryClient);
+      queryClient.invalidateQueries({ queryKey: ["tasks"] });
+    },
   });
 }
 
 /** Local YYYY-MM-DD for yesterday (for the streak comparison). */
 function yesterdayLocalISO(): string {
   const d = new Date();
+  if (d.getHours() < DAY_CUTOFF_HOUR) d.setDate(d.getDate() - 1);
   d.setDate(d.getDate() - 1);
-  return d.toLocaleDateString("en-CA");
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
 }
 
 /** Streak after completing today: +1 if yesterday, unchanged if already today,
