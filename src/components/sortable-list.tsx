@@ -170,15 +170,19 @@ function SortableRow({
     <div
       ref={setNodeRef}
       style={style}
-      className={cn(
-        "rounded-3xl transition-shadow duration-200",
-        isDragActive && !inSelectMode && "touch-none ring-2 ring-primary/50 shadow-[0_0_18px_-4px] shadow-primary/40 animate-[wiggle_.3s_ease-in-out_infinite]",
-        selected && "ring-2 ring-destructive/60",
-      )}
+      className={isDragActive && !inSelectMode ? "touch-none" : undefined}
       onClick={inSelectMode ? onTap : undefined}
       {...(inSelectMode ? {} : { ...attributes, ...listeners })}
     >
-      {children}
+      <div
+        className={cn(
+          "rounded-3xl transition-shadow duration-200",
+          isDragActive && !inSelectMode && "ring-2 ring-primary/50 shadow-[0_0_18px_-4px] shadow-primary/40 animate-[wiggle_.3s_ease-in-out_infinite]",
+          selected && "ring-2 ring-destructive/60",
+        )}
+      >
+        {children}
+      </div>
     </div>
   );
 }
