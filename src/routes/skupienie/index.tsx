@@ -156,7 +156,9 @@ function FocusScreen() {
 
   return (
     <Screen>
-      <ScreenHeader eyebrow="Tryb skupienia" title="Blokada aplikacji" />
+      <div style={{ animation: "cascadeIn 0.5s ease-out both" }}>
+        <ScreenHeader eyebrow="Tryb skupienia" title="Blokada aplikacji" />
+      </div>
 
       {/* 1. Blokada toggle */}
       <div
@@ -164,6 +166,7 @@ function FocusScreen() {
           "mb-3 flex items-center gap-4 rounded-3xl bg-foreground/5 p-5 transition-shadow",
           blockingEnabled && "accent-glow",
         )}
+        style={{ animation: "cascadeIn 0.5s ease-out 0.1s both" }}
       >
         <span
           className={cn(
@@ -189,14 +192,14 @@ function FocusScreen() {
       {/* 2. Uprawnienia */}
       {native ? (
         bothGranted ? (
-          <div className="mb-3 flex items-center gap-3 rounded-3xl bg-foreground/5 px-5 py-4">
+          <div className="mb-3 flex items-center gap-3 rounded-3xl bg-foreground/5 px-5 py-4" style={{ animation: "cascadeIn 0.5s ease-out 0.2s both" }}>
             <ShieldCheck className="h-4 w-4 shrink-0 text-primary" />
             <p className="flex-1 text-xs leading-relaxed text-muted-foreground">
               Uprawnienia nadane. Blokada może działać.
             </p>
           </div>
         ) : (
-          <div className="mb-3 flex flex-col gap-4 rounded-3xl bg-foreground/5 px-5 py-4">
+          <div className="mb-3 flex flex-col gap-4 rounded-3xl bg-foreground/5 px-5 py-4" style={{ animation: "cascadeIn 0.5s ease-out 0.2s both" }}>
             <div className="flex items-start gap-3">
               <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
               <p className="text-xs leading-relaxed text-muted-foreground">
@@ -238,7 +241,7 @@ function FocusScreen() {
           </div>
         )
       ) : (
-        <div className="mb-3 flex items-start gap-3 rounded-3xl bg-foreground/5 px-5 py-4">
+        <div className="mb-3 flex items-start gap-3 rounded-3xl bg-foreground/5 px-5 py-4" style={{ animation: "cascadeIn 0.5s ease-out 0.2s both" }}>
           <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
           <p className="text-xs leading-relaxed text-muted-foreground">
             Realna blokada wymaga uprawnień Androida. W podglądzie webowym widzisz wyłącznie
@@ -248,7 +251,7 @@ function FocusScreen() {
       )}
 
       {/* 3. Blokowane aplikacje */}
-      <Link to="/skupienie/aplikacje" className="block">
+      <Link to="/skupienie/aplikacje" className="block" style={{ animation: "cascadeIn 0.5s ease-out 0.3s both" }}>
         <div className="mb-3 flex items-center gap-4 rounded-3xl bg-foreground/5 px-5 py-4">
           <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-foreground/10">
             <Smartphone className="h-4 w-4 text-muted-foreground" />
@@ -265,7 +268,7 @@ function FocusScreen() {
 
       {/* 4. Ustaw / Zmień PIN */}
       {native && (
-        <div className="mb-3 flex items-center gap-4 rounded-3xl bg-foreground/5 px-5 py-4">
+        <div className="mb-3 flex items-center gap-4 rounded-3xl bg-foreground/5 px-5 py-4" style={{ animation: "cascadeIn 0.5s ease-out 0.4s both" }}>
           <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-foreground/10">
             <Lock className="h-4 w-4 text-muted-foreground" />
           </span>
