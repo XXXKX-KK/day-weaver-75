@@ -390,13 +390,13 @@ export function PinPad({ mode, onComplete, onVerify, onVerifySuccess, onCancel, 
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 16 }}
             transition={{ duration: 0.22 }}
-            className="grid w-full max-w-[17rem] grid-cols-3 gap-3"
+            className="grid w-full max-w-[16rem] grid-cols-3 justify-items-center gap-4"
           >
             {topDigits.map((d) => (
               <button
                 key={`d${d}`}
                 onClick={() => press(d)}
-                className="flex h-16 items-center justify-center rounded-2xl bg-foreground/5 text-xl font-semibold backdrop-blur-sm transition-colors active:bg-primary/20"
+                className="flex h-16 w-16 items-center justify-center rounded-full border border-white/20 bg-white/10 text-xl font-semibold shadow-md backdrop-blur-md transition-transform active:scale-90"
               >
                 {d}
               </button>
@@ -404,13 +404,13 @@ export function PinPad({ mode, onComplete, onVerify, onVerifySuccess, onCancel, 
             <div />
             <button
               onClick={() => press(bottomDigit)}
-              className="flex h-16 items-center justify-center rounded-2xl bg-foreground/5 text-xl font-semibold backdrop-blur-sm transition-colors active:bg-primary/20"
+              className="flex h-16 w-16 items-center justify-center rounded-full border border-white/20 bg-white/10 text-xl font-semibold shadow-md backdrop-blur-md transition-transform active:scale-90"
             >
               {bottomDigit}
             </button>
             <button
               onClick={backspace}
-              className="flex h-16 items-center justify-center rounded-2xl text-muted-foreground transition-colors active:text-foreground"
+              className="flex h-16 w-16 items-center justify-center rounded-full text-muted-foreground transition-transform active:scale-90 active:text-foreground"
               aria-label="Usuń cyfrę"
             >
               <Delete className="h-5 w-5" />
