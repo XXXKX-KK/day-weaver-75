@@ -162,7 +162,7 @@ export function PinPad({ mode, onComplete, onVerify, onVerifySuccess, onCancel, 
   const showKeypad = verifyStage === "idle";
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-background/95 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-background/60 backdrop-blur-xl">
       <button
         onClick={onCancel}
         className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground"
