@@ -111,21 +111,21 @@ function AppPickerScreen() {
     );
   };
 
-  const onPinComplete = async (pin: string) => {
-    if (!pendingUnblock) return;
+  const verifyPin = async (pin: string): Promise<boolean> => {
     try {
       const { valid } = await Blocker.verifyPin({ pin });
-      if (!valid) {
-        setPinError("Nieprawidłowy PIN");
-        return;
-      }
-      const app = pendingUnblock;
-      setPendingUnblock(null);
-      doUnblock(app);
+      return valid;
     } catch (e) {
       console.error(e);
-      setPinError("Błąd weryfikacji");
+      return false;
     }
+  };
+
+  const onVerifySuccess = () => {
+    if (!pendingUnblock) return;
+    const app = pendingUnblock;
+    setPendingUnblock(null);
+    doUnblock(app);
   };
 
   const filtered = useMemo(() => {
@@ -213,7 +213,9 @@ function AppPickerScreen() {
         <PinPad
           mode="verify"
           error={pinError}
-          onComplete={onPinComplete}
+          onComplete={() => {}}
+          onVerify={verifyPin}
+          onVerifySuccess={onVerifySuccess}
           onCancel={() => setPendingUnblock(null)}
           onForgot={user?.email ? () => setShowPinReset(true) : undefined}
         />

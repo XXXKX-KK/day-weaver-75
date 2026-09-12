@@ -108,37 +108,20 @@ function FocusScreen() {
     await doSetBlocking(next);
   };
 
-  const onPinComplete = async (pin: string) => {
-    if (pinAction === "verify-disable") {
-      try {
-        const { valid } = await Blocker.verifyPin({ pin });
-        if (!valid) {
-          setPinError("Nieprawidłowy PIN");
-          return;
-        }
-        setPinAction(null);
-        await doSetBlocking(false);
-      } catch (e) {
-        console.error(e);
-        setPinError("Błąd weryfikacji");
-      }
-      return;
-    }
-    if (pinAction === "set" || pinAction === "change") {
-      try {
-        await Blocker.setPin({ pin });
-        setPinSet(true);
-        setPinAction(null);
-        toast.success(pinAction === "change" ? "PIN zmieniony." : "PIN ustawiony.");
-      } catch (e) {
-        console.error(e);
-        toast.error("Nie udało się ustawić PIN-u.");
-        setPinAction(null);
-      }
+  const onPinSetComplete = async (pin: string) => {
+    try {
+      await Blocker.setPin({ pin });
+      setPinSet(true);
+      setPinAction(null);
+      toast.success(pinAction === "change" ? "PIN zmieniony." : "PIN ustawiony.");
+    } catch (e) {
+      console.error(e);
+      toast.error("Nie udało się ustawić PIN-u.");
+      setPinAction(null);
     }
   };
 
-  const onVerifyCurrent = async (pin: string): Promise<boolean> => {
+  const verifyPin = async (pin: string): Promise<boolean> => {
     try {
       const { valid } = await Blocker.verifyPin({ pin });
       return valid;
@@ -146,6 +129,11 @@ function FocusScreen() {
       console.error(e);
       return false;
     }
+  };
+
+  const onVerifyDisableSuccess = async () => {
+    setPinAction(null);
+    await doSetBlocking(false);
   };
 
   const openUsageSettings = async () => {
@@ -305,7 +293,9 @@ function FocusScreen() {
         <PinPad
           mode="verify"
           error={pinError}
-          onComplete={onPinComplete}
+          onComplete={() => {}}
+          onVerify={verifyPin}
+          onVerifySuccess={onVerifyDisableSuccess}
           onCancel={() => setPinAction(null)}
           onForgot={user?.email ? () => setPinAction("reset-disable") : undefined}
         />
@@ -314,7 +304,7 @@ function FocusScreen() {
         <PinPad
           mode="set"
           error={pinError}
-          onComplete={onPinComplete}
+          onComplete={onPinSetComplete}
           onCancel={() => setPinAction(null)}
         />
       )}
@@ -322,8 +312,8 @@ function FocusScreen() {
         <PinPad
           mode="change"
           error={pinError}
-          onComplete={onPinComplete}
-          onVerifyCurrent={onVerifyCurrent}
+          onComplete={onPinSetComplete}
+          onVerify={verifyPin}
           onCancel={() => setPinAction(null)}
           onForgot={user?.email ? () => setPinAction("reset-disable") : undefined}
         />
