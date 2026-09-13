@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Check, Play, Repeat, SkipForward } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Screen, EmptyState } from "@/components/ui-kit";
 import {
   useToday,
@@ -12,6 +13,7 @@ import {
   useYesterday,
   useAutoCloseYesterday,
   logicalToday,
+  todayLocalISO,
   type DayItemRow,
   type DayRow,
 } from "@/lib/day";
@@ -77,11 +79,12 @@ function useYesterdaySummary() {
   const autoClose = useAutoCloseYesterday();
   const [showYesterday, setShowYesterday] = useState(false);
   const [yesterdayTasks, setYesterdayTasks] = useState<{ id: string; title: string; done: boolean }[]>([]);
-  const didRun = useRef(false);
+  const ranForDate = useRef<string | null>(null);
 
   useEffect(() => {
-    if (isLoading || didRun.current || !yesterday?.day) return;
-    didRun.current = true;
+    if (isLoading || !yesterday?.day) return;
+    if (ranForDate.current === yesterday.day.date) return;
+    ranForDate.current = yesterday.day.date;
 
     const day = yesterday.day;
 
@@ -111,6 +114,7 @@ function useYesterdaySummary() {
 }
 
 function Today() {
+  const queryClient = useQueryClient();
   const { data: today, isLoading, isError, refetch } = useToday();
   const startDay = useStartDay();
   const completeDay = useCompleteDay();
@@ -118,6 +122,21 @@ function Today() {
   const [showSummary, setShowSummary] = useState(false);
   const summaryTasksRef = useRef<{ id: string; title: string; done: boolean }[]>([]);
   const { showYesterday, yesterdayTasks, dismissYesterday } = useYesterdaySummary();
+
+  const lastDateRef = useRef(todayLocalISO());
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState !== "visible") return;
+      const now = todayLocalISO();
+      if (now !== lastDateRef.current) {
+        lastDateRef.current = now;
+        queryClient.invalidateQueries({ queryKey: ["today"] });
+        queryClient.invalidateQueries({ queryKey: ["yesterday"] });
+      }
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [queryClient]);
 
   if (isLoading) {
     return (

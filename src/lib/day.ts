@@ -66,12 +66,12 @@ export type YesterdayData = {
 
 export function useYesterday() {
   const { user } = useAuth();
+  const today = todayLocalISO();
   return useQuery({
-    queryKey: [...YESTERDAY_KEY, user?.id],
+    queryKey: [...YESTERDAY_KEY, user?.id, today],
     enabled: isSupabaseConfigured && !!user,
     staleTime: Infinity,
     queryFn: async (): Promise<YesterdayData> => {
-      const today = todayLocalISO();
       const { data, error } = await supabase
         .from("days")
         .select(`id, date, status, planned_count, completed_count, streak_counted, day_items(${DAY_ITEM_COLUMNS})`)
