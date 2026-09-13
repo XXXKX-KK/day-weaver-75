@@ -17,6 +17,12 @@ import { Route as ZadaniaRouteImport } from './routes/zadania'
 import { Route as SkupienieIndexRouteImport } from './routes/skupienie/index'
 import { Route as SkupienieAplikacjeRouteImport } from './routes/skupienie/aplikacje'
 import { Route as UstawieniaIndexRouteImport } from './routes/ustawienia/index'
+import { Route as UstawieniaDzienRouteImport } from './routes/ustawienia/dzien'
+import { Route as UstawieniaKontoRouteImport } from './routes/ustawienia/konto'
+import { Route as UstawieniaNakladkaRouteImport } from './routes/ustawienia/nakladka'
+import { Route as UstawieniaPowiadomieniaRouteImport } from './routes/ustawienia/powiadomienia'
+import { Route as UstawieniaProfilRouteImport } from './routes/ustawienia/profil'
+import { Route as UstawieniaUprawnieniaRouteImport } from './routes/ustawienia/uprawnienia'
 import { Route as UstawieniaWygladRouteImport } from './routes/ustawienia/wyglad'
 
 const IndexRoute = IndexRouteImport.update({
@@ -59,6 +65,36 @@ const UstawieniaIndexRoute = UstawieniaIndexRouteImport.update({
   path: '/ustawienia/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const UstawieniaDzienRoute = UstawieniaDzienRouteImport.update({
+  id: '/ustawienia/dzien',
+  path: '/ustawienia/dzien',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const UstawieniaKontoRoute = UstawieniaKontoRouteImport.update({
+  id: '/ustawienia/konto',
+  path: '/ustawienia/konto',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const UstawieniaNakladkaRoute = UstawieniaNakladkaRouteImport.update({
+  id: '/ustawienia/nakladka',
+  path: '/ustawienia/nakladka',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const UstawieniaPowiadomieniaRoute = UstawieniaPowiadomieniaRouteImport.update({
+  id: '/ustawienia/powiadomienia',
+  path: '/ustawienia/powiadomienia',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const UstawieniaProfilRoute = UstawieniaProfilRouteImport.update({
+  id: '/ustawienia/profil',
+  path: '/ustawienia/profil',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const UstawieniaUprawnieniaRoute = UstawieniaUprawnieniaRouteImport.update({
+  id: '/ustawienia/uprawnienia',
+  path: '/ustawienia/uprawnienia',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const UstawieniaWygladRoute = UstawieniaWygladRouteImport.update({
   id: '/ustawienia/wyglad',
   path: '/ustawienia/wyglad',
@@ -72,6 +108,12 @@ export interface FileRoutesByFullPath {
   '/wioska': typeof WioskaRoute
   '/zadania': typeof ZadaniaRoute
   '/skupienie/aplikacje': typeof SkupienieAplikacjeRoute
+  '/ustawienia/dzien': typeof UstawieniaDzienRoute
+  '/ustawienia/konto': typeof UstawieniaKontoRoute
+  '/ustawienia/nakladka': typeof UstawieniaNakladkaRoute
+  '/ustawienia/powiadomienia': typeof UstawieniaPowiadomieniaRoute
+  '/ustawienia/profil': typeof UstawieniaProfilRoute
+  '/ustawienia/uprawnienia': typeof UstawieniaUprawnieniaRoute
   '/ustawienia/wyglad': typeof UstawieniaWygladRoute
   '/skupienie/': typeof SkupienieIndexRoute
   '/ustawienia/': typeof UstawieniaIndexRoute
@@ -83,6 +125,12 @@ export interface FileRoutesByTo {
   '/wioska': typeof WioskaRoute
   '/zadania': typeof ZadaniaRoute
   '/skupienie/aplikacje': typeof SkupienieAplikacjeRoute
+  '/ustawienia/dzien': typeof UstawieniaDzienRoute
+  '/ustawienia/konto': typeof UstawieniaKontoRoute
+  '/ustawienia/nakladka': typeof UstawieniaNakladkaRoute
+  '/ustawienia/powiadomienia': typeof UstawieniaPowiadomieniaRoute
+  '/ustawienia/profil': typeof UstawieniaProfilRoute
+  '/ustawienia/uprawnienia': typeof UstawieniaUprawnieniaRoute
   '/ustawienia/wyglad': typeof UstawieniaWygladRoute
   '/skupienie': typeof SkupienieIndexRoute
   '/ustawienia': typeof UstawieniaIndexRoute
@@ -95,6 +143,12 @@ export interface FileRoutesById {
   '/wioska': typeof WioskaRoute
   '/zadania': typeof ZadaniaRoute
   '/skupienie/aplikacje': typeof SkupienieAplikacjeRoute
+  '/ustawienia/dzien': typeof UstawieniaDzienRoute
+  '/ustawienia/konto': typeof UstawieniaKontoRoute
+  '/ustawienia/nakladka': typeof UstawieniaNakladkaRoute
+  '/ustawienia/powiadomienia': typeof UstawieniaPowiadomieniaRoute
+  '/ustawienia/profil': typeof UstawieniaProfilRoute
+  '/ustawienia/uprawnienia': typeof UstawieniaUprawnieniaRoute
   '/ustawienia/wyglad': typeof UstawieniaWygladRoute
   '/skupienie/': typeof SkupienieIndexRoute
   '/ustawienia/': typeof UstawieniaIndexRoute
@@ -108,6 +162,12 @@ export interface FileRouteTypes {
     | '/wioska'
     | '/zadania'
     | '/skupienie/aplikacje'
+    | '/ustawienia/dzien'
+    | '/ustawienia/konto'
+    | '/ustawienia/nakladka'
+    | '/ustawienia/powiadomienia'
+    | '/ustawienia/profil'
+    | '/ustawienia/uprawnienia'
     | '/ustawienia/wyglad'
     | '/skupienie/'
     | '/ustawienia/'
@@ -119,6 +179,12 @@ export interface FileRouteTypes {
     | '/wioska'
     | '/zadania'
     | '/skupienie/aplikacje'
+    | '/ustawienia/dzien'
+    | '/ustawienia/konto'
+    | '/ustawienia/nakladka'
+    | '/ustawienia/powiadomienia'
+    | '/ustawienia/profil'
+    | '/ustawienia/uprawnienia'
     | '/ustawienia/wyglad'
     | '/skupienie'
     | '/ustawienia'
@@ -130,6 +196,12 @@ export interface FileRouteTypes {
     | '/wioska'
     | '/zadania'
     | '/skupienie/aplikacje'
+    | '/ustawienia/dzien'
+    | '/ustawienia/konto'
+    | '/ustawienia/nakladka'
+    | '/ustawienia/powiadomienia'
+    | '/ustawienia/profil'
+    | '/ustawienia/uprawnienia'
     | '/ustawienia/wyglad'
     | '/skupienie/'
     | '/ustawienia/'
@@ -142,6 +214,12 @@ export interface RootRouteChildren {
   WioskaRoute: typeof WioskaRoute
   ZadaniaRoute: typeof ZadaniaRoute
   SkupienieAplikacjeRoute: typeof SkupienieAplikacjeRoute
+  UstawieniaDzienRoute: typeof UstawieniaDzienRoute
+  UstawieniaKontoRoute: typeof UstawieniaKontoRoute
+  UstawieniaNakladkaRoute: typeof UstawieniaNakladkaRoute
+  UstawieniaPowiadomieniaRoute: typeof UstawieniaPowiadomieniaRoute
+  UstawieniaProfilRoute: typeof UstawieniaProfilRoute
+  UstawieniaUprawnieniaRoute: typeof UstawieniaUprawnieniaRoute
   UstawieniaWygladRoute: typeof UstawieniaWygladRoute
   SkupienieIndexRoute: typeof SkupienieIndexRoute
   UstawieniaIndexRoute: typeof UstawieniaIndexRoute
@@ -205,6 +283,48 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof UstawieniaIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/ustawienia/dzien': {
+      id: '/ustawienia/dzien'
+      path: '/ustawienia/dzien'
+      fullPath: '/ustawienia/dzien'
+      preLoaderRoute: typeof UstawieniaDzienRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ustawienia/konto': {
+      id: '/ustawienia/konto'
+      path: '/ustawienia/konto'
+      fullPath: '/ustawienia/konto'
+      preLoaderRoute: typeof UstawieniaKontoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ustawienia/nakladka': {
+      id: '/ustawienia/nakladka'
+      path: '/ustawienia/nakladka'
+      fullPath: '/ustawienia/nakladka'
+      preLoaderRoute: typeof UstawieniaNakladkaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ustawienia/powiadomienia': {
+      id: '/ustawienia/powiadomienia'
+      path: '/ustawienia/powiadomienia'
+      fullPath: '/ustawienia/powiadomienia'
+      preLoaderRoute: typeof UstawieniaPowiadomieniaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ustawienia/profil': {
+      id: '/ustawienia/profil'
+      path: '/ustawienia/profil'
+      fullPath: '/ustawienia/profil'
+      preLoaderRoute: typeof UstawieniaProfilRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ustawienia/uprawnienia': {
+      id: '/ustawienia/uprawnienia'
+      path: '/ustawienia/uprawnienia'
+      fullPath: '/ustawienia/uprawnienia'
+      preLoaderRoute: typeof UstawieniaUprawnieniaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/ustawienia/wyglad': {
       id: '/ustawienia/wyglad'
       path: '/ustawienia/wyglad'
@@ -222,6 +342,12 @@ const rootRouteChildren: RootRouteChildren = {
   WioskaRoute: WioskaRoute,
   ZadaniaRoute: ZadaniaRoute,
   SkupienieAplikacjeRoute: SkupienieAplikacjeRoute,
+  UstawieniaDzienRoute: UstawieniaDzienRoute,
+  UstawieniaKontoRoute: UstawieniaKontoRoute,
+  UstawieniaNakladkaRoute: UstawieniaNakladkaRoute,
+  UstawieniaPowiadomieniaRoute: UstawieniaPowiadomieniaRoute,
+  UstawieniaProfilRoute: UstawieniaProfilRoute,
+  UstawieniaUprawnieniaRoute: UstawieniaUprawnieniaRoute,
   UstawieniaWygladRoute: UstawieniaWygladRoute,
   SkupienieIndexRoute: SkupienieIndexRoute,
   UstawieniaIndexRoute: UstawieniaIndexRoute,

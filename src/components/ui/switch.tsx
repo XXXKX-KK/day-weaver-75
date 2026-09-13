@@ -40,18 +40,18 @@ const Switch = React.forwardRef<HTMLButtonElement, SwitchProps>(
         ref={ref}
         onClick={toggle}
         className={cn(
-          "peer relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full transition-colors duration-200 ease-[cubic-bezier(0.34,1.56,0.64,1)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50",
+          "peer relative inline-flex h-[31px] w-[51px] shrink-0 cursor-pointer items-center rounded-2xl transition-colors duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50",
           on
-            ? "bg-primary border border-primary/60"
-            : "bg-foreground/10 backdrop-blur-sm border border-foreground/10",
+            ? "bg-primary border border-primary"
+            : "bg-foreground/[0.12] border border-foreground/[0.08]",
           className,
         )}
         {...props}
       >
         <span
           className={cn(
-            "pointer-events-none block h-5 w-5 rounded-full bg-white shadow-md transition-transform duration-200 ease-[cubic-bezier(0.34,1.56,0.64,1)]",
-            on ? "translate-x-[22px]" : "translate-x-[3px]",
+            "pointer-events-none block h-[27px] w-[27px] rounded-full bg-white shadow-[0_2px_4px_rgba(0,0,0,0.25)] transition-transform duration-300",
+            on ? "translate-x-[21px]" : "translate-x-[1px]",
           )}
         />
       </button>
