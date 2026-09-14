@@ -4,10 +4,11 @@ import {
   Link,
   createRootRouteWithContext,
   useRouter,
+  useNavigate,
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 
 import { App as CapApp } from "@capacitor/app";
 import appCss from "../styles.css?url";
@@ -24,6 +25,7 @@ import { BottomNav } from "@/components/bottom-nav";
 import { Toaster } from "@/components/ui/sonner";
 import { SetupWizard, isOnboardingDone } from "@/components/onboarding/setup-wizard";
 import { Coachmarks, isCoachmarkDone } from "@/components/onboarding/coachmarks";
+import { OnboardingProvider } from "@/lib/onboarding-context";
 
 function NotFoundComponent() {
   return (
@@ -192,6 +194,12 @@ function AuthGate({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
   const [showOnboarding, setShowOnboarding] = useState(() => !isOnboardingDone());
   const [showCoachmark, setShowCoachmark] = useState(() => isOnboardingDone() && !isCoachmarkDone());
+  const navigate = useNavigate();
+
+  const restartCoachmark = useCallback(() => {
+    setShowCoachmark(true);
+    navigate({ to: "/" });
+  }, [navigate]);
 
   if (loading) {
     return (
@@ -215,7 +223,7 @@ function AuthGate({ children }: { children: ReactNode }) {
   }
 
   return (
-    <>
+    <OnboardingProvider restartCoachmark={restartCoachmark}>
       {/* Keeps native prefs mirrored to the Supabase blocked-apps selection. */}
       <BlockedAppsSync />
       {/* Mirrors the day's first not-done item into current_task for the overlay. */}
@@ -226,6 +234,6 @@ function AuthGate({ children }: { children: ReactNode }) {
       <BreakConfigSync />
       {children}
       {showCoachmark && <Coachmarks onDone={() => setShowCoachmark(false)} />}
-    </>
+    </OnboardingProvider>
   );
 }

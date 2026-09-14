@@ -3,6 +3,7 @@ import {
   Bell,
   ChevronRight,
   Clock,
+  Compass,
   Palette,
   ShieldCheck,
   Target,
@@ -11,6 +12,7 @@ import {
 } from "lucide-react";
 import { Screen, ScreenHeader } from "@/components/ui-kit";
 import { useAuth } from "@/lib/auth";
+import { useOnboarding } from "@/lib/onboarding-context";
 
 export const Route = createFileRoute("/ustawienia/")({
   head: () => ({
@@ -36,6 +38,7 @@ const menuItems = [
 
 function SettingsHub() {
   const { user } = useAuth();
+  const { restartCoachmark } = useOnboarding();
 
   return (
     <Screen>
@@ -86,6 +89,23 @@ function SettingsHub() {
           );
         })}
       </div>
+
+      <button
+        type="button"
+        onClick={restartCoachmark}
+        className="mt-3 w-full"
+        style={{ animation: `cascadeIn 0.5s ease-out ${0.2 + menuItems.length * 0.06}s both` }}
+      >
+        <div className="flex items-center gap-[14px] rounded-3xl bg-foreground/5 px-4 py-[14px]">
+          <span className="flex h-9 w-9 items-center justify-center">
+            <Compass className="h-[22px] w-[22px] text-muted-foreground" strokeWidth={1.4} />
+          </span>
+          <div className="min-w-0 flex-1 text-left">
+            <p className="text-[16px] font-medium">Pokaż samouczek jeszcze raz</p>
+            <p className="mt-px text-[13px] text-muted-foreground">Przejdź ponownie przewodnik po aplikacji</p>
+          </div>
+        </div>
+      </button>
     </Screen>
   );
 }
