@@ -9,6 +9,7 @@ export function XpBar() {
     <div className="mb-6 flex items-center justify-between animate-[cascadeIn_.5s_ease-out_both]">
       <Link
         to="/statystyki"
+        data-tour="progress"
         className="flex items-center gap-3 rounded-full bg-foreground/[0.06] py-1.5 pl-1.5 pr-3.5"
       >
         <span className="accent-gradient flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[13px] font-extrabold text-primary-foreground">

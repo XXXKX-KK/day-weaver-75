@@ -41,6 +41,13 @@ const STEPS = [
   {
     id: 2,
     route: "/",
+    targetId: "progress",
+    content:
+      "Tu widzisz swój poziom i passę — dotknij, żeby zobaczyć statystyki i siatkę nawyków.",
+  },
+  {
+    id: 3,
+    route: "/",
     targetId: "nav-skupienie",
     content:
       "A tutaj włączasz blokadę rozpraszaczy, żeby nic nie przerwało Ci planu.",
@@ -103,15 +110,11 @@ export function Coachmarks({ onDone }: { onDone: () => void }) {
       attempts += 1;
       if (attempts < 80) {
         requestAnimationFrame(tryLocate);
-      } else {
-        if (!cancelled) {
-          setSearchDone(true);
-          if (!isLast) {
-            setRect(null);
-            setStepIndex((i) => i + 1);
-          } else {
-            finish();
-          }
+      } else if (!cancelled) {
+        if (!isLast) {
+          setStepIndex((i) => i + 1);
+        } else {
+          finish();
         }
       }
     }
@@ -214,7 +217,7 @@ export function Coachmarks({ onDone }: { onDone: () => void }) {
       )}
 
       <div
-        className="fixed z-[96] rounded-2xl bg-card p-4 text-card-foreground shadow-[0_18px_40px_rgba(0,0,0,0.5)] transition-all duration-200 ease-out"
+        className="fixed z-[96] rounded-2xl bg-card/80 p-4 text-card-foreground shadow-[0_18px_40px_rgba(0,0,0,0.5)] backdrop-blur-xl transition-all duration-200 ease-out"
         style={{
           top: tooltipTop,
           left: tooltipLeft,
@@ -224,7 +227,7 @@ export function Coachmarks({ onDone }: { onDone: () => void }) {
       >
         {showSpotlight && (
           <div
-            className="absolute h-3 w-3 rotate-45 bg-card"
+            className="absolute h-3 w-3 rotate-45 bg-card/80 backdrop-blur-xl"
             style={
               arrowAbove
                 ? {

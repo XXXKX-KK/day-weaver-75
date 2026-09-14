@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import "../../today.css";
 import { useNavigate } from "@tanstack/react-router";
-import { Check, ChevronRight, Sparkles, Sunrise, Brain, Moon } from "lucide-react";
+import { Check, ChevronRight, Sunrise, Brain, Moon } from "lucide-react";
+import { TenaxLogo } from "@/components/tenax-logo";
 import { useAddRoutine, type NewRoutineInput } from "@/lib/routines";
 import { isNativeBlocker, Blocker, type InstalledApp } from "@/lib/blocker";
 import { useSetAppBlocked } from "@/lib/blocked-apps";
@@ -48,12 +49,12 @@ const ROUTINE_TEMPLATES: RoutineTemplate[] = [
     id: "deep-work",
     title: "Głęboka praca",
     icon: Brain,
-    description: "Pon–Pt — wycisz i skup się na 90 minut",
+    description: "Wycisz telefon i pracuj w skupieniu",
     input: {
       title: "Głęboka praca",
       priority: "high",
       weekdays: [1, 2, 3, 4, 5],
-      subtasks: ["Wycisz powiadomienia", "90 minut bez telefonu"],
+      subtasks: ["Wycisz powiadomienia", "Włącz Skupienie", "Blok pracy bez telefonu"],
     },
   },
   {
@@ -78,7 +79,6 @@ const POPULAR_APPS = [
   "com.facebook.katana",
   "com.reddit.frontpage",
   "com.google.android.youtube",
-  "com.discord",
 ];
 
 export function SetupWizard({ onComplete }: { onComplete: () => void }) {
@@ -103,7 +103,7 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-background">
+    <div className="overlay-bg fixed inset-0 z-50 flex flex-col">
       {/* Progress dots */}
       <div className="flex justify-center gap-2 px-6 pt-[max(env(safe-area-inset-top,16px),16px)]">
         {Array.from({ length: totalSteps }).map((_, i) => {
@@ -140,7 +140,7 @@ function StepPromise({ onNext }: { onNext: () => void }) {
         className="mb-8 flex h-20 w-20 items-center justify-center rounded-full bg-primary/10"
         style={{ animation: "cascadeIn 0.5s ease-out both" }}
       >
-        <Sparkles className="h-10 w-10 text-primary" />
+        <TenaxLogo size={40} />
       </div>
       <h1
         className="mb-4 max-w-[300px] text-[26px] font-extrabold leading-tight"
