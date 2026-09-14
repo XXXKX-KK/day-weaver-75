@@ -23,6 +23,7 @@ import { BreakConfigSync } from "@/components/break-config-sync";
 import { BottomNav } from "@/components/bottom-nav";
 import { Toaster } from "@/components/ui/sonner";
 import { SetupWizard, isOnboardingDone } from "@/components/onboarding/setup-wizard";
+import { Coachmarks, isCoachmarkDone } from "@/components/onboarding/coachmarks";
 
 function NotFoundComponent() {
   return (
@@ -190,6 +191,7 @@ function RootComponent() {
 function AuthGate({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
   const [showOnboarding, setShowOnboarding] = useState(() => !isOnboardingDone());
+  const [showCoachmark, setShowCoachmark] = useState(() => isOnboardingDone() && !isCoachmarkDone());
 
   if (loading) {
     return (
@@ -202,7 +204,14 @@ function AuthGate({ children }: { children: ReactNode }) {
   if (!user) return <AuthScreen />;
 
   if (showOnboarding) {
-    return <SetupWizard onComplete={() => setShowOnboarding(false)} />;
+    return (
+      <SetupWizard
+        onComplete={() => {
+          setShowOnboarding(false);
+          setShowCoachmark(!isCoachmarkDone());
+        }}
+      />
+    );
   }
 
   return (
@@ -216,6 +225,7 @@ function AuthGate({ children }: { children: ReactNode }) {
       {/* Mirrors break config (delay + daily limit) into native prefs. */}
       <BreakConfigSync />
       {children}
+      {showCoachmark && <Coachmarks onDone={() => setShowCoachmark(false)} />}
     </>
   );
 }
