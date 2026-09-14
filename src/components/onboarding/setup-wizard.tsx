@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import "../../today.css";
 import { useNavigate } from "@tanstack/react-router";
 import { Check, ChevronRight, Sparkles, Sunrise, Brain, Moon } from "lucide-react";
 import { useAddRoutine, type NewRoutineInput } from "@/lib/routines";
@@ -199,15 +200,9 @@ function StepRoutines({ onNext, onSkip }: { onNext: () => void; onSkip: () => vo
 
   return (
     <div className="flex flex-1 flex-col pt-8">
-      <p
-        className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground"
-        style={{ animation: "cascadeIn 0.5s ease-out both" }}
-      >
-        Krok 1 z 3
-      </p>
       <h1
-        className="mb-2 mt-1 text-2xl font-extrabold leading-tight"
-        style={{ animation: "cascadeIn 0.5s ease-out 0.05s both" }}
+        className="mb-2 text-2xl font-extrabold leading-tight"
+        style={{ animation: "cascadeIn 0.5s ease-out both" }}
       >
         Wybierz swoje rutyny
       </h1>
@@ -288,19 +283,22 @@ function StepBlockApps({ onNext, onSkip }: { onNext: () => void; onSkip: () => v
   const [saving, setSaving] = useState(false);
   const setAppBlocked = useSetAppBlocked();
 
-  useState(() => {
+  useEffect(() => {
+    let cancelled = false;
     Blocker.getInstalledApps({ includeIcons: false })
       .then(({ apps: all }) => {
-        const popular = all.filter((a) =>
-          POPULAR_APPS.some((p) => a.packageName.includes(p.split(".").pop()!)),
-        );
+        if (cancelled) return;
+        const popular = all.filter((a) => POPULAR_APPS.includes(a.packageName));
         const sorted = popular.length > 0 ? popular : all.slice(0, 12);
         sorted.sort((a, b) => a.appLabel.localeCompare(b.appLabel));
         setApps(sorted);
         setLoaded(true);
       })
-      .catch(() => setLoaded(true));
-  });
+      .catch(() => {
+        if (!cancelled) setLoaded(true);
+      });
+    return () => { cancelled = true; };
+  }, []);
 
   const toggle = (pkg: string) => {
     setSelected((prev) => {
@@ -335,15 +333,9 @@ function StepBlockApps({ onNext, onSkip }: { onNext: () => void; onSkip: () => v
 
   return (
     <div className="flex flex-1 flex-col pt-8">
-      <p
-        className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground"
-        style={{ animation: "cascadeIn 0.5s ease-out both" }}
-      >
-        Krok 2 z 3
-      </p>
       <h1
-        className="mb-2 mt-1 text-2xl font-extrabold leading-tight"
-        style={{ animation: "cascadeIn 0.5s ease-out 0.05s both" }}
+        className="mb-2 text-2xl font-extrabold leading-tight"
+        style={{ animation: "cascadeIn 0.5s ease-out both" }}
       >
         Zablokuj rozpraszacze
       </h1>
