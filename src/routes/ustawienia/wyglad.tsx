@@ -239,6 +239,28 @@ function PhoneMockup({
   );
 }
 
+/* ── Recent custom colors ── */
+
+const RECENT_COLORS_KEY = "dl-recent-accents";
+const MAX_RECENT = 4;
+
+function readRecentColors(): string[] {
+  try {
+    const raw = localStorage.getItem(RECENT_COLORS_KEY);
+    if (!raw) return [];
+    const arr = JSON.parse(raw);
+    if (Array.isArray(arr)) return arr.filter((c): c is string => typeof c === "string").slice(0, MAX_RECENT);
+  } catch {}
+  return [];
+}
+
+function saveRecentColor(hex: string) {
+  try {
+    const prev = readRecentColors().filter((c) => c.toLowerCase() !== hex.toLowerCase());
+    localStorage.setItem(RECENT_COLORS_KEY, JSON.stringify([hex, ...prev].slice(0, MAX_RECENT)));
+  } catch {}
+}
+
 /* ── Custom accent picker (HSV) ── */
 
 function CustomAccentPicker({
@@ -255,6 +277,7 @@ function CustomAccentPicker({
   const [sat, setSat] = useState(initial.s);
   const [val, setVal] = useState(initial.v);
   const [hexInput, setHexInput] = useState(initialHex);
+  const [recentColors] = useState(() => readRecentColors());
 
   const preview = hsvToHex(hue, sat, val);
   const hueColor = hsvToHex(hue, 100, 100);
@@ -383,6 +406,36 @@ function CustomAccentPicker({
           </div>
         </div>
 
+        {/* Recently used */}
+        {recentColors.length > 0 && (
+          <div className="mt-4">
+            <p className="mb-2 px-1 text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+              Ostatnio używane
+            </p>
+            <div className="flex gap-3">
+              {recentColors.map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => {
+                    const hsv = hexToHsv(c);
+                    setHue(hsv.h);
+                    setSat(hsv.s);
+                    setVal(hsv.v);
+                    setHexInput(c);
+                  }}
+                  className="h-[46px] w-[46px] rounded-full transition-shadow"
+                  style={{
+                    backgroundColor: c,
+                    boxShadow: preview.toLowerCase() === c.toLowerCase() ? `0 0 12px ${c}40` : "none",
+                    border: preview.toLowerCase() === c.toLowerCase() ? `3px solid ${c}` : "3px solid transparent",
+                  }}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Actions */}
         <div className="mt-4 flex gap-3">
           <button
@@ -393,7 +446,10 @@ function CustomAccentPicker({
             Anuluj
           </button>
           <button
-            onClick={() => onApply(preview)}
+            onClick={() => {
+              saveRecentColor(preview);
+              onApply(preview);
+            }}
             className="accent-gradient h-12 flex-1 rounded-2xl text-[15px] font-semibold text-primary-foreground"
             type="button"
           >
