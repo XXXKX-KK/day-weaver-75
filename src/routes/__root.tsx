@@ -7,7 +7,7 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import { App as CapApp } from "@capacitor/app";
 import appCss from "../styles.css?url";
@@ -22,6 +22,7 @@ import { NotificationsSync } from "@/components/notifications-sync";
 import { BreakConfigSync } from "@/components/break-config-sync";
 import { BottomNav } from "@/components/bottom-nav";
 import { Toaster } from "@/components/ui/sonner";
+import { SetupWizard, isOnboardingDone } from "@/components/onboarding/setup-wizard";
 
 function NotFoundComponent() {
   return (
@@ -188,6 +189,7 @@ function RootComponent() {
  *  and the app (with its nav) once a user is present. */
 function AuthGate({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
+  const [showOnboarding, setShowOnboarding] = useState(() => !isOnboardingDone());
 
   if (loading) {
     return (
@@ -198,6 +200,10 @@ function AuthGate({ children }: { children: ReactNode }) {
   }
 
   if (!user) return <AuthScreen />;
+
+  if (showOnboarding) {
+    return <SetupWizard onComplete={() => setShowOnboarding(false)} />;
+  }
 
   return (
     <>

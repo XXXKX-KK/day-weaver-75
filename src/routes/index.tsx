@@ -550,6 +550,7 @@ function NotStarted({ starting, onStart }: { starting: boolean; onStart: () => v
           Poprowadzę Cię przez dzień krok po kroku — z rutyn na dziś i zaplanowanych zadań.
         </p>
         <button
+          data-tour="start-day"
           onClick={onStart}
           disabled={starting}
           className="accent-gradient accent-glow flex h-16 w-full items-center justify-center gap-2 rounded-3xl text-lg font-bold text-primary-foreground transition-transform active:scale-[0.98] disabled:opacity-50"

@@ -99,6 +99,7 @@ export function BottomNav() {
             to={to}
             aria-label={label}
             onClick={expand}
+            {...(to === "/skupienie" ? { "data-tour": "nav-skupienie" } : {})}
             className={cn(
               "relative z-10 flex flex-1 flex-col items-center justify-center gap-1 rounded-full",
               "transition-[height] duration-[220ms] ease-out",
