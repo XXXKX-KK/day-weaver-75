@@ -195,7 +195,10 @@ function Today() {
           starting={startDay.isPending}
           onStart={() =>
             startDay.mutate(undefined, {
-              onError: () => toast.error("Nie udało się rozpocząć dnia."),
+              onError: (err) => {
+                console.error("start_day failed:", err);
+                toast.error("Nie udało się rozpocząć dnia.");
+              },
             })
           }
         />
