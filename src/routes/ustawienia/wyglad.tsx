@@ -86,15 +86,42 @@ function MiniPreview({ mode, accent }: { mode: "dark" | "light"; accent: string 
   const navBg = isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.03)";
   const navDot = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)";
   const homeBg = isDark ? "rgba(255,255,255,0.16)" : "rgba(0,0,0,0.1)";
+  const statusColor = isDark ? "rgba(255,255,255,0.5)" : "rgba(0,0,0,0.4)";
 
   return (
     <div style={{ position: "absolute", inset: 0, borderRadius: 18, overflow: "hidden", background: bg }}>
-      <div style={{ padding: "22px 10px 0" }}>
+      {/* Status bar */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 10px 0", position: "relative", zIndex: 11 }}>
+        <span style={{ fontSize: 5.5, fontWeight: 600, color: textColor }}>9:41</span>
+        <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
+          {/* Signal bars */}
+          <svg width="8" height="5" viewBox="0 0 8 5" fill="none">
+            <rect x="0" y="3.5" width="1.2" height="1.5" rx="0.3" fill={statusColor} />
+            <rect x="1.8" y="2.5" width="1.2" height="2.5" rx="0.3" fill={statusColor} />
+            <rect x="3.6" y="1.5" width="1.2" height="3.5" rx="0.3" fill={statusColor} />
+            <rect x="5.4" y="0" width="1.2" height="5" rx="0.3" fill={statusColor} />
+          </svg>
+          {/* WiFi */}
+          <svg width="7" height="5" viewBox="0 0 7 5" fill="none">
+            <path d="M3.5 4.2a0.5 0.5 0 1 1 0 0.8 0.5 0.5 0 0 1 0-0.8z" fill={statusColor} />
+            <path d="M2 3c0.8-0.7 2.2-0.7 3 0" stroke={statusColor} strokeWidth="0.6" strokeLinecap="round" fill="none" />
+            <path d="M0.8 1.8c1.4-1.2 3.9-1.2 5.4 0" stroke={statusColor} strokeWidth="0.6" strokeLinecap="round" fill="none" />
+          </svg>
+          {/* Battery */}
+          <svg width="10" height="5" viewBox="0 0 10 5" fill="none">
+            <rect x="0.3" y="0.3" width="8" height="4.4" rx="1" stroke={statusColor} strokeWidth="0.5" />
+            <rect x="1" y="1" width="5.5" height="3" rx="0.5" fill={statusColor} />
+            <rect x="8.5" y="1.5" width="0.8" height="2" rx="0.4" fill={statusColor} />
+          </svg>
+        </div>
+      </div>
+      <div style={{ padding: "2px 10px 0" }}>
         <div style={{ color: sub, fontSize: 5, textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 1 }}>
           TENAX
         </div>
         <div style={{ color: textColor, fontSize: 11, fontWeight: 700, marginBottom: 6 }}>Plan dnia</div>
-        <div style={{ background: cardBg, borderRadius: 6, padding: "5px 6px", marginBottom: 4 }}>
+        {/* Progress card */}
+        <div style={{ background: cardBg, borderRadius: 8, padding: "5px 6px", marginBottom: 4, border: `0.5px solid ${isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)"}` }}>
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 3 }}>
             <div style={{ width: 30, height: 1.5, background: lineBg, borderRadius: 1 }} />
             <div style={{ width: 12, height: 1.5, background: sub, borderRadius: 1 }} />
@@ -103,6 +130,7 @@ function MiniPreview({ mode, accent }: { mode: "dark" | "light"; accent: string 
             <div style={{ width: "55%", height: "100%", background: accent, borderRadius: 1.5 }} />
           </div>
         </div>
+        {/* Task items — separate rounded glass cards */}
         {[85, 72, 58, 65].map((w, i) => (
           <div
             key={i}
@@ -111,9 +139,10 @@ function MiniPreview({ mode, accent }: { mode: "dark" | "light"; accent: string 
               alignItems: "center",
               gap: 4,
               background: cardBg,
-              borderRadius: 5,
-              padding: "4px 5px",
-              marginBottom: 2.5,
+              borderRadius: 8,
+              padding: "5px 6px",
+              marginBottom: 3,
+              border: `0.5px solid ${isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)"}`,
             }}
           >
             <div
@@ -493,31 +522,29 @@ function AppearanceScreen() {
           className="flex flex-col items-center gap-[6px]"
           type="button"
         >
-          <span
-            className="flex h-[46px] w-[46px] items-center justify-center rounded-full transition-shadow"
-            style={{
-              background:
-                accent === "custom"
-                  ? customHex
-                  : "conic-gradient(#f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00)",
-              border:
-                accent === "custom"
-                  ? `3px solid ${customHex}`
-                  : "3px solid transparent",
-              boxShadow:
-                accent === "custom" ? `0 0 12px ${customHex}40` : "none",
-            }}
-          >
-            {accent === "custom" ? (
+          {accent === "custom" ? (
+            <span
+              className="flex h-[46px] w-[46px] items-center justify-center rounded-full transition-shadow"
+              style={{
+                backgroundColor: customHex,
+                border: `3px solid ${customHex}`,
+                boxShadow: `0 0 12px ${customHex}40`,
+              }}
+            >
               <Check className="h-5 w-5 text-white" strokeWidth={3} />
-            ) : (
-              <span
-                className="flex h-[38px] w-[38px] items-center justify-center rounded-full bg-background"
-              >
-                <Plus className="h-4 w-4 text-muted-foreground" strokeWidth={2} />
+            </span>
+          ) : (
+            <span
+              className="relative flex h-[46px] w-[46px] items-center justify-center rounded-full"
+              style={{
+                background: "conic-gradient(#f00, #ff8800, #ffe000, #0f0, #0ff, #00f, #f0f, #f00)",
+              }}
+            >
+              <span className="flex h-[34px] w-[34px] items-center justify-center rounded-full bg-background">
+                <Plus className="h-[18px] w-[18px] text-muted-foreground" strokeWidth={2.5} />
               </span>
-            )}
-          </span>
+            </span>
+          )}
           <span className="text-[10px] text-muted-foreground">Własny</span>
         </button>
       </div>
