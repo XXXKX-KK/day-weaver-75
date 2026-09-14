@@ -187,26 +187,28 @@ function PhoneMockup({
 }) {
   return (
     <button onClick={onClick} className="relative flex flex-col items-center" type="button">
+      {selected && (
+        <span className="mb-2 text-[11px] font-semibold text-green-500">Aktywny</span>
+      )}
       <div
         className="relative overflow-hidden"
         style={{
           width: 140,
           aspectRatio: "9/19.5",
           borderRadius: 28,
-          background: "#1a1a1a",
-          boxShadow: "0 20px 40px -10px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.1)",
-          border: "1.5px solid rgba(255,255,255,0.08)",
-          borderTopColor: "rgba(255,255,255,0.18)",
+          background: "#5A1726",
+          boxShadow: "0 20px 40px -10px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.06)",
+          border: "1.5px solid rgba(255,255,255,0.06)",
+          borderTopColor: "rgba(255,255,255,0.12)",
         }}
       >
         <div
           style={{
             position: "absolute",
-            inset: 1.5,
-            borderRadius: 26,
+            inset: 3,
+            borderRadius: 24,
             background: "#000",
             overflow: "hidden",
-            border: "1.5px solid #000",
           }}
         >
           <div
@@ -226,22 +228,12 @@ function PhoneMockup({
         </div>
       </div>
       {selected && (
-        <>
-          <div
-            className="pointer-events-none absolute inset-[-4px]"
-            style={{
-              borderRadius: 32,
-              border: `2px solid ${accent}`,
-              boxShadow: `0 0 14px ${accent}35`,
-            }}
-          />
-          <div
-            className="absolute -right-[7px] -top-[7px] z-10 flex h-[22px] w-[22px] items-center justify-center rounded-full"
-            style={{ background: accent, border: "2px solid var(--color-background)" }}
-          >
-            <Check className="h-[11px] w-[11px] text-white" strokeWidth={3.5} />
-          </div>
-        </>
+        <div
+          className="absolute -right-[7px] z-10 flex h-[22px] w-[22px] items-center justify-center rounded-full"
+          style={{ top: 18, background: accent, border: "2px solid var(--color-background)" }}
+        >
+          <Check className="h-[11px] w-[11px] text-white" strokeWidth={3.5} />
+        </div>
       )}
       <span className="mt-[10px] text-xs font-medium">{mode === "dark" ? "Ciemny" : "Jasny"}</span>
     </button>
