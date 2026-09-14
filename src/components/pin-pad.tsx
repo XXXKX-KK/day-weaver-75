@@ -162,7 +162,7 @@ export function PinPad({ mode, onComplete, onVerify, onVerifySuccess, onCancel, 
   const showKeypad = verifyStage === "idle";
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-background/60 backdrop-blur-xl">
+    <div className="overlay-bg fixed inset-0 z-50 flex flex-col items-center justify-center">
       <button
         onClick={onCancel}
         className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground"
@@ -222,7 +222,7 @@ export function PinPad({ mode, onComplete, onVerify, onVerifySuccess, onCancel, 
                     ? "border-destructive/50 bg-destructive/15"
                     : filled || verifyStage !== "idle"
                       ? "border-primary/40 bg-primary/10"
-                      : "border-foreground/10 bg-foreground/5",
+                      : "border-foreground/[0.08] bg-foreground/5",
                 )}
                 style={{
                   width: 44,
@@ -396,7 +396,7 @@ export function PinPad({ mode, onComplete, onVerify, onVerifySuccess, onCancel, 
               <button
                 key={`d${d}`}
                 onClick={() => press(d)}
-                className="flex h-16 w-16 items-center justify-center rounded-full border border-white/20 bg-white/10 text-xl font-semibold shadow-md backdrop-blur-md transition-transform active:scale-90"
+                className="flex h-16 w-16 items-center justify-center rounded-full border border-foreground/[0.08] bg-foreground/5 text-xl font-semibold text-foreground backdrop-blur-md transition-transform active:scale-90 active:bg-foreground/10"
               >
                 {d}
               </button>
@@ -404,7 +404,7 @@ export function PinPad({ mode, onComplete, onVerify, onVerifySuccess, onCancel, 
             <div />
             <button
               onClick={() => press(bottomDigit)}
-              className="flex h-16 w-16 items-center justify-center rounded-full border border-white/20 bg-white/10 text-xl font-semibold shadow-md backdrop-blur-md transition-transform active:scale-90"
+              className="flex h-16 w-16 items-center justify-center rounded-full border border-foreground/[0.08] bg-foreground/5 text-xl font-semibold text-foreground backdrop-blur-md transition-transform active:scale-90 active:bg-foreground/10"
             >
               {bottomDigit}
             </button>
