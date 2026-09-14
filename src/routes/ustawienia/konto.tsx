@@ -48,30 +48,27 @@ function AccountScreen() {
       </div>
 
       <div
-        className="card-surface mb-4 overflow-hidden p-0"
+        className="mb-3 rounded-3xl bg-foreground/5 px-4 py-[14px]"
         style={{ animation: "cascadeIn 0.5s ease-out 0.1s both" }}
       >
-        <div className="px-4 py-[14px]">
-          <p className="text-xs text-muted-foreground">Email</p>
-          <p className="mt-1 text-base">{user?.email ?? "—"}</p>
-        </div>
+        <p className="text-xs text-muted-foreground">Email</p>
+        <p className="mt-1 text-base">{user?.email ?? "—"}</p>
       </div>
 
-      <div
-        className="card-surface mb-4 overflow-hidden p-0"
+      <button
+        onClick={handleLogout}
+        className="mb-3 w-full rounded-3xl bg-foreground/5 px-4 py-4 text-left"
         style={{ animation: "cascadeIn 0.5s ease-out 0.2s both" }}
       >
-        <button
-          onClick={handleLogout}
-          className="w-full px-4 py-4 text-left"
-          style={{ borderBottom: "1px solid var(--color-border)" }}
-        >
-          <p className="text-[15px] font-medium text-destructive">Wyloguj się</p>
-        </button>
-        <button onClick={handleReset} className="w-full px-4 py-4 text-left">
-          <p className="text-[15px] font-medium text-warning">Zresetuj dzień</p>
-        </button>
-      </div>
+        <p className="text-[15px] font-medium text-destructive">Wyloguj się</p>
+      </button>
+      <button
+        onClick={handleReset}
+        className="w-full rounded-3xl bg-foreground/5 px-4 py-4 text-left"
+        style={{ animation: "cascadeIn 0.5s ease-out 0.3s both" }}
+      >
+        <p className="text-[15px] font-medium text-warning">Zresetuj dzień</p>
+      </button>
 
       <p
         className="mt-8 text-center text-[13px] text-muted-foreground"

@@ -50,16 +50,14 @@ function OverlayScreen() {
       <CurrentTaskCard />
 
       <div
-        className="card-surface mb-4 overflow-hidden p-0"
+        className="mb-3 flex items-center justify-between rounded-3xl bg-foreground/5 px-4 py-4"
         style={{ animation: "cascadeIn 0.5s ease-out 0.2s both" }}
       >
-        <div className="flex items-center justify-between px-4 py-4">
-          <p className="text-[15px] font-medium">Pokazuj na nakładce</p>
-          <Switch
-            checked={profile?.focus_notes_enabled ?? false}
-            onCheckedChange={(v) => save({ focus_notes_enabled: v })}
-          />
-        </div>
+        <p className="text-[15px] font-medium">Pokazuj na nakładce</p>
+        <Switch
+          checked={profile?.focus_notes_enabled ?? false}
+          onCheckedChange={(v) => save({ focus_notes_enabled: v })}
+        />
       </div>
 
       <FocusNotesSection />
@@ -104,7 +102,7 @@ function CurrentTaskCard() {
 
   return (
     <div
-      className="card-surface mb-4 p-4"
+      className="mb-3 rounded-3xl bg-foreground/5 p-4"
       style={{ animation: "cascadeIn 0.5s ease-out 0.1s both" }}
     >
       <p className="mb-[10px] text-xs font-medium text-muted-foreground">
@@ -142,7 +140,7 @@ function FocusNotesSection() {
       <h2 className="mb-3 px-1 text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">
         Notatki na luz
       </h2>
-      <div className="card-surface overflow-hidden p-0">
+      <div className="rounded-3xl bg-foreground/5 overflow-hidden p-0">
         {notes && notes.length > 0
           ? notes.map((note) => (
               <div

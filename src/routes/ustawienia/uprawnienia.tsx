@@ -74,7 +74,7 @@ function PermissionsScreen() {
 
       {!native ? (
         <div
-          className="card-surface px-5 py-6 text-center"
+          className="rounded-3xl bg-foreground/5 px-5 py-6 text-center"
           style={{ animation: "cascadeIn 0.5s ease-out 0.1s both" }}
         >
           <p className="text-sm text-muted-foreground">
@@ -82,13 +82,10 @@ function PermissionsScreen() {
           </p>
         </div>
       ) : (
-        <div
-          className="card-surface overflow-hidden p-0"
-          style={{ animation: "cascadeIn 0.5s ease-out 0.1s both" }}
-        >
+        <>
           <div
-            className="flex items-center justify-between px-4 py-4"
-            style={{ borderBottom: "1px solid var(--color-border)" }}
+            className="mb-3 flex items-center justify-between rounded-3xl bg-foreground/5 px-4 py-4"
+            style={{ animation: "cascadeIn 0.5s ease-out 0.1s both" }}
           >
             <div>
               <p className="text-[15px] font-medium">Usługa ułatwień dostępu</p>
@@ -107,7 +104,10 @@ function PermissionsScreen() {
               </button>
             )}
           </div>
-          <div className="flex items-center justify-between px-4 py-4">
+          <div
+            className="flex items-center justify-between rounded-3xl bg-foreground/5 px-4 py-4"
+            style={{ animation: "cascadeIn 0.5s ease-out 0.2s both" }}
+          >
             <div>
               <p className="text-[15px] font-medium">Optymalizacja baterii</p>
               <p className="mt-0.5 text-[13px] text-muted-foreground">
@@ -125,7 +125,7 @@ function PermissionsScreen() {
               </button>
             )}
           </div>
-        </div>
+        </>
       )}
     </Screen>
   );

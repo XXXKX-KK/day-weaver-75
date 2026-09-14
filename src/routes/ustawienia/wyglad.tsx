@@ -2,7 +2,6 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useCallback, useState } from "react";
 import { Check, ChevronLeft, Globe, Lock, Plus } from "lucide-react";
 import { Screen } from "@/components/ui-kit";
-import { cn } from "@/lib/utils";
 import {
   ACCENTS,
   applyAccent,
@@ -314,7 +313,7 @@ function CustomAccentPicker({
         <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-foreground/20" />
         <h2 className="mb-4 text-lg font-bold">Własny akcent</h2>
 
-        <div className="card-surface p-4">
+        <div className="rounded-3xl bg-foreground/5 p-4">
           {/* Color field */}
           <div
             onPointerDown={handleField}
@@ -548,17 +547,12 @@ function AppearanceScreen() {
       >
         Język
       </h2>
-      <div
-        className="flex flex-col gap-2"
-        style={{ animation: "cascadeIn 0.5s ease-out 0.35s both" }}
-      >
-        {LANGUAGES.map((lang) => (
+      <div className="flex flex-col gap-3">
+        {LANGUAGES.map((lang, i) => (
           <div
             key={lang.code}
-            className={cn(
-              "card-surface flex items-center gap-4 px-4 py-4",
-              lang.active && "border-primary/50",
-            )}
+            className="flex items-center gap-4 rounded-3xl bg-foreground/5 px-4 py-4"
+            style={{ animation: `cascadeIn 0.5s ease-out ${0.35 + i * 0.06}s both` }}
           >
             <Globe className="h-5 w-5 shrink-0 text-muted-foreground" />
             <span className="text-lg leading-none">{lang.flag}</span>

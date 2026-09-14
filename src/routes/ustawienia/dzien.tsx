@@ -63,57 +63,51 @@ function DaySettingsScreen() {
         <p className="px-1 text-sm text-muted-foreground">Wczytywanie ustawień…</p>
       ) : (
         <>
-          <div
-            className="card-surface mb-4 overflow-hidden p-0"
+          <button
+            onClick={() => setPicker("start")}
+            className="mb-3 flex w-full items-center justify-between rounded-3xl bg-foreground/5 px-4 py-4"
             style={{ animation: "cascadeIn 0.5s ease-out 0.1s both" }}
           >
-            <button
-              onClick={() => setPicker("start")}
-              className="flex w-full items-center justify-between px-4 py-4"
-              style={{ borderBottom: "1px solid var(--color-border)" }}
-            >
-              <div className="text-left">
-                <p className="text-[15px] font-medium">Start dnia</p>
-                <p className="mt-0.5 text-[13px] text-muted-foreground">Kiedy zaczynasz dzień</p>
-              </div>
-              <span className="rounded-[10px] border border-foreground/[0.06] bg-foreground/[0.08] px-[14px] py-2">
-                <span className="text-[17px] font-semibold tabular-nums">
-                  {dayStart || "—:—"}
-                </span>
+            <div className="text-left">
+              <p className="text-[15px] font-medium">Start dnia</p>
+              <p className="mt-0.5 text-[13px] text-muted-foreground">Kiedy zaczynasz dzień</p>
+            </div>
+            <span className="rounded-[10px] border border-foreground/[0.06] bg-foreground/[0.08] px-[14px] py-2">
+              <span className="text-[17px] font-semibold tabular-nums">
+                {dayStart || "—:—"}
               </span>
-            </button>
-            <button
-              onClick={() => setPicker("end")}
-              className="flex w-full items-center justify-between px-4 py-4"
-            >
-              <div className="text-left">
-                <p className="text-[15px] font-medium">Koniec dnia</p>
-                <p className="mt-0.5 text-[13px] text-muted-foreground">Kiedy kończysz dzień</p>
-              </div>
-              <span className="rounded-[10px] border border-foreground/[0.06] bg-foreground/[0.08] px-[14px] py-2">
-                <span className="text-[17px] font-semibold tabular-nums">
-                  {dayEnd || "—:—"}
-                </span>
-              </span>
-            </button>
-          </div>
-
-          <div
-            className="card-surface overflow-hidden p-0"
+            </span>
+          </button>
+          <button
+            onClick={() => setPicker("end")}
+            className="mb-3 flex w-full items-center justify-between rounded-3xl bg-foreground/5 px-4 py-4"
             style={{ animation: "cascadeIn 0.5s ease-out 0.2s both" }}
           >
-            <div className="flex items-center justify-between px-4 py-4">
-              <div>
-                <p className="text-[15px] font-medium">Autostart</p>
-                <p className="mt-0.5 text-[13px] text-muted-foreground">
-                  Automatycznie rozpocznij dzień
-                </p>
-              </div>
-              <Switch
-                checked={profile?.autostart_day ?? false}
-                onCheckedChange={(v) => save({ autostart_day: v })}
-              />
+            <div className="text-left">
+              <p className="text-[15px] font-medium">Koniec dnia</p>
+              <p className="mt-0.5 text-[13px] text-muted-foreground">Kiedy kończysz dzień</p>
             </div>
+            <span className="rounded-[10px] border border-foreground/[0.06] bg-foreground/[0.08] px-[14px] py-2">
+              <span className="text-[17px] font-semibold tabular-nums">
+                {dayEnd || "—:—"}
+              </span>
+            </span>
+          </button>
+
+          <div
+            className="flex items-center justify-between rounded-3xl bg-foreground/5 px-4 py-4"
+            style={{ animation: "cascadeIn 0.5s ease-out 0.3s both" }}
+          >
+            <div>
+              <p className="text-[15px] font-medium">Autostart</p>
+              <p className="mt-0.5 text-[13px] text-muted-foreground">
+                Automatycznie rozpocznij dzień
+              </p>
+            </div>
+            <Switch
+              checked={profile?.autostart_day ?? false}
+              onCheckedChange={(v) => save({ autostart_day: v })}
+            />
           </div>
 
           {picker && (

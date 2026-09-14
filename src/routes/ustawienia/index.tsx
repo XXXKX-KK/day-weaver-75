@@ -45,10 +45,10 @@ function SettingsHub() {
 
       <Link
         to="/ustawienia/profil"
-        className="mb-4 block"
+        className="mb-3 block"
         style={{ animation: "cascadeIn 0.5s ease-out 0.1s both" }}
       >
-        <div className="card-surface flex items-center gap-4 px-4 py-4">
+        <div className="flex items-center gap-4 rounded-3xl bg-foreground/5 px-4 py-4">
           <span className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-foreground/10 to-foreground/[0.03] border border-foreground/[0.08]">
             <User className="h-5 w-5 text-muted-foreground" />
           </span>
@@ -62,18 +62,17 @@ function SettingsHub() {
         </div>
       </Link>
 
-      <div
-        className="card-surface overflow-hidden p-0"
-        style={{ animation: "cascadeIn 0.5s ease-out 0.2s both" }}
-      >
+      <div className="flex flex-col gap-3">
         {menuItems.map((item, i) => {
           const Icon = item.icon;
           return (
-            <Link key={item.to} to={item.to} className="block">
-              <div
-                className="flex items-center gap-[14px] px-4 py-[14px]"
-                style={i < menuItems.length - 1 ? { borderBottom: "1px solid var(--color-border)" } : undefined}
-              >
+            <Link
+              key={item.to}
+              to={item.to}
+              className="block"
+              style={{ animation: `cascadeIn 0.5s ease-out ${0.2 + i * 0.06}s both` }}
+            >
+              <div className="flex items-center gap-[14px] rounded-3xl bg-foreground/5 px-4 py-[14px]">
                 <span className="flex h-9 w-9 items-center justify-center">
                   <Icon className="h-[22px] w-[22px] text-muted-foreground" strokeWidth={1.4} />
                 </span>

@@ -42,17 +42,18 @@ function ProfileScreen() {
       </div>
 
       <div
-        className="card-surface overflow-hidden p-0"
+        className="mb-3 rounded-3xl bg-foreground/5 px-4 py-[14px]"
         style={{ animation: "cascadeIn 0.5s ease-out 0.2s both" }}
       >
-        <div className="px-4 py-[14px]" style={{ borderBottom: "1px solid var(--color-border)" }}>
-          <p className="text-xs text-muted-foreground">Imię</p>
-          <p className="mt-1 text-base">{profile?.display_name || "—"}</p>
-        </div>
-        <div className="px-4 py-[14px]">
-          <p className="text-xs text-muted-foreground">Email</p>
-          <p className="mt-1 text-base">{user?.email ?? "—"}</p>
-        </div>
+        <p className="text-xs text-muted-foreground">Imię</p>
+        <p className="mt-1 text-base">{profile?.display_name || "—"}</p>
+      </div>
+      <div
+        className="rounded-3xl bg-foreground/5 px-4 py-[14px]"
+        style={{ animation: "cascadeIn 0.5s ease-out 0.3s both" }}
+      >
+        <p className="text-xs text-muted-foreground">Email</p>
+        <p className="mt-1 text-base">{user?.email ?? "—"}</p>
       </div>
     </Screen>
   );

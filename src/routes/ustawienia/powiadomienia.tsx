@@ -64,18 +64,16 @@ function NotificationsScreen() {
       </div>
 
       <div
-        className="card-surface overflow-hidden p-0"
+        className="flex items-center justify-between rounded-3xl bg-foreground/5 px-4 py-4"
         style={{ animation: "cascadeIn 0.5s ease-out 0.1s both" }}
       >
-        <div className="flex items-center justify-between px-4 py-4">
-          <div>
-            <p className="text-[15px] font-medium">Przypomnienia dnia</p>
-            <p className="mt-0.5 text-[13px] text-muted-foreground">
-              Powiadomienie o planie dnia
-            </p>
-          </div>
-          <Switch checked={notifEnabled} onCheckedChange={toggleNotifications} />
+        <div>
+          <p className="text-[15px] font-medium">Przypomnienia dnia</p>
+          <p className="mt-0.5 text-[13px] text-muted-foreground">
+            Powiadomienie o planie dnia
+          </p>
         </div>
+        <Switch checked={notifEnabled} onCheckedChange={toggleNotifications} />
       </div>
     </Screen>
   );
