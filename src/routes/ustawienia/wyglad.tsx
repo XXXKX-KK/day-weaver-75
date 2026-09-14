@@ -194,18 +194,18 @@ function PhoneMockup({
         style={{
           width: 140,
           aspectRatio: "9/19.5",
-          borderRadius: 28,
+          borderRadius: 22,
           background: "#5A1726",
           boxShadow: "0 20px 40px -10px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.06)",
-          border: "1.5px solid rgba(255,255,255,0.06)",
+          border: "1px solid rgba(255,255,255,0.06)",
           borderTopColor: "rgba(255,255,255,0.12)",
         }}
       >
         <div
           style={{
             position: "absolute",
-            inset: 3,
-            borderRadius: 24,
+            inset: 2,
+            borderRadius: 20,
             background: "#000",
             overflow: "hidden",
           }}
