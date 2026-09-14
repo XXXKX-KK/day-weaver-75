@@ -40,7 +40,7 @@ const Switch = React.forwardRef<HTMLButtonElement, SwitchProps>(
         ref={ref}
         onClick={toggle}
         className={cn(
-          "peer relative inline-flex h-[31px] w-[51px] shrink-0 cursor-pointer items-center rounded-2xl transition-colors duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50",
+          "peer relative inline-flex h-[26px] w-[44px] shrink-0 cursor-pointer items-center rounded-full transition-colors duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50",
           on
             ? "bg-primary border border-primary"
             : "bg-foreground/[0.12] border border-foreground/[0.08]",
@@ -50,8 +50,8 @@ const Switch = React.forwardRef<HTMLButtonElement, SwitchProps>(
       >
         <span
           className={cn(
-            "pointer-events-none block h-[27px] w-[27px] rounded-full bg-white shadow-[0_2px_4px_rgba(0,0,0,0.25)] transition-transform duration-300",
-            on ? "translate-x-[21px]" : "translate-x-[1px]",
+            "pointer-events-none block h-[22px] w-[22px] rounded-full bg-white shadow-[0_2px_4px_rgba(0,0,0,0.25)] transition-transform duration-300",
+            on ? "translate-x-[19px]" : "translate-x-[1px]",
           )}
         />
       </button>
