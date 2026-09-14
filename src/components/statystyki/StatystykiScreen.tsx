@@ -13,7 +13,6 @@ export interface StatystykiScreenProps {
   summary?: StatsSummary;
   viewState?: ViewState;
   defaultView?: TabView;
-  accent?: string;
 }
 
 const LEVEL_COLORS = ['#181b21', '#0e4429', '#196c3a', '#26a641', '#39d353'];
@@ -62,7 +61,6 @@ export default function StatystykiScreen({
   summary = MOCK_SUMMARY,
   viewState = 'loaded',
   defaultView = 'postep',
-  accent = '#3B82F6',
 }: StatystykiScreenProps) {
   const prefersReduced =
     typeof window !== 'undefined' &&
@@ -232,7 +230,7 @@ export default function StatystykiScreen({
         }
         const isoStr = `${year}-${pad(m + 1)}-${pad(day)}`;
         if (isoStr > todayISO) {
-          cells.push({ bg: cur ? 'rgba(59,130,246,.06)' : 'transparent', cur });
+          cells.push({ bg: cur ? 'color-mix(in oklab, var(--primary) 6%, transparent)' : 'transparent', cur });
           continue;
         }
         const isToday = isoStr === todayISO;
@@ -241,7 +239,7 @@ export default function StatystykiScreen({
           const pct = rec.planned ? rec.completed / rec.planned : 0;
           const lvl = levelFor(pct, rec.completed);
           let bg = LEVEL_COLORS[lvl];
-          if (cur && lvl === 0) bg = 'rgba(59,130,246,.07)';
+          if (cur && lvl === 0) bg = 'color-mix(in oklab, var(--primary) 7%, transparent)';
           cells.push({
             bg,
             border: lvl === 0 ? '1px solid var(--border)' : '1px solid transparent',
@@ -252,7 +250,7 @@ export default function StatystykiScreen({
           });
         } else {
           cells.push({
-            bg: cur ? 'rgba(59,130,246,.06)' : 'transparent',
+            bg: cur ? 'color-mix(in oklab, var(--primary) 6%, transparent)' : 'transparent',
             border: '1px solid var(--border)',
             clickable: true,
             today: isToday,
@@ -291,23 +289,14 @@ export default function StatystykiScreen({
         </div>
 
         {/* Segment */}
-        <div className="relative mb-5 flex rounded-[14px] bg-foreground/5 p-1">
-          <div
-            className="absolute bottom-1 left-1 w-[calc(50%-4px)] rounded-[11px] transition-transform duration-300 ease-[cubic-bezier(.4,0,.2,1)]"
-            style={{
-              top: 4,
-              bottom: 4,
-              background: accent,
-              boxShadow: `0 4px 14px ${accent}55`,
-              transform: isPostep ? 'translateX(0)' : 'translateX(100%)',
-            }}
-          />
+        <div className="mb-5 grid grid-cols-2 gap-1 rounded-2xl bg-foreground/5 p-1">
           {(['postep', 'siatka'] as TabView[]).map((v) => (
             <button
               key={v}
               onClick={() => changeView(v)}
-              className="relative z-[1] flex-1 border-none bg-transparent py-[9px] text-[13.5px] font-bold transition-colors duration-200"
-              style={{ color: (v === 'postep') === isPostep ? '#fff' : 'var(--muted-foreground)' }}
+              className={`h-11 rounded-xl text-[13.5px] font-bold transition-colors ${
+                view === v ? 'accent-gradient text-primary-foreground' : 'text-muted-foreground'
+              }`}
             >
               {v === 'postep' ? 'Postęp' : 'Siatka'}
             </button>
@@ -346,7 +335,6 @@ export default function StatystykiScreen({
               <Tile
                 delay={0}
                 accentTile
-                accent={accent}
                 anim={anim}
                 label="Obecna passa"
                 labelColor="var(--primary)"
@@ -355,13 +343,12 @@ export default function StatystykiScreen({
                 <span className="text-[13px] font-semibold text-primary">dni</span>
                 <span className={`ml-[2px] inline-block text-[15px] ${anim('animate-[flamePulse_1.9s_ease-in-out_1.3s_infinite]')}`}>🔥</span>
               </Tile>
-              <Tile delay={0.07} accent={accent} anim={anim} label="Najdłuższa passa">
+              <Tile delay={0.07} anim={anim} label="Najdłuższa passa">
                 <span className="text-[30px] font-extrabold tracking-tight text-foreground tabular-nums">{counts.longest}</span>
                 <span className="text-[13px] font-semibold text-muted-foreground">dni</span>
               </Tile>
               <Tile
                 delay={0.14}
-                accent={accent}
                 anim={anim}
                 label="Poziom"
                 footer={
@@ -374,13 +361,13 @@ export default function StatystykiScreen({
                 <span className="text-[15px] font-bold text-muted-foreground">Lv</span>
                 <span className="text-[30px] font-extrabold tracking-tight text-foreground tabular-nums">{counts.level}</span>
               </Tile>
-              <Tile delay={0.21} accent={accent} anim={anim} label="Dni zrobione">
+              <Tile delay={0.21} anim={anim} label="Dni zrobione">
                 <span className="text-[30px] font-extrabold tracking-tight text-foreground tabular-nums">{counts.days}</span>
               </Tile>
             </div>
 
             <div className={`mx-[2px] mb-1 mt-[14px] flex items-center gap-2 ${anim('animate-[fadeUp_.38s_cubic-bezier(.2,.7,.3,1)_.32s_both]')}`}>
-              <span className="text-[15px]" style={{ color: accent }}>▹</span>
+              <span className="text-[15px] text-primary">▹</span>
               <span className="text-[13.5px] font-semibold text-muted-foreground">{motiv}</span>
             </div>
 
@@ -395,8 +382,8 @@ export default function StatystykiScreen({
                     onClick={() => setRange(key)}
                     className={`flex-1 rounded-[10px] py-[7px] text-[12px] font-bold transition-all duration-200 ${!active ? 'bg-foreground/5' : ''}`}
                     style={{
-                      border: active ? `1px solid ${accent}` : undefined,
-                      background: active ? `${accent}1f` : undefined,
+                      border: active ? '1px solid var(--primary)' : undefined,
+                      background: active ? 'color-mix(in oklab, var(--primary) 12%, transparent)' : undefined,
                       color: active ? 'var(--primary-foreground)' : 'var(--muted-foreground)',
                     }}
                   >
@@ -417,15 +404,15 @@ export default function StatystykiScreen({
                 <line x1="0" y1="64" x2="318" y2="64" stroke="var(--border)" strokeWidth="1" strokeDasharray="2 4" />
                 <defs>
                   <linearGradient id="xpfill" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor={accent} stopOpacity={0.34} />
-                    <stop offset="100%" stopColor={accent} stopOpacity={0} />
+                    <stop offset="0%" stopColor="var(--primary)" stopOpacity={0.34} />
+                    <stop offset="100%" stopColor="var(--primary)" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <path d={xpArea} fill="url(#xpfill)" className={anim('animate-[areaIn_.6s_ease_.55s_forwards]')} style={{ opacity: prefersReduced ? 1 : 0 }} />
                 <path
                   d={xpPath}
                   fill="none"
-                  stroke={accent}
+                  stroke="var(--primary)"
                   strokeWidth={2.5}
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -433,7 +420,7 @@ export default function StatystykiScreen({
                   className={anim('animate-[drawLine_1.15s_cubic-bezier(.4,0,.2,1)_forwards]')}
                   style={{ strokeDasharray: prefersReduced ? 'none' : 1 }}
                 />
-                <circle cx={xpEnd.x} cy={xpEnd.y} r={3.5} fill="#fff" stroke={accent} strokeWidth={2} className={anim('animate-[areaIn_.3s_ease_1.15s_forwards]')} style={{ opacity: prefersReduced ? 1 : 0 }} />
+                <circle cx={xpEnd.x} cy={xpEnd.y} r={3.5} fill="#fff" stroke="var(--primary)" strokeWidth={2} className={anim('animate-[areaIn_.3s_ease_1.15s_forwards]')} style={{ opacity: prefersReduced ? 1 : 0 }} />
               </svg>
             </div>
 
@@ -448,7 +435,7 @@ export default function StatystykiScreen({
                       className={`w-full max-w-[30px] origin-bottom rounded-t-[6px] ${anim('animate-[barRise_.6s_cubic-bezier(.4,0,.2,1)_both]')}`}
                       style={{
                         height: `${Math.max(3, Math.round((b.pct / 100) * 90))}px`,
-                        background: b.strong ? `linear-gradient(180deg, ${accent}, ${accent}bb)` : 'color-mix(in oklch, var(--foreground) 6%, transparent)',
+                        background: b.strong ? 'linear-gradient(180deg, var(--primary), color-mix(in oklab, var(--primary) 73%, transparent))' : 'color-mix(in oklch, var(--foreground) 6%, transparent)',
                         animationDelay: prefersReduced ? '0ms' : `${i * 70}ms`,
                       }}
                     />
@@ -482,7 +469,7 @@ export default function StatystykiScreen({
                       className="sticky top-0 z-[2] h-[22px] text-center text-[9.5px] font-bold leading-[22px]"
                       style={{
                         background: m.cur ? 'var(--primary-soft)' : 'transparent',
-                        color: m.cur ? accent : 'var(--muted-foreground)',
+                        color: m.cur ? 'var(--primary)' : 'var(--muted-foreground)',
                         borderRadius: m.cur ? '6px 6px 0 0' : 0,
                       }}
                     >
@@ -506,7 +493,7 @@ export default function StatystykiScreen({
                               cursor: cell.clickable ? 'pointer' : 'default',
                               position: cell.today ? 'relative' : undefined,
                               zIndex: cell.today ? 1 : undefined,
-                              boxShadow: cell.today ? `0 0 0 1.5px var(--card), 0 0 0 3px ${accent}` : undefined,
+                              boxShadow: cell.today ? '0 0 0 1.5px var(--card), 0 0 0 3px var(--primary)' : undefined,
                               animationDelay: prefersReduced ? '0ms' : `${Math.min(650, ri * 20 + ci * 6)}ms`,
                             }}
                           />
@@ -519,7 +506,7 @@ export default function StatystykiScreen({
 
               <div className="mt-[14px] flex items-center justify-between">
                 <span className="text-[12px] font-semibold text-muted-foreground">
-                  Dziś zrobione <span className="font-extrabold" style={{ color: accent }}>{todayPct}%</span>
+                  Dziś zrobione <span className="font-extrabold text-primary">{todayPct}%</span>
                 </span>
                 <div className="flex items-center gap-[5px]">
                   <span className="text-[10.5px] font-semibold text-muted-foreground">mniej</span>
@@ -587,7 +574,6 @@ function Tile({
   labelColor = 'var(--muted-foreground)',
   delay,
   accentTile = false,
-  accent,
   anim,
 }: {
   children: React.ReactNode;
@@ -596,7 +582,6 @@ function Tile({
   labelColor?: string;
   delay: number;
   accentTile?: boolean;
-  accent: string;
   anim: (c: string) => string;
 }) {
   return (
@@ -606,9 +591,9 @@ function Tile({
       }`}
       style={{
         animationDelay: `${delay}s`,
-        border: accentTile ? '1px solid rgba(59,130,246,.32)' : undefined,
+        border: accentTile ? '1px solid color-mix(in oklab, var(--primary) 32%, transparent)' : undefined,
         background: accentTile
-          ? 'linear-gradient(160deg, rgba(59,130,246,.16), rgba(59,130,246,.04))'
+          ? 'linear-gradient(160deg, color-mix(in oklab, var(--primary) 16%, transparent), color-mix(in oklab, var(--primary) 4%, transparent))'
           : undefined,
       }}
     >
