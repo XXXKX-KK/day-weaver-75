@@ -20,8 +20,10 @@ import { Route as UstawieniaIndexRouteImport } from './routes/ustawienia/index'
 import { Route as UstawieniaDzienRouteImport } from './routes/ustawienia/dzien'
 import { Route as UstawieniaKontoRouteImport } from './routes/ustawienia/konto'
 import { Route as UstawieniaNakladkaRouteImport } from './routes/ustawienia/nakladka'
+import { Route as UstawieniaPolitykaPrywatnosciRouteImport } from './routes/ustawienia/polityka-prywatnosci'
 import { Route as UstawieniaPowiadomieniaRouteImport } from './routes/ustawienia/powiadomienia'
 import { Route as UstawieniaProfilRouteImport } from './routes/ustawienia/profil'
+import { Route as UstawieniaRegulaminRouteImport } from './routes/ustawienia/regulamin'
 import { Route as UstawieniaUprawnieniaRouteImport } from './routes/ustawienia/uprawnienia'
 import { Route as UstawieniaWygladRouteImport } from './routes/ustawienia/wyglad'
 
@@ -80,6 +82,12 @@ const UstawieniaNakladkaRoute = UstawieniaNakladkaRouteImport.update({
   path: '/ustawienia/nakladka',
   getParentRoute: () => rootRouteImport,
 } as any)
+const UstawieniaPolitykaPrywatnosciRoute =
+  UstawieniaPolitykaPrywatnosciRouteImport.update({
+    id: '/ustawienia/polityka-prywatnosci',
+    path: '/ustawienia/polityka-prywatnosci',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const UstawieniaPowiadomieniaRoute = UstawieniaPowiadomieniaRouteImport.update({
   id: '/ustawienia/powiadomienia',
   path: '/ustawienia/powiadomienia',
@@ -88,6 +96,11 @@ const UstawieniaPowiadomieniaRoute = UstawieniaPowiadomieniaRouteImport.update({
 const UstawieniaProfilRoute = UstawieniaProfilRouteImport.update({
   id: '/ustawienia/profil',
   path: '/ustawienia/profil',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const UstawieniaRegulaminRoute = UstawieniaRegulaminRouteImport.update({
+  id: '/ustawienia/regulamin',
+  path: '/ustawienia/regulamin',
   getParentRoute: () => rootRouteImport,
 } as any)
 const UstawieniaUprawnieniaRoute = UstawieniaUprawnieniaRouteImport.update({
@@ -111,8 +124,10 @@ export interface FileRoutesByFullPath {
   '/ustawienia/dzien': typeof UstawieniaDzienRoute
   '/ustawienia/konto': typeof UstawieniaKontoRoute
   '/ustawienia/nakladka': typeof UstawieniaNakladkaRoute
+  '/ustawienia/polityka-prywatnosci': typeof UstawieniaPolitykaPrywatnosciRoute
   '/ustawienia/powiadomienia': typeof UstawieniaPowiadomieniaRoute
   '/ustawienia/profil': typeof UstawieniaProfilRoute
+  '/ustawienia/regulamin': typeof UstawieniaRegulaminRoute
   '/ustawienia/uprawnienia': typeof UstawieniaUprawnieniaRoute
   '/ustawienia/wyglad': typeof UstawieniaWygladRoute
   '/skupienie/': typeof SkupienieIndexRoute
@@ -128,8 +143,10 @@ export interface FileRoutesByTo {
   '/ustawienia/dzien': typeof UstawieniaDzienRoute
   '/ustawienia/konto': typeof UstawieniaKontoRoute
   '/ustawienia/nakladka': typeof UstawieniaNakladkaRoute
+  '/ustawienia/polityka-prywatnosci': typeof UstawieniaPolitykaPrywatnosciRoute
   '/ustawienia/powiadomienia': typeof UstawieniaPowiadomieniaRoute
   '/ustawienia/profil': typeof UstawieniaProfilRoute
+  '/ustawienia/regulamin': typeof UstawieniaRegulaminRoute
   '/ustawienia/uprawnienia': typeof UstawieniaUprawnieniaRoute
   '/ustawienia/wyglad': typeof UstawieniaWygladRoute
   '/skupienie': typeof SkupienieIndexRoute
@@ -146,8 +163,10 @@ export interface FileRoutesById {
   '/ustawienia/dzien': typeof UstawieniaDzienRoute
   '/ustawienia/konto': typeof UstawieniaKontoRoute
   '/ustawienia/nakladka': typeof UstawieniaNakladkaRoute
+  '/ustawienia/polityka-prywatnosci': typeof UstawieniaPolitykaPrywatnosciRoute
   '/ustawienia/powiadomienia': typeof UstawieniaPowiadomieniaRoute
   '/ustawienia/profil': typeof UstawieniaProfilRoute
+  '/ustawienia/regulamin': typeof UstawieniaRegulaminRoute
   '/ustawienia/uprawnienia': typeof UstawieniaUprawnieniaRoute
   '/ustawienia/wyglad': typeof UstawieniaWygladRoute
   '/skupienie/': typeof SkupienieIndexRoute
@@ -165,8 +184,10 @@ export interface FileRouteTypes {
     | '/ustawienia/dzien'
     | '/ustawienia/konto'
     | '/ustawienia/nakladka'
+    | '/ustawienia/polityka-prywatnosci'
     | '/ustawienia/powiadomienia'
     | '/ustawienia/profil'
+    | '/ustawienia/regulamin'
     | '/ustawienia/uprawnienia'
     | '/ustawienia/wyglad'
     | '/skupienie/'
@@ -182,8 +203,10 @@ export interface FileRouteTypes {
     | '/ustawienia/dzien'
     | '/ustawienia/konto'
     | '/ustawienia/nakladka'
+    | '/ustawienia/polityka-prywatnosci'
     | '/ustawienia/powiadomienia'
     | '/ustawienia/profil'
+    | '/ustawienia/regulamin'
     | '/ustawienia/uprawnienia'
     | '/ustawienia/wyglad'
     | '/skupienie'
@@ -199,8 +222,10 @@ export interface FileRouteTypes {
     | '/ustawienia/dzien'
     | '/ustawienia/konto'
     | '/ustawienia/nakladka'
+    | '/ustawienia/polityka-prywatnosci'
     | '/ustawienia/powiadomienia'
     | '/ustawienia/profil'
+    | '/ustawienia/regulamin'
     | '/ustawienia/uprawnienia'
     | '/ustawienia/wyglad'
     | '/skupienie/'
@@ -217,8 +242,10 @@ export interface RootRouteChildren {
   UstawieniaDzienRoute: typeof UstawieniaDzienRoute
   UstawieniaKontoRoute: typeof UstawieniaKontoRoute
   UstawieniaNakladkaRoute: typeof UstawieniaNakladkaRoute
+  UstawieniaPolitykaPrywatnosciRoute: typeof UstawieniaPolitykaPrywatnosciRoute
   UstawieniaPowiadomieniaRoute: typeof UstawieniaPowiadomieniaRoute
   UstawieniaProfilRoute: typeof UstawieniaProfilRoute
+  UstawieniaRegulaminRoute: typeof UstawieniaRegulaminRoute
   UstawieniaUprawnieniaRoute: typeof UstawieniaUprawnieniaRoute
   UstawieniaWygladRoute: typeof UstawieniaWygladRoute
   SkupienieIndexRoute: typeof SkupienieIndexRoute
@@ -304,6 +331,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof UstawieniaNakladkaRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/ustawienia/polityka-prywatnosci': {
+      id: '/ustawienia/polityka-prywatnosci'
+      path: '/ustawienia/polityka-prywatnosci'
+      fullPath: '/ustawienia/polityka-prywatnosci'
+      preLoaderRoute: typeof UstawieniaPolitykaPrywatnosciRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/ustawienia/powiadomienia': {
       id: '/ustawienia/powiadomienia'
       path: '/ustawienia/powiadomienia'
@@ -316,6 +350,13 @@ declare module '@tanstack/react-router' {
       path: '/ustawienia/profil'
       fullPath: '/ustawienia/profil'
       preLoaderRoute: typeof UstawieniaProfilRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ustawienia/regulamin': {
+      id: '/ustawienia/regulamin'
+      path: '/ustawienia/regulamin'
+      fullPath: '/ustawienia/regulamin'
+      preLoaderRoute: typeof UstawieniaRegulaminRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/ustawienia/uprawnienia': {
@@ -345,8 +386,10 @@ const rootRouteChildren: RootRouteChildren = {
   UstawieniaDzienRoute: UstawieniaDzienRoute,
   UstawieniaKontoRoute: UstawieniaKontoRoute,
   UstawieniaNakladkaRoute: UstawieniaNakladkaRoute,
+  UstawieniaPolitykaPrywatnosciRoute: UstawieniaPolitykaPrywatnosciRoute,
   UstawieniaPowiadomieniaRoute: UstawieniaPowiadomieniaRoute,
   UstawieniaProfilRoute: UstawieniaProfilRoute,
+  UstawieniaRegulaminRoute: UstawieniaRegulaminRoute,
   UstawieniaUprawnieniaRoute: UstawieniaUprawnieniaRoute,
   UstawieniaWygladRoute: UstawieniaWygladRoute,
   SkupienieIndexRoute: SkupienieIndexRoute,
