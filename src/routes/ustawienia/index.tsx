@@ -4,7 +4,9 @@ import {
   ChevronRight,
   Clock,
   Compass,
+  FileText,
   Palette,
+  Shield,
   ShieldCheck,
   Target,
   User,
@@ -106,6 +108,36 @@ function SettingsHub() {
           </div>
         </div>
       </button>
+
+      <div
+        className="mt-6 flex flex-col gap-3"
+        style={{ animation: `cascadeIn 0.5s ease-out ${0.2 + (menuItems.length + 1) * 0.06}s both` }}
+      >
+        <Link to="/ustawienia/regulamin" className="block">
+          <div className="flex items-center gap-[14px] rounded-3xl bg-foreground/5 px-4 py-[14px]">
+            <span className="flex h-9 w-9 items-center justify-center">
+              <FileText className="h-[22px] w-[22px] text-muted-foreground" strokeWidth={1.4} />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-[16px] font-medium">Regulamin</p>
+              <p className="mt-px text-[13px] text-muted-foreground">Zasady korzystania z aplikacji</p>
+            </div>
+            <ChevronRight className="h-[14px] w-[14px] shrink-0 text-foreground/[0.18]" />
+          </div>
+        </Link>
+        <Link to="/ustawienia/polityka-prywatnosci" className="block">
+          <div className="flex items-center gap-[14px] rounded-3xl bg-foreground/5 px-4 py-[14px]">
+            <span className="flex h-9 w-9 items-center justify-center">
+              <Shield className="h-[22px] w-[22px] text-muted-foreground" strokeWidth={1.4} />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-[16px] font-medium">Polityka prywatności</p>
+              <p className="mt-px text-[13px] text-muted-foreground">Dane osobowe i uprawnienia</p>
+            </div>
+            <ChevronRight className="h-[14px] w-[14px] shrink-0 text-foreground/[0.18]" />
+          </div>
+        </Link>
+      </div>
     </Screen>
   );
 }
