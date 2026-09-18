@@ -111,6 +111,7 @@ public class BlockerForegroundService extends Service {
         }
 
         launchOverlay(pkg);
+        lastForegroundPkg = "";
     }
 
     private void launchOverlay(String blockedPackage) {
