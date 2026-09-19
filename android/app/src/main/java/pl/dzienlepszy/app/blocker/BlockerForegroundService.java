@@ -16,7 +16,10 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
 
+import java.util.Locale;
 import java.util.Set;
+
+import androidx.core.app.NotificationCompat;
 
 import pl.dzienlepszy.app.MainActivity;
 
@@ -29,6 +32,7 @@ public class BlockerForegroundService extends Service {
     private final Handler handler = new Handler(Looper.getMainLooper());
     private String lastForegroundPkg = "";
     private boolean screenOn = true;
+    private boolean breakNotificationActive = false;
 
     private final BroadcastReceiver screenReceiver = new BroadcastReceiver() {
         @Override
@@ -46,6 +50,7 @@ public class BlockerForegroundService extends Service {
     private final Runnable pollRunnable = new Runnable() {
         @Override
         public void run() {
+            updateNotificationForBreak();
             pollForeground();
             if (screenOn) {
                 handler.postDelayed(this, POLL_INTERVAL_MS);
@@ -159,6 +164,61 @@ public class BlockerForegroundService extends Service {
                 .setContentText("Blokada rozpraszających aplikacji jest włączona.")
                 .setContentIntent(pi)
                 .setOngoing(true)
+                .build();
+    }
+
+    private void updateNotificationForBreak() {
+        long until = BlockerPrefs.getUnlockUntil(this);
+        long now = System.currentTimeMillis();
+
+        if (until > now) {
+            breakNotificationActive = true;
+            NotificationManager nm = getSystemService(NotificationManager.class);
+            if (nm != null) {
+                nm.notify(NOTIFICATION_ID, buildBreakNotification(until));
+            }
+        } else if (breakNotificationActive) {
+            breakNotificationActive = false;
+            NotificationManager nm = getSystemService(NotificationManager.class);
+            if (nm != null) {
+                nm.notify(NOTIFICATION_ID, buildNotification());
+            }
+        }
+    }
+
+    private Notification buildBreakNotification(long unlockUntil) {
+        Intent tap = new Intent(this, MainActivity.class);
+        tap.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        PendingIntent pi = PendingIntent.getActivity(
+                this, 0, tap, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
+
+        long now = System.currentTimeMillis();
+        long remaining = Math.max(unlockUntil - now, 0);
+        int progressMax = 1000;
+        int progressCurrent = (int) (remaining * progressMax / BlockerPrefs.BREAK_DURATION_MS);
+        if (progressCurrent > progressMax) progressCurrent = progressMax;
+
+        long remainSec = remaining / 1000;
+        String remainText = String.format(Locale.US, "%d:%02d", remainSec / 60, remainSec % 60);
+
+        NotificationCompat.ProgressStyle progressStyle = new NotificationCompat.ProgressStyle();
+        progressStyle.addProgressSegment(
+                new NotificationCompat.ProgressStyle.Segment(progressMax));
+        progressStyle.setProgress(progressCurrent);
+
+        return new NotificationCompat.Builder(this, CHANNEL_ID)
+                .setSmallIcon(android.R.drawable.ic_lock_idle_lock)
+                .setContentTitle("Przerwa")
+                .setContentText("Wracasz za " + remainText)
+                .setContentIntent(pi)
+                .setOngoing(true)
+                .setOnlyAlertOnce(true)
+                .setUsesChronometer(true)
+                .setChronometerCountDown(true)
+                .setWhen(unlockUntil)
+                .setRequestPromotedOngoing(true)
+                .setShortCriticalText(remainText)
+                .setStyle(progressStyle)
                 .build();
     }
 
