@@ -242,15 +242,28 @@ export function AuthScreen() {
                 transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
                 className="overflow-hidden"
               >
-                <div className="beam-wrap">
+                <div className="beam-wrap relative">
                 <input
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   autoComplete="new-password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   placeholder="Powtórz hasło"
-                  className="h-12 w-full rounded-2xl border border-white/10 bg-white/[0.07] px-4 text-sm text-foreground outline-none placeholder:text-muted-foreground"
+                  className="h-12 w-full rounded-2xl border border-white/10 bg-white/[0.07] pl-4 pr-12 text-sm text-foreground outline-none placeholder:text-muted-foreground"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  aria-label={showPassword ? "Ukryj hasło" : "Pokaż hasło"}
+                  aria-pressed={showPassword}
+                  className="absolute right-1 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-xl text-muted-foreground transition-colors active:text-foreground"
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-5 w-5" />
+                  ) : (
+                    <Eye className="h-5 w-5" />
+                  )}
+                </button>
               </div>
               </motion.div>
             )}
