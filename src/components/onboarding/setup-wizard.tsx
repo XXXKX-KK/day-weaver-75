@@ -1,12 +1,24 @@
 import { useEffect, useState } from "react";
 import "../../today.css";
 import { useNavigate } from "@tanstack/react-router";
-import { Check, ChevronRight, Sunrise, Brain, Moon } from "lucide-react";
+import { Check, ChevronRight, ChevronLeft, Sunrise, Brain, Moon, Sparkles, ListChecks } from "lucide-react";
 import { TenaxLogo } from "@/components/tenax-logo";
 import { useAddRoutine, type NewRoutineInput } from "@/lib/routines";
 import { isNativeBlocker, Blocker, type InstalledApp } from "@/lib/blocker";
 import { useSetAppBlocked } from "@/lib/blocked-apps";
 import { toast } from "sonner";
+import {
+  type SurveyAnswers,
+  type WakeUp,
+  type WorkType,
+  type FocusCount,
+  type Goal,
+  DEFAULT_ANSWERS,
+  WAKE_OPTIONS,
+  WORK_OPTIONS,
+  GOAL_OPTIONS,
+  generateRoutines,
+} from "@/lib/day-survey";
 
 const ONBOARDING_KEY = "tenax:onboarding-done";
 
@@ -167,6 +179,12 @@ function StepPromise({ onNext }: { onNext: () => void }) {
 }
 
 function StepRoutines({ onNext, onSkip }: { onNext: () => void; onSkip: () => void }) {
+  const [path, setPath] = useState<"choose" | "survey" | "manual">("choose");
+  const [surveyStep, setSurveyStep] = useState(0);
+  const [answers, setAnswers] = useState<SurveyAnswers>({ ...DEFAULT_ANSWERS });
+  const [generated, setGenerated] = useState<NewRoutineInput[]>([]);
+  const [selectedGen, setSelectedGen] = useState<Set<number>>(new Set());
+
   const [selected, setSelected] = useState<Set<string>>(new Set(["morning"]));
   const addRoutine = useAddRoutine();
   const [saving, setSaving] = useState(false);
@@ -181,16 +199,11 @@ function StepRoutines({ onNext, onSkip }: { onNext: () => void; onSkip: () => vo
   };
 
   const handleAdd = async () => {
-    if (selected.size === 0) {
-      onSkip();
-      return;
-    }
+    if (selected.size === 0) { onSkip(); return; }
     setSaving(true);
     try {
       const templates = ROUTINE_TEMPLATES.filter((t) => selected.has(t.id));
-      for (const t of templates) {
-        await addRoutine.mutateAsync(t.input);
-      }
+      for (const t of templates) await addRoutine.mutateAsync(t.input);
       onNext();
     } catch {
       toast.error("Nie udało się dodać rutyn.");
@@ -198,49 +211,275 @@ function StepRoutines({ onNext, onSkip }: { onNext: () => void; onSkip: () => vo
     }
   };
 
+  const handleSaveGenerated = async () => {
+    const toSave = generated.filter((_, i) => selectedGen.has(i));
+    if (toSave.length === 0) { onSkip(); return; }
+    setSaving(true);
+    try {
+      for (const r of toSave) await addRoutine.mutateAsync(r);
+      onNext();
+    } catch {
+      toast.error("Nie udało się dodać rutyn.");
+      setSaving(false);
+    }
+  };
+
+  const finishSurvey = () => {
+    const routines = generateRoutines(answers);
+    setGenerated(routines);
+    setSelectedGen(new Set(routines.map((_, i) => i)));
+    setPath("survey");
+    setSurveyStep(SURVEY_QUESTIONS_COUNT);
+  };
+
+  const hasFixedHours = answers.workType !== "free";
+  const totalSurveySteps = hasFixedHours ? 5 : 4;
+
+  if (path === "choose") {
+    return (
+      <div className="flex flex-1 flex-col pt-8">
+        <h1
+          className="mb-2 text-2xl font-extrabold leading-tight"
+          style={{ animation: "cascadeIn 0.5s ease-out both" }}
+        >
+          Jak chcesz zacząć?
+        </h1>
+        <p
+          className="mb-6 text-sm text-muted-foreground"
+          style={{ animation: "cascadeIn 0.5s ease-out 0.1s both" }}
+        >
+          Możemy ułożyć Ci dzień albo sam wybierzesz rutyny.
+        </p>
+
+        <div className="flex flex-col gap-3">
+          <button
+            type="button"
+            onClick={() => { setPath("survey"); setSurveyStep(0); }}
+            className="flex items-center gap-4 rounded-3xl bg-foreground/5 px-4 py-4 text-left"
+            style={{
+              animation: "cascadeIn 0.5s ease-out 0.15s both",
+              border: "1.5px solid var(--primary)",
+            }}
+          >
+            <div
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl"
+              style={{ backgroundColor: "color-mix(in oklab, var(--primary) 15%, transparent)" }}
+            >
+              <Sparkles className="h-5 w-5" style={{ color: "var(--primary)" }} />
+            </div>
+            <div className="flex-1">
+              <p className="text-[15px] font-semibold">Ułóż mi dzień</p>
+              <p className="mt-0.5 text-[13px] text-muted-foreground">
+                5 pytań — zero pisania
+              </p>
+            </div>
+            <ChevronRight className="h-5 w-5 text-muted-foreground" />
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setPath("manual")}
+            className="flex items-center gap-4 rounded-3xl bg-foreground/5 px-4 py-4 text-left"
+            style={{
+              animation: "cascadeIn 0.5s ease-out 0.21s both",
+              border: "1.5px solid transparent",
+            }}
+          >
+            <div
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl"
+              style={{ backgroundColor: "color-mix(in oklab, var(--foreground) 5%, transparent)" }}
+            >
+              <ListChecks className="h-5 w-5 text-muted-foreground" />
+            </div>
+            <div className="flex-1">
+              <p className="text-[15px] font-semibold">Wybiorę sam</p>
+              <p className="mt-0.5 text-[13px] text-muted-foreground">
+                Gotowe szablony rutyn
+              </p>
+            </div>
+            <ChevronRight className="h-5 w-5 text-muted-foreground" />
+          </button>
+        </div>
+
+        <div className="mt-auto pb-4 pt-8">
+          <button
+            onClick={onSkip}
+            className="h-10 w-full text-sm font-medium text-muted-foreground"
+            type="button"
+          >
+            Pomiń
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (path === "manual") {
+    return (
+      <div className="flex flex-1 flex-col pt-8">
+        <button
+          type="button"
+          onClick={() => setPath("choose")}
+          className="mb-4 flex items-center gap-1 text-sm font-medium text-muted-foreground"
+        >
+          <ChevronLeft className="h-4 w-4" />
+          Wróć
+        </button>
+        <h1
+          className="mb-2 text-2xl font-extrabold leading-tight"
+          style={{ animation: "cascadeIn 0.5s ease-out both" }}
+        >
+          Wybierz swoje rutyny
+        </h1>
+        <p
+          className="mb-6 text-sm text-muted-foreground"
+          style={{ animation: "cascadeIn 0.5s ease-out 0.1s both" }}
+        >
+          Pomogą Ci zbudować nawyki. Wybierz te, które pasują — możesz dodać kolejne potem.
+        </p>
+
+        <div className="flex flex-col gap-3">
+          {ROUTINE_TEMPLATES.map((t, i) => {
+            const active = selected.has(t.id);
+            const Icon = t.icon;
+            return (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => toggle(t.id)}
+                className="flex items-center gap-4 rounded-3xl bg-foreground/5 px-4 py-4 text-left transition-colors"
+                style={{
+                  animation: `cascadeIn 0.5s ease-out ${0.15 + i * 0.06}s both`,
+                  border: active ? "1.5px solid var(--primary)" : "1.5px solid transparent",
+                }}
+              >
+                <div
+                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl"
+                  style={{
+                    backgroundColor: active
+                      ? "color-mix(in oklab, var(--primary) 15%, transparent)"
+                      : "color-mix(in oklab, var(--foreground) 5%, transparent)",
+                  }}
+                >
+                  <Icon className="h-5 w-5" style={{ color: active ? "var(--primary)" : "var(--muted-foreground)" }} />
+                </div>
+                <div className="flex-1">
+                  <p className="text-[15px] font-semibold">{t.title}</p>
+                  <p className="mt-0.5 text-[13px] text-muted-foreground">{t.description}</p>
+                </div>
+                <div
+                  className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full transition-colors"
+                  style={{
+                    backgroundColor: active ? "var(--primary)" : "transparent",
+                    border: active ? "none" : "1.5px solid color-mix(in oklab, var(--foreground) 20%, transparent)",
+                  }}
+                >
+                  {active && <Check className="h-3.5 w-3.5 text-primary-foreground" strokeWidth={3} />}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="mt-auto flex flex-col gap-3 pb-4 pt-8">
+          <button
+            onClick={handleAdd}
+            disabled={saving}
+            className="accent-gradient flex h-14 w-full items-center justify-center rounded-3xl text-base font-bold text-primary-foreground transition-transform active:scale-[0.98] disabled:opacity-50"
+          >
+            {saving ? "Dodawanie…" : selected.size > 0 ? "Dodaj wybrane" : "Kontynuuj"}
+          </button>
+          <button
+            onClick={onSkip}
+            className="h-10 text-sm font-medium text-muted-foreground"
+            type="button"
+          >
+            Pomiń
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Survey path ──
+  if (surveyStep < SURVEY_QUESTIONS_COUNT) {
+    const effectiveStep = getEffectiveSurveyStep(surveyStep, hasFixedHours);
+    return (
+      <SurveyQuestion
+        questionIndex={effectiveStep}
+        answers={answers}
+        setAnswers={setAnswers}
+        onNext={() => {
+          const nextRaw = surveyStep + 1;
+          if (nextRaw >= totalSurveySteps) {
+            finishSurvey();
+          } else {
+            setSurveyStep(nextRaw);
+          }
+        }}
+        onBack={() => {
+          if (surveyStep === 0) { setPath("choose"); }
+          else setSurveyStep(surveyStep - 1);
+        }}
+        onSkip={onSkip}
+        currentStep={surveyStep + 1}
+        totalSteps={totalSurveySteps}
+      />
+    );
+  }
+
+  // ── Preview generated routines ──
+  const toggleGen = (idx: number) => {
+    setSelectedGen((prev) => {
+      const next = new Set(prev);
+      if (next.has(idx)) next.delete(idx);
+      else next.add(idx);
+      return next;
+    });
+  };
+
   return (
     <div className="flex flex-1 flex-col pt-8">
+      <button
+        type="button"
+        onClick={() => setSurveyStep(totalSurveySteps - 1)}
+        className="mb-4 flex items-center gap-1 text-sm font-medium text-muted-foreground"
+      >
+        <ChevronLeft className="h-4 w-4" />
+        Wróć
+      </button>
       <h1
         className="mb-2 text-2xl font-extrabold leading-tight"
         style={{ animation: "cascadeIn 0.5s ease-out both" }}
       >
-        Wybierz swoje rutyny
+        Twój plan dnia
       </h1>
       <p
         className="mb-6 text-sm text-muted-foreground"
         style={{ animation: "cascadeIn 0.5s ease-out 0.1s both" }}
       >
-        Pomogą Ci zbudować nawyki. Wybierz te, które pasują — możesz dodać kolejne potem.
+        Odznacz to, czego nie chcesz — resztę dodamy za Ciebie.
       </p>
 
-      <div className="flex flex-col gap-3">
-        {ROUTINE_TEMPLATES.map((t, i) => {
-          const active = selected.has(t.id);
-          const Icon = t.icon;
+      <div className="flex flex-col gap-2">
+        {generated.map((r, i) => {
+          const active = selectedGen.has(i);
           return (
             <button
-              key={t.id}
+              key={i}
               type="button"
-              onClick={() => toggle(t.id)}
-              className="flex items-center gap-4 rounded-3xl bg-foreground/5 px-4 py-4 text-left transition-colors"
+              onClick={() => toggleGen(i)}
+              className="flex items-center gap-4 rounded-3xl bg-foreground/5 px-4 py-3 text-left transition-colors"
               style={{
-                animation: `cascadeIn 0.5s ease-out ${0.15 + i * 0.06}s both`,
+                animation: `cascadeIn 0.5s ease-out ${0.1 + i * 0.04}s both`,
                 border: active ? "1.5px solid var(--primary)" : "1.5px solid transparent",
               }}
             >
-              <div
-                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl"
-                style={{
-                  backgroundColor: active
-                    ? "color-mix(in oklab, var(--primary) 15%, transparent)"
-                    : "color-mix(in oklab, var(--foreground) 5%, transparent)",
-                }}
-              >
-                <Icon className="h-5 w-5" style={{ color: active ? "var(--primary)" : "var(--muted-foreground)" }} />
-              </div>
               <div className="flex-1">
-                <p className="text-[15px] font-semibold">{t.title}</p>
-                <p className="mt-0.5 text-[13px] text-muted-foreground">{t.description}</p>
+                <p className="text-[15px] font-semibold">{r.title}</p>
+                {r.scheduled_time && (
+                  <p className="mt-0.5 text-[13px] text-muted-foreground">{r.scheduled_time}</p>
+                )}
               </div>
               <div
                 className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full transition-colors"
@@ -258,21 +497,271 @@ function StepRoutines({ onNext, onSkip }: { onNext: () => void; onSkip: () => vo
 
       <div className="mt-auto flex flex-col gap-3 pb-4 pt-8">
         <button
-          onClick={handleAdd}
+          onClick={handleSaveGenerated}
           disabled={saving}
           className="accent-gradient flex h-14 w-full items-center justify-center rounded-3xl text-base font-bold text-primary-foreground transition-transform active:scale-[0.98] disabled:opacity-50"
         >
-          {saving ? "Dodawanie…" : selected.size > 0 ? "Dodaj wybrane" : "Kontynuuj"}
+          {saving ? "Dodawanie…" : selectedGen.size > 0 ? `Dodaj ${selectedGen.size} rutyn` : "Kontynuuj"}
         </button>
         <button
           onClick={onSkip}
           className="h-10 text-sm font-medium text-muted-foreground"
           type="button"
         >
-          Zrobię to później
+          Pomiń
         </button>
       </div>
     </div>
+  );
+}
+
+const SURVEY_QUESTIONS_COUNT = 5;
+
+function getEffectiveSurveyStep(rawStep: number, hasFixedHours: boolean): number {
+  // Q0=wake, Q1=workType, Q2=workHours (skipped if free), Q3=focus, Q4=goals
+  if (!hasFixedHours && rawStep >= 2) return rawStep + 1;
+  return rawStep;
+}
+
+function SurveyQuestion({
+  questionIndex,
+  answers,
+  setAnswers,
+  onNext,
+  onBack,
+  onSkip,
+  currentStep,
+  totalSteps,
+}: {
+  questionIndex: number;
+  answers: SurveyAnswers;
+  setAnswers: React.Dispatch<React.SetStateAction<SurveyAnswers>>;
+  onNext: () => void;
+  onBack: () => void;
+  onSkip: () => void;
+  currentStep: number;
+  totalSteps: number;
+}) {
+  return (
+    <div className="flex flex-1 flex-col pt-8">
+      <button
+        type="button"
+        onClick={onBack}
+        className="mb-4 flex items-center gap-1 text-sm font-medium text-muted-foreground"
+      >
+        <ChevronLeft className="h-4 w-4" />
+        Wróć
+      </button>
+
+      <p
+        className="mb-2 text-xs font-medium text-muted-foreground"
+        style={{ animation: "cascadeIn 0.5s ease-out both" }}
+      >
+        {currentStep} z {totalSteps}
+      </p>
+
+      {questionIndex === 0 && (
+        <SurveyWakeUp value={answers.wakeUp} onChange={(v) => { setAnswers((a) => ({ ...a, wakeUp: v })); onNext(); }} />
+      )}
+      {questionIndex === 1 && (
+        <SurveyWorkType value={answers.workType} onChange={(v) => { setAnswers((a) => ({ ...a, workType: v })); onNext(); }} />
+      )}
+      {questionIndex === 2 && (
+        <SurveyWorkHours
+          start={answers.workStart}
+          end={answers.workEnd}
+          onChange={(s, e) => setAnswers((a) => ({ ...a, workStart: s, workEnd: e }))}
+          onNext={onNext}
+        />
+      )}
+      {questionIndex === 3 && (
+        <SurveyFocusCount value={answers.focusCount} onChange={(v) => { setAnswers((a) => ({ ...a, focusCount: v })); onNext(); }} />
+      )}
+      {questionIndex === 4 && (
+        <SurveyGoals value={answers.goals} onChange={(v) => setAnswers((a) => ({ ...a, goals: v }))} onNext={onNext} />
+      )}
+
+      <div className="mt-auto pb-4 pt-8">
+        <button onClick={onSkip} className="h-10 w-full text-sm font-medium text-muted-foreground" type="button">
+          Pomiń
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function OptionButton({ active, label, onClick, delay }: { active: boolean; label: string; onClick: () => void; delay: number }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex items-center gap-4 rounded-3xl bg-foreground/5 px-4 py-4 text-left transition-colors"
+      style={{
+        animation: `cascadeIn 0.5s ease-out ${delay}s both`,
+        border: active ? "1.5px solid var(--primary)" : "1.5px solid transparent",
+      }}
+    >
+      <span className="flex-1 text-[15px] font-semibold">{label}</span>
+      <div
+        className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full transition-colors"
+        style={{
+          backgroundColor: active ? "var(--primary)" : "transparent",
+          border: active ? "none" : "1.5px solid color-mix(in oklab, var(--foreground) 20%, transparent)",
+        }}
+      >
+        {active && <Check className="h-3.5 w-3.5 text-primary-foreground" strokeWidth={3} />}
+      </div>
+    </button>
+  );
+}
+
+function SurveyWakeUp({ value, onChange }: { value: WakeUp; onChange: (v: WakeUp) => void }) {
+  return (
+    <>
+      <h1 className="mb-6 text-2xl font-extrabold leading-tight" style={{ animation: "cascadeIn 0.5s ease-out 0.05s both" }}>
+        O której wstajesz?
+      </h1>
+      <div className="flex flex-col gap-3">
+        {WAKE_OPTIONS.map((o, i) => (
+          <OptionButton key={o.value} active={value === o.value} label={o.label} onClick={() => onChange(o.value)} delay={0.1 + i * 0.06} />
+        ))}
+      </div>
+    </>
+  );
+}
+
+function SurveyWorkType({ value, onChange }: { value: WorkType; onChange: (v: WorkType) => void }) {
+  return (
+    <>
+      <h1 className="mb-6 text-2xl font-extrabold leading-tight" style={{ animation: "cascadeIn 0.5s ease-out 0.05s both" }}>
+        Czym się zajmujesz?
+      </h1>
+      <div className="flex flex-col gap-3">
+        {WORK_OPTIONS.map((o, i) => (
+          <OptionButton key={o.value} active={value === o.value} label={o.label} onClick={() => onChange(o.value)} delay={0.1 + i * 0.06} />
+        ))}
+      </div>
+    </>
+  );
+}
+
+function SurveyWorkHours({
+  start,
+  end,
+  onChange,
+  onNext,
+}: {
+  start: string;
+  end: string;
+  onChange: (s: string, e: string) => void;
+  onNext: () => void;
+}) {
+  return (
+    <>
+      <h1 className="mb-6 text-2xl font-extrabold leading-tight" style={{ animation: "cascadeIn 0.5s ease-out 0.05s both" }}>
+        Godziny pracy
+      </h1>
+      <div
+        className="flex items-center gap-4 rounded-3xl bg-foreground/5 px-5 py-5"
+        style={{ animation: "cascadeIn 0.5s ease-out 0.1s both" }}
+      >
+        <div className="flex flex-1 flex-col items-center gap-1">
+          <span className="text-xs font-medium text-muted-foreground">Od</span>
+          <input
+            type="time"
+            value={start}
+            onChange={(e) => onChange(e.target.value, end)}
+            className="w-full rounded-2xl bg-foreground/5 px-3 py-2 text-center text-lg font-bold"
+          />
+        </div>
+        <span className="mt-4 text-muted-foreground">—</span>
+        <div className="flex flex-1 flex-col items-center gap-1">
+          <span className="text-xs font-medium text-muted-foreground">Do</span>
+          <input
+            type="time"
+            value={end}
+            onChange={(e) => onChange(start, e.target.value)}
+            className="w-full rounded-2xl bg-foreground/5 px-3 py-2 text-center text-lg font-bold"
+          />
+        </div>
+      </div>
+      <button
+        onClick={onNext}
+        className="accent-gradient mt-6 flex h-14 w-full items-center justify-center rounded-3xl text-base font-bold text-primary-foreground transition-transform active:scale-[0.98]"
+        style={{ animation: "cascadeIn 0.5s ease-out 0.2s both" }}
+      >
+        Dalej
+        <ChevronRight className="ml-2 h-5 w-5" />
+      </button>
+    </>
+  );
+}
+
+function SurveyFocusCount({ value, onChange }: { value: FocusCount; onChange: (v: FocusCount) => void }) {
+  const options: { value: FocusCount; label: string }[] = [
+    { value: 1, label: "1 blok" },
+    { value: 2, label: "2 bloki" },
+    { value: 3, label: "3 bloki" },
+  ];
+  return (
+    <>
+      <h1 className="mb-6 text-2xl font-extrabold leading-tight" style={{ animation: "cascadeIn 0.5s ease-out 0.05s both" }}>
+        Ile bloków głębokiej pracy?
+      </h1>
+      <div className="flex flex-col gap-3">
+        {options.map((o, i) => (
+          <OptionButton key={o.value} active={value === o.value} label={o.label} onClick={() => onChange(o.value)} delay={0.1 + i * 0.06} />
+        ))}
+      </div>
+    </>
+  );
+}
+
+function SurveyGoals({
+  value,
+  onChange,
+  onNext,
+}: {
+  value: Goal[];
+  onChange: (v: Goal[]) => void;
+  onNext: () => void;
+}) {
+  const toggleGoal = (g: Goal) => {
+    if (value.includes(g)) {
+      onChange(value.filter((v) => v !== g));
+    } else if (value.length < 2) {
+      onChange([...value, g]);
+    }
+  };
+
+  return (
+    <>
+      <h1 className="mb-2 text-2xl font-extrabold leading-tight" style={{ animation: "cascadeIn 0.5s ease-out 0.05s both" }}>
+        Co jeszcze chcesz ogarnąć?
+      </h1>
+      <p className="mb-6 text-sm text-muted-foreground" style={{ animation: "cascadeIn 0.5s ease-out 0.1s both" }}>
+        Wybierz maks. 2 — albo pomiń.
+      </p>
+      <div className="flex flex-col gap-3">
+        {GOAL_OPTIONS.map((o, i) => (
+          <OptionButton
+            key={o.value}
+            active={value.includes(o.value)}
+            label={o.label}
+            onClick={() => toggleGoal(o.value)}
+            delay={0.15 + i * 0.06}
+          />
+        ))}
+      </div>
+      <button
+        onClick={onNext}
+        className="accent-gradient mt-6 flex h-14 w-full items-center justify-center rounded-3xl text-base font-bold text-primary-foreground transition-transform active:scale-[0.98]"
+        style={{ animation: "cascadeIn 0.5s ease-out 0.4s both" }}
+      >
+        Gotowe
+        <ChevronRight className="ml-2 h-5 w-5" />
+      </button>
+    </>
   );
 }
 
