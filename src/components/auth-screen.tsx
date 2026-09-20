@@ -185,7 +185,7 @@ export function AuthScreen() {
 
         {/* Mode tabs with sliding pill */}
         <div
-          className="mb-5 grid grid-cols-2 gap-1 rounded-2xl p-1"
+          className="mb-5 grid grid-cols-2 gap-1 rounded-full p-1"
           style={{ background: "oklch(1 0 0 / 6%)" }}
         >
           <AuthTab
@@ -336,14 +336,14 @@ function AuthTab({
       type="button"
       onClick={onClick}
       className={cn(
-        "relative h-10 rounded-xl text-sm font-semibold transition-colors",
+        "relative h-11 rounded-full text-sm font-semibold transition-colors",
         active ? "text-white" : "text-muted-foreground",
       )}
     >
       {active && (
         <motion.div
           layoutId="auth-tab-pill"
-          className="absolute inset-0 rounded-xl"
+          className="absolute inset-0 rounded-full"
           style={{ background: AUTH_BLUE }}
           transition={{ type: "spring", bounce: 0.15, duration: 0.5 }}
         />
