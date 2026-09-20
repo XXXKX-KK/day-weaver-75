@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import "../../today.css";
 import { useNavigate } from "@tanstack/react-router";
-import { Check, ChevronRight, ChevronLeft, Sunrise, Brain, Moon, Sparkles, ListChecks } from "lucide-react";
+import { Check, ChevronRight, ChevronLeft } from "lucide-react";
 import { TenaxLogo } from "@/components/tenax-logo";
 import { useAddRoutine, type NewRoutineInput } from "@/lib/routines";
 import { isNativeBlocker, Blocker, type InstalledApp } from "@/lib/blocker";
@@ -19,6 +19,7 @@ import {
   GOAL_OPTIONS,
   generateRoutines,
 } from "@/lib/day-survey";
+import { useEffect } from "react";
 
 const ONBOARDING_KEY = "tenax:onboarding-done";
 
@@ -35,53 +36,6 @@ function markOnboardingDone() {
     localStorage.setItem(ONBOARDING_KEY, "1");
   } catch {}
 }
-
-type RoutineTemplate = {
-  id: string;
-  title: string;
-  icon: typeof Sunrise;
-  description: string;
-  input: NewRoutineInput;
-};
-
-const ROUTINE_TEMPLATES: RoutineTemplate[] = [
-  {
-    id: "morning",
-    title: "Poranny reset",
-    icon: Sunrise,
-    description: "Codziennie — woda, plan dnia, rozciąganie",
-    input: {
-      title: "Poranny reset",
-      priority: "normal",
-      weekdays: [1, 2, 3, 4, 5, 6, 7],
-      subtasks: ["Szklanka wody", "Przejrzyj plan dnia", "Rozciąganie 5 min"],
-    },
-  },
-  {
-    id: "deep-work",
-    title: "Głęboka praca",
-    icon: Brain,
-    description: "Wycisz telefon i pracuj w skupieniu",
-    input: {
-      title: "Głęboka praca",
-      priority: "high",
-      weekdays: [1, 2, 3, 4, 5],
-      subtasks: ["Wycisz powiadomienia", "Włącz Skupienie", "Blok pracy bez telefonu"],
-    },
-  },
-  {
-    id: "evening",
-    title: "Wieczorne domknięcie",
-    icon: Moon,
-    description: "Codziennie — podsumuj i zaplanuj jutro",
-    input: {
-      title: "Wieczorne domknięcie",
-      priority: "normal",
-      weekdays: [1, 2, 3, 4, 5, 6, 7],
-      subtasks: ["Odhacz dzień", "Zaplanuj jutro"],
-    },
-  },
-];
 
 const POPULAR_APPS = [
   "com.instagram.android",
@@ -179,37 +133,14 @@ function StepPromise({ onNext }: { onNext: () => void }) {
 }
 
 function StepRoutines({ onNext, onSkip }: { onNext: () => void; onSkip: () => void }) {
-  const [path, setPath] = useState<"choose" | "survey" | "manual">("choose");
   const [surveyStep, setSurveyStep] = useState(0);
   const [answers, setAnswers] = useState<SurveyAnswers>({ ...DEFAULT_ANSWERS });
   const [generated, setGenerated] = useState<NewRoutineInput[]>([]);
   const [selectedGen, setSelectedGen] = useState<Set<number>>(new Set());
+  const [showPreview, setShowPreview] = useState(false);
 
-  const [selected, setSelected] = useState<Set<string>>(new Set(["morning"]));
   const addRoutine = useAddRoutine();
   const [saving, setSaving] = useState(false);
-
-  const toggle = (id: string) => {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  };
-
-  const handleAdd = async () => {
-    if (selected.size === 0) { onSkip(); return; }
-    setSaving(true);
-    try {
-      const templates = ROUTINE_TEMPLATES.filter((t) => selected.has(t.id));
-      for (const t of templates) await addRoutine.mutateAsync(t.input);
-      onNext();
-    } catch {
-      toast.error("Nie udało się dodać rutyn.");
-      setSaving(false);
-    }
-  };
 
   const handleSaveGenerated = async () => {
     const toSave = generated.filter((_, i) => selectedGen.has(i));
@@ -228,181 +159,13 @@ function StepRoutines({ onNext, onSkip }: { onNext: () => void; onSkip: () => vo
     const routines = generateRoutines(answers);
     setGenerated(routines);
     setSelectedGen(new Set(routines.map((_, i) => i)));
-    setPath("survey");
-    setSurveyStep(SURVEY_QUESTIONS_COUNT);
+    setShowPreview(true);
   };
 
-  const hasFixedHours = answers.workType !== "free";
+  const hasFixedHours = answers.workType === "fixed";
   const totalSurveySteps = hasFixedHours ? 5 : 4;
 
-  if (path === "choose") {
-    return (
-      <div className="flex flex-1 flex-col pt-8">
-        <h1
-          className="mb-2 text-2xl font-extrabold leading-tight"
-          style={{ animation: "cascadeIn 0.5s ease-out both" }}
-        >
-          Jak chcesz zacząć?
-        </h1>
-        <p
-          className="mb-6 text-sm text-muted-foreground"
-          style={{ animation: "cascadeIn 0.5s ease-out 0.1s both" }}
-        >
-          Możemy ułożyć Ci dzień albo sam wybierzesz rutyny.
-        </p>
-
-        <div className="flex flex-col gap-3">
-          <button
-            type="button"
-            onClick={() => { setPath("survey"); setSurveyStep(0); }}
-            className="flex items-center gap-4 rounded-3xl bg-foreground/5 px-4 py-4 text-left"
-            style={{
-              animation: "cascadeIn 0.5s ease-out 0.15s both",
-              border: "1.5px solid var(--primary)",
-            }}
-          >
-            <div
-              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl"
-              style={{ backgroundColor: "color-mix(in oklab, var(--primary) 15%, transparent)" }}
-            >
-              <Sparkles className="h-5 w-5" style={{ color: "var(--primary)" }} />
-            </div>
-            <div className="flex-1">
-              <p className="text-[15px] font-semibold">Ułóż mi dzień</p>
-              <p className="mt-0.5 text-[13px] text-muted-foreground">
-                5 pytań — zero pisania
-              </p>
-            </div>
-            <ChevronRight className="h-5 w-5 text-muted-foreground" />
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setPath("manual")}
-            className="flex items-center gap-4 rounded-3xl bg-foreground/5 px-4 py-4 text-left"
-            style={{
-              animation: "cascadeIn 0.5s ease-out 0.21s both",
-              border: "1.5px solid transparent",
-            }}
-          >
-            <div
-              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl"
-              style={{ backgroundColor: "color-mix(in oklab, var(--foreground) 5%, transparent)" }}
-            >
-              <ListChecks className="h-5 w-5 text-muted-foreground" />
-            </div>
-            <div className="flex-1">
-              <p className="text-[15px] font-semibold">Wybiorę sam</p>
-              <p className="mt-0.5 text-[13px] text-muted-foreground">
-                Gotowe szablony rutyn
-              </p>
-            </div>
-            <ChevronRight className="h-5 w-5 text-muted-foreground" />
-          </button>
-        </div>
-
-        <div className="mt-auto pb-4 pt-8">
-          <button
-            onClick={onSkip}
-            className="h-10 w-full text-sm font-medium text-muted-foreground"
-            type="button"
-          >
-            Pomiń
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  if (path === "manual") {
-    return (
-      <div className="flex flex-1 flex-col pt-8">
-        <button
-          type="button"
-          onClick={() => setPath("choose")}
-          className="mb-4 flex items-center gap-1 text-sm font-medium text-muted-foreground"
-        >
-          <ChevronLeft className="h-4 w-4" />
-          Wróć
-        </button>
-        <h1
-          className="mb-2 text-2xl font-extrabold leading-tight"
-          style={{ animation: "cascadeIn 0.5s ease-out both" }}
-        >
-          Wybierz swoje rutyny
-        </h1>
-        <p
-          className="mb-6 text-sm text-muted-foreground"
-          style={{ animation: "cascadeIn 0.5s ease-out 0.1s both" }}
-        >
-          Pomogą Ci zbudować nawyki. Wybierz te, które pasują — możesz dodać kolejne potem.
-        </p>
-
-        <div className="flex flex-col gap-3">
-          {ROUTINE_TEMPLATES.map((t, i) => {
-            const active = selected.has(t.id);
-            const Icon = t.icon;
-            return (
-              <button
-                key={t.id}
-                type="button"
-                onClick={() => toggle(t.id)}
-                className="flex items-center gap-4 rounded-3xl bg-foreground/5 px-4 py-4 text-left transition-colors"
-                style={{
-                  animation: `cascadeIn 0.5s ease-out ${0.15 + i * 0.06}s both`,
-                  border: active ? "1.5px solid var(--primary)" : "1.5px solid transparent",
-                }}
-              >
-                <div
-                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl"
-                  style={{
-                    backgroundColor: active
-                      ? "color-mix(in oklab, var(--primary) 15%, transparent)"
-                      : "color-mix(in oklab, var(--foreground) 5%, transparent)",
-                  }}
-                >
-                  <Icon className="h-5 w-5" style={{ color: active ? "var(--primary)" : "var(--muted-foreground)" }} />
-                </div>
-                <div className="flex-1">
-                  <p className="text-[15px] font-semibold">{t.title}</p>
-                  <p className="mt-0.5 text-[13px] text-muted-foreground">{t.description}</p>
-                </div>
-                <div
-                  className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full transition-colors"
-                  style={{
-                    backgroundColor: active ? "var(--primary)" : "transparent",
-                    border: active ? "none" : "1.5px solid color-mix(in oklab, var(--foreground) 20%, transparent)",
-                  }}
-                >
-                  {active && <Check className="h-3.5 w-3.5 text-primary-foreground" strokeWidth={3} />}
-                </div>
-              </button>
-            );
-          })}
-        </div>
-
-        <div className="mt-auto flex flex-col gap-3 pb-4 pt-8">
-          <button
-            onClick={handleAdd}
-            disabled={saving}
-            className="accent-gradient flex h-14 w-full items-center justify-center rounded-3xl text-base font-bold text-primary-foreground transition-transform active:scale-[0.98] disabled:opacity-50"
-          >
-            {saving ? "Dodawanie…" : selected.size > 0 ? "Dodaj wybrane" : "Kontynuuj"}
-          </button>
-          <button
-            onClick={onSkip}
-            className="h-10 text-sm font-medium text-muted-foreground"
-            type="button"
-          >
-            Pomiń
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // ── Survey path ──
-  if (surveyStep < SURVEY_QUESTIONS_COUNT) {
+  if (!showPreview) {
     const effectiveStep = getEffectiveSurveyStep(surveyStep, hasFixedHours);
     return (
       <SurveyQuestion
@@ -418,7 +181,7 @@ function StepRoutines({ onNext, onSkip }: { onNext: () => void; onSkip: () => vo
           }
         }}
         onBack={() => {
-          if (surveyStep === 0) { setPath("choose"); }
+          if (surveyStep === 0) { onSkip(); }
           else setSurveyStep(surveyStep - 1);
         }}
         onSkip={onSkip}
@@ -442,7 +205,10 @@ function StepRoutines({ onNext, onSkip }: { onNext: () => void; onSkip: () => vo
     <div className="flex flex-1 flex-col pt-8">
       <button
         type="button"
-        onClick={() => setSurveyStep(totalSurveySteps - 1)}
+        onClick={() => {
+          setShowPreview(false);
+          setSurveyStep(totalSurveySteps - 1);
+        }}
         className="mb-4 flex items-center gap-1 text-sm font-medium text-muted-foreground"
       >
         <ChevronLeft className="h-4 w-4" />
@@ -518,7 +284,6 @@ function StepRoutines({ onNext, onSkip }: { onNext: () => void; onSkip: () => vo
 const SURVEY_QUESTIONS_COUNT = 5;
 
 function getEffectiveSurveyStep(rawStep: number, hasFixedHours: boolean): number {
-  // Q0=wake, Q1=workType, Q2=workHours (skipped if free), Q3=focus, Q4=goals
   if (!hasFixedHours && rawStep >= 2) return rawStep + 1;
   return rawStep;
 }

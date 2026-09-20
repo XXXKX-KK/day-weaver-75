@@ -1,8 +1,9 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { Capacitor } from "@capacitor/core";
 import { LocalNotifications } from "@capacitor/local-notifications";
 import { useProfile } from "@/lib/profile";
 import { useToday } from "@/lib/day";
+import { useRoutines, type RoutineRow } from "@/lib/routines";
 
 /**
  * Local (on-device) daily reminders — no server, no push, no Firebase.
@@ -16,8 +17,10 @@ import { useToday } from "@/lib/day";
 const MORNING_ID = 1001;
 const EVENING_ID = 1002;
 const TASK_ID_BASE = 2000;
+const ROUTINE_ID_BASE = 3_000_000;
 const CHANNEL_ID = "dl-reminders";
 const TASK_CHANNEL_ID = "dl-task-reminders";
+const ROUTINE_CHANNEL_ID = "dl-routine-reminders";
 
 /** localStorage flag for the Settings toggle (default on). */
 const ENABLED_KEY = "dl-notifications-enabled";
@@ -234,6 +237,147 @@ export async function cancelTaskReminder(taskId: string): Promise<void> {
   } catch (e) {
     console.error("cancelTaskReminder failed", e);
   }
+}
+
+/**
+ * Stable numeric notification ID for a routine + weekday combo.
+ * dayOffset 0..6 maps to the 7 possible per-weekday notifications.
+ * If the routine runs all 7 days, dayOffset 0 is the single daily one.
+ */
+function routineNotificationId(routineId: string, dayOffset: number): number {
+  let hash = 0;
+  for (let i = 0; i < routineId.length; i++) {
+    hash = ((hash << 5) - hash + routineId.charCodeAt(i)) | 0;
+  }
+  return (Math.abs(hash) % 1_000_000) * 8 + dayOffset + ROUTINE_ID_BASE;
+}
+
+/** DB weekday (1=Mon..7=Sun) → Capacitor weekday (1=Sun..7=Sat). */
+function dbWeekdayToCapacitor(dbDay: number): number {
+  return (dbDay % 7) + 1;
+}
+
+async function ensureRoutineChannel(): Promise<void> {
+  await LocalNotifications.createChannel({
+    id: ROUTINE_CHANNEL_ID,
+    name: "Przypomnienia rutyn",
+    description: "Powiadomienia o zaplanowanych rutynach.",
+    importance: 4,
+  });
+}
+
+/**
+ * Schedule repeating notifications for a routine that has a scheduled_time.
+ * All 7 weekdays → single daily repeating; subset → one notification per weekday.
+ */
+export async function scheduleRoutineReminder(routine: {
+  id: string;
+  title: string;
+  scheduled_time: string | null;
+  weekdays: number[];
+  is_active: boolean;
+}): Promise<void> {
+  if (!isNative() || !areNotificationsEnabled()) return;
+  if (!routine.scheduled_time || !routine.is_active) return;
+  try {
+    const granted = await ensurePermission();
+    if (!granted) return;
+    await ensureRoutineChannel();
+
+    const [h, m] = routine.scheduled_time.split(":").map(Number);
+    if (h === undefined || m === undefined) return;
+
+    const notifications: ScheduledNotification[] = [];
+
+    if (routine.weekdays.length >= 7) {
+      notifications.push({
+        id: routineNotificationId(routine.id, 0),
+        channelId: ROUTINE_CHANNEL_ID,
+        title: routine.title,
+        body: "Czas na rutynę!",
+        schedule: { on: { hour: h, minute: m } },
+      });
+    } else {
+      for (let i = 0; i < routine.weekdays.length; i++) {
+        const capDay = dbWeekdayToCapacitor(routine.weekdays[i]!);
+        notifications.push({
+          id: routineNotificationId(routine.id, i),
+          channelId: ROUTINE_CHANNEL_ID,
+          title: routine.title,
+          body: "Czas na rutynę!",
+          schedule: { on: { hour: h, minute: m, weekday: capDay } },
+        });
+      }
+    }
+
+    if (notifications.length > 0) {
+      await LocalNotifications.schedule({ notifications });
+    }
+  } catch (e) {
+    console.error("scheduleRoutineReminder failed", e);
+  }
+}
+
+/** Cancel all notification IDs that could belong to a routine (up to 8 slots). */
+export async function cancelRoutineReminder(routineId: string): Promise<void> {
+  if (!isNative()) return;
+  try {
+    const ids: { id: number }[] = [];
+    for (let i = 0; i < 8; i++) {
+      ids.push({ id: routineNotificationId(routineId, i) });
+    }
+    await LocalNotifications.cancel({ notifications: ids });
+  } catch (e) {
+    console.error("cancelRoutineReminder failed", e);
+  }
+}
+
+/**
+ * Bulk-refresh routine notifications: cancel all, then reschedule active ones
+ * that have a scheduled_time. Called at app start and when routines change.
+ */
+export async function refreshRoutineReminders(
+  routines: Array<{
+    id: string;
+    title: string;
+    scheduled_time: string | null;
+    weekdays: number[];
+    is_active: boolean;
+  }>,
+): Promise<void> {
+  if (!isNative() || !areNotificationsEnabled()) return;
+  try {
+    for (const r of routines) {
+      await cancelRoutineReminder(r.id);
+    }
+    for (const r of routines) {
+      if (r.is_active && r.scheduled_time) {
+        await scheduleRoutineReminder(r);
+      }
+    }
+  } catch (e) {
+    console.error("refreshRoutineReminders failed", e);
+  }
+}
+
+/**
+ * Headless hook: keeps routine notifications in sync with the routines list.
+ * Reschedules whenever routines change. No-op on web.
+ */
+export function useRoutineNotificationsSync(): void {
+  const { data: routines } = useRoutines();
+  const prevRef = useRef<string>("");
+
+  useEffect(() => {
+    if (!isNative()) return;
+    if (!routines) return;
+    const key = routines
+      .map((r) => `${r.id}:${r.is_active}:${r.scheduled_time}:${r.weekdays.join(",")}`)
+      .join("|");
+    if (key === prevRef.current) return;
+    prevRef.current = key;
+    void refreshRoutineReminders(routines);
+  }, [routines]);
 }
 
 /**

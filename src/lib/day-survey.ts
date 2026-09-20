@@ -1,7 +1,7 @@
 import type { NewRoutineInput } from "@/lib/routines";
 
 export type WakeUp = "early" | "mid" | "late";
-export type WorkType = "office" | "remote" | "student" | "free";
+export type WorkType = "fixed" | "flexible" | "free";
 export type FocusCount = 1 | 2 | 3;
 export type Goal = "fitness" | "learning" | "home" | "calm";
 
@@ -16,7 +16,7 @@ export type SurveyAnswers = {
 
 export const DEFAULT_ANSWERS: SurveyAnswers = {
   wakeUp: "mid",
-  workType: "office",
+  workType: "fixed",
   workStart: "09:00",
   workEnd: "17:00",
   focusCount: 2,
@@ -30,10 +30,9 @@ export const WAKE_OPTIONS: { value: WakeUp; label: string; time: string }[] = [
 ];
 
 export const WORK_OPTIONS: { value: WorkType; label: string }[] = [
-  { value: "office", label: "Praca biurowa" },
-  { value: "remote", label: "Praca zdalna" },
-  { value: "student", label: "Nauka / studia" },
-  { value: "free", label: "Brak stałych godzin" },
+  { value: "fixed", label: "Tak, stałe godziny" },
+  { value: "flexible", label: "Elastycznie" },
+  { value: "free", label: "Mam wolne" },
 ];
 
 export const GOAL_OPTIONS: { value: Goal; label: string }[] = [
@@ -76,8 +75,8 @@ export function generateRoutines(answers: SurveyAnswers): NewRoutineInput[] {
     effectiveFocus = (effectiveFocus - 1) as FocusCount;
   }
 
-  const hasFixedHours = answers.workType !== "free";
-  const focusDays = answers.workType === "student" ? allDays : weekdays;
+  const hasFixedHours = answers.workType === "fixed";
+  const focusDays = answers.workType === "free" ? allDays : weekdays;
 
   for (let i = 0; i < effectiveFocus; i++) {
     let time: string;

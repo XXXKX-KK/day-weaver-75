@@ -39,7 +39,12 @@ import { SortableList } from "@/components/sortable-list";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { scheduleTaskReminder, cancelTaskReminder } from "@/lib/notifications";
+import {
+  scheduleTaskReminder,
+  cancelTaskReminder,
+  scheduleRoutineReminder,
+  cancelRoutineReminder,
+} from "@/lib/notifications";
 import { todayLocalISO } from "@/lib/day";
 
 /** ISO weekday order 1=Mon .. 7=Sun, with short PL labels. */
@@ -142,6 +147,7 @@ function TasksScreen() {
     } else {
       for (const id of ids) {
         deleteRoutine.mutate(id, {
+          onSuccess: () => void cancelRoutineReminder(id),
           onError: () => toast.error("Nie udało się usunąć rutyny."),
         });
       }
