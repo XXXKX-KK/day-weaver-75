@@ -402,14 +402,67 @@ select:focus {
     0 0 4px -1px color-mix(in oklab, var(--primary) 18%, transparent);
 }
 
+/*
+ * Auth screen — glass inputs with border-only beam via mask-composite.
+ * The beam gradient is drawn on a ::after pseudo-element of .beam-wrap
+ * and masked to the border ring so no "radar sweep" bleeds into the field.
+ */
 [data-auth] input:where(
   [type="text"], [type="email"], [type="password"], [type="search"],
   [type="tel"], [type="url"], [type="number"], [type="time"],
   :not([type])
 ):focus {
-  --beam-fill: oklch(0.16 0.012 255 / 40%);
+  background: rgba(255, 255, 255, 0.07) !important;
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
+  border: 1.5px solid transparent !important;
+  animation: none;
+  box-shadow: none;
+}
+
+.beam-wrap {
+  position: relative;
+  border-radius: 1rem;
+}
+
+.beam-wrap:focus-within {
+  filter:
+    drop-shadow(0 0 10px color-mix(in oklab, var(--primary) 30%, transparent))
+    drop-shadow(0 0 3px color-mix(in oklab, var(--primary) 16%, transparent));
+}
+
+.beam-wrap::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1.5px;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0;
+  background: conic-gradient(
+    from var(--beam-angle),
+    transparent 0%,
+    transparent 30%,
+    var(--primary) 47%,
+    color-mix(in oklab, var(--primary) 90%, white 10%) 50%,
+    var(--primary) 53%,
+    transparent 70%,
+    transparent 100%
+  );
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+}
+
+.beam-wrap:focus-within::after {
+  opacity: 1;
+  animation: borderBeamSpin 2.4s linear infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {

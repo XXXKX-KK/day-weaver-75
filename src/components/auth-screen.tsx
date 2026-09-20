@@ -195,17 +195,19 @@ export function AuthScreen() {
 
         {/* Form */}
         <form onSubmit={submit} className="flex flex-col gap-3">
-          <input
-            type="email"
-            inputMode="email"
-            autoComplete="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="E-mail"
-            className="h-12 w-full rounded-2xl border border-white/10 bg-white/[0.07] px-4 text-sm text-foreground outline-none placeholder:text-muted-foreground"
-          />
+          <div className="beam-wrap">
+            <input
+              type="email"
+              inputMode="email"
+              autoComplete="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="E-mail"
+              className="h-12 w-full rounded-2xl border border-white/10 bg-white/[0.07] px-4 text-sm text-foreground outline-none placeholder:text-muted-foreground"
+            />
+          </div>
 
-          <div className="relative">
+          <div className="beam-wrap relative">
             <input
               type={showPassword ? "text" : "password"}
               autoComplete={
@@ -240,6 +242,7 @@ export function AuthScreen() {
                 transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
                 className="overflow-hidden"
               >
+                <div className="beam-wrap">
                 <input
                   type="password"
                   autoComplete="new-password"
@@ -248,6 +251,7 @@ export function AuthScreen() {
                   placeholder="Powtórz hasło"
                   className="h-12 w-full rounded-2xl border border-white/10 bg-white/[0.07] px-4 text-sm text-foreground outline-none placeholder:text-muted-foreground"
                 />
+              </div>
               </motion.div>
             )}
           </AnimatePresence>
