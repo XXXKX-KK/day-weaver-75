@@ -383,8 +383,8 @@ select:focus {
   border-width: 1.5px;
   background:
     linear-gradient(
-      color-mix(in oklab, var(--foreground) 5%, var(--background)),
-      color-mix(in oklab, var(--foreground) 5%, var(--background))
+      color-mix(in oklab, var(--foreground) 5%, var(--elevated)),
+      color-mix(in oklab, var(--foreground) 5%, var(--elevated))
     ) padding-box,
     conic-gradient(
       from var(--beam-angle),
@@ -432,7 +432,7 @@ input:where(
   select:focus {
     animation: none;
     border-color: var(--primary) !important;
-    background: color-mix(in oklab, var(--foreground) 5%, var(--background));
+    background: color-mix(in oklab, var(--foreground) 5%, var(--elevated));
     box-shadow: 0 0 0 2px color-mix(in oklab, var(--primary) 30%, transparent);
   }
 }
