@@ -77,6 +77,7 @@ export function AuthScreen() {
 
   return (
     <div
+      data-auth
       className="overlay-bg relative min-h-screen"
       style={
         {
@@ -100,43 +101,33 @@ export function AuthScreen() {
           style={{ transformStyle: "preserve-3d" }}
           className="mb-4"
         >
-          <div
-            className="flex items-center justify-center rounded-[22%]"
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+            width={64}
+            height={64}
+            aria-hidden="true"
             style={{
-              width: 64,
-              height: 64,
-              background: "oklch(0.10 0.015 255 / 70%)",
-              backdropFilter: "blur(12px)",
-              WebkitBackdropFilter: "blur(12px)",
-              border: "1px solid oklch(0.62 0.18 255 / 25%)",
-              boxShadow:
-                "0 0 40px -8px oklch(0.62 0.18 255 / 40%), 0 0 16px -4px oklch(0.62 0.18 255 / 25%)",
+              filter:
+                "drop-shadow(0 0 18px oklch(0.62 0.18 255 / 45%)) drop-shadow(0 0 6px oklch(0.62 0.18 255 / 30%))",
             }}
           >
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-              width={38}
-              height={38}
-              aria-hidden="true"
-            >
-              <path
-                d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"
-                stroke={AUTH_BLUE}
-                strokeWidth="2"
-                strokeLinejoin="round"
-                strokeLinecap="round"
-              />
-              <path
-                d="m9 12 2 2 4-4"
-                stroke={AUTH_BLUE}
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </div>
+            <path
+              d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"
+              stroke={AUTH_BLUE}
+              strokeWidth="1.5"
+              strokeLinejoin="round"
+              strokeLinecap="round"
+            />
+            <path
+              d="m9 12 2 2 4-4"
+              stroke={AUTH_BLUE}
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
         </motion.div>
 
         <h1 className="text-2xl font-bold leading-tight tracking-wide">
@@ -175,7 +166,7 @@ export function AuthScreen() {
           key={wipeKey}
           initial={{ x: "110%", y: "-110%" }}
           animate={{ x: "-110%", y: "110%" }}
-          transition={{ duration: 0.55, ease: [0.4, 0, 0.2, 1] }}
+          transition={{ duration: 0.85, ease: [0.4, 0, 0.2, 1] }}
           className="pointer-events-none absolute inset-0 z-10"
           style={{
             background:

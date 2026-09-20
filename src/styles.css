@@ -360,6 +360,8 @@
  *
  * Applied globally to text-like inputs, textareas, and selects.
  * Color follows --primary, so theme / accent changes update instantly.
+ * --beam-fill can be overridden per-context (e.g. auth screen uses a
+ * semi-transparent fill to preserve glassmorphism).
  */
 
 @property --beam-angle {
@@ -379,13 +381,11 @@ input:where(
 ):focus,
 textarea:focus,
 select:focus {
+  --beam-fill: color-mix(in oklab, var(--foreground) 5%, var(--elevated));
   border-color: transparent !important;
   border-width: 1.5px;
   background:
-    linear-gradient(
-      color-mix(in oklab, var(--foreground) 5%, var(--elevated)),
-      color-mix(in oklab, var(--foreground) 5%, var(--elevated))
-    ) padding-box,
+    linear-gradient(var(--beam-fill), var(--beam-fill)) padding-box,
     conic-gradient(
       from var(--beam-angle),
       transparent 0%,
@@ -402,24 +402,14 @@ select:focus {
     0 0 4px -1px color-mix(in oklab, var(--primary) 18%, transparent);
 }
 
-/* Auth inputs use bg-elevated — override the inner fill */
-input:where(
+[data-auth] input:where(
   [type="text"], [type="email"], [type="password"], [type="search"],
   [type="tel"], [type="url"], [type="number"], [type="time"],
   :not([type])
-).bg-elevated:focus {
-  background:
-    linear-gradient(var(--elevated), var(--elevated)) padding-box,
-    conic-gradient(
-      from var(--beam-angle),
-      transparent 0%,
-      transparent 30%,
-      var(--primary) 47%,
-      color-mix(in oklab, var(--primary) 90%, white 10%) 50%,
-      var(--primary) 53%,
-      transparent 70%,
-      transparent 100%
-    ) border-box;
+):focus {
+  --beam-fill: oklch(0.16 0.012 255 / 40%);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
 }
 
 @media (prefers-reduced-motion: reduce) {
