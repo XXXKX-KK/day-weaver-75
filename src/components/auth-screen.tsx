@@ -76,14 +76,17 @@ export function AuthScreen() {
   };
 
   return (
-    <main
-      className="mx-auto flex min-h-screen w-full max-w-[26rem] flex-col justify-center px-5 py-10"
+    <div
+      className="overlay-bg relative min-h-screen"
       style={
         {
           "--primary": AUTH_BLUE,
           "--primary-foreground": "oklch(0.99 0.005 255)",
         } as React.CSSProperties
       }
+    >
+    <main
+      className="relative z-10 mx-auto flex min-h-screen w-full max-w-[26rem] flex-col justify-center px-5 py-10"
     >
       {/* Shield logo with 3D flip on mode switch */}
       <div
@@ -315,6 +318,7 @@ export function AuthScreen() {
         </button>
       </p>
     </main>
+    </div>
   );
 }
 
