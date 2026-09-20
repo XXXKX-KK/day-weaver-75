@@ -289,12 +289,12 @@ export default function StatystykiScreen({
         </div>
 
         {/* Segment */}
-        <div className="mb-5 grid grid-cols-2 gap-1 rounded-2xl bg-foreground/5 p-1">
+        <div className="mb-5 grid grid-cols-2 gap-1 rounded-full bg-foreground/5 p-1">
           {(['postep', 'siatka'] as TabView[]).map((v) => (
             <button
               key={v}
               onClick={() => changeView(v)}
-              className={`h-11 rounded-xl text-[13.5px] font-bold transition-colors ${
+              className={`h-11 rounded-full text-[13.5px] font-bold transition-colors ${
                 view === v ? 'accent-gradient text-primary-foreground' : 'text-muted-foreground'
               }`}
             >
@@ -380,7 +380,7 @@ export default function StatystykiScreen({
                   <button
                     key={key}
                     onClick={() => setRange(key)}
-                    className={`flex-1 rounded-[10px] py-[7px] text-[12px] font-bold transition-all duration-200 ${!active ? 'bg-foreground/5' : ''}`}
+                    className={`flex-1 rounded-xl py-[7px] text-[12px] font-bold transition-all duration-200 ${!active ? 'bg-foreground/5' : ''}`}
                     style={{
                       border: active ? '1px solid var(--primary)' : undefined,
                       background: active ? 'color-mix(in oklab, var(--primary) 12%, transparent)' : undefined,

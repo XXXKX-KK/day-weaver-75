@@ -173,7 +173,7 @@ function Today() {
             <p className="text-sm text-muted-foreground">Nie udało się wczytać dnia.</p>
             <button
               onClick={() => refetch()}
-              className="h-10 rounded-2xl bg-secondary px-4 text-sm font-semibold text-secondary-foreground"
+              className="h-10 rounded-full bg-secondary px-4 text-sm font-semibold text-secondary-foreground"
             >
               Spróbuj ponownie
             </button>
@@ -355,7 +355,7 @@ function Today() {
                 });
               }}
               disabled={completeDay.isPending}
-              className="accent-gradient accent-glow mt-8 h-16 w-full rounded-3xl text-lg font-bold text-primary-foreground transition-transform active:scale-[0.98] disabled:opacity-50"
+              className="accent-gradient accent-glow mt-8 h-16 w-full rounded-full text-lg font-bold text-primary-foreground transition-transform active:scale-[0.98] disabled:opacity-50"
             >
               {completeDay.isPending ? "Kończenie…" : "Zakończ dzień"}
             </button>
@@ -553,7 +553,7 @@ function NotStarted({ starting, onStart }: { starting: boolean; onStart: () => v
           data-tour="start-day"
           onClick={onStart}
           disabled={starting}
-          className="accent-gradient accent-glow flex h-16 w-full items-center justify-center gap-2 rounded-3xl text-lg font-bold text-primary-foreground transition-transform active:scale-[0.98] disabled:opacity-50"
+          className="accent-gradient accent-glow flex h-16 w-full items-center justify-center gap-2 rounded-full text-lg font-bold text-primary-foreground transition-transform active:scale-[0.98] disabled:opacity-50"
         >
           <Play className="h-5 w-5" fill="currentColor" />
           {starting ? "Rozpoczynanie…" : "Rozpocznij dzień"}

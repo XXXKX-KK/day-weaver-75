@@ -259,7 +259,7 @@ export function Coachmarks({ onDone }: { onDone: () => void }) {
           <button
             type="button"
             onClick={next}
-            className="accent-gradient min-h-[40px] rounded-xl px-4 text-[13.5px] font-bold text-primary-foreground transition-transform active:scale-[0.97]"
+            className="accent-gradient min-h-[40px] rounded-full px-4 text-[13.5px] font-bold text-primary-foreground transition-transform active:scale-[0.97]"
           >
             {isLast ? "Gotowe" : "Dalej"}
           </button>

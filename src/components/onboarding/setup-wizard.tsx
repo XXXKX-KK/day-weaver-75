@@ -122,7 +122,7 @@ function StepPromise({ onNext }: { onNext: () => void }) {
       </p>
       <button
         onClick={onNext}
-        className="accent-gradient flex h-14 w-full max-w-xs items-center justify-center gap-2 rounded-3xl text-base font-bold text-primary-foreground transition-transform active:scale-[0.98]"
+        className="accent-gradient flex h-14 w-full max-w-xs items-center justify-center gap-2 rounded-full text-base font-bold text-primary-foreground transition-transform active:scale-[0.98]"
         style={{ animation: "cascadeIn 0.5s ease-out 0.3s both" }}
       >
         Zaczynajmy
@@ -265,7 +265,7 @@ function StepRoutines({ onNext, onSkip }: { onNext: () => void; onSkip: () => vo
         <button
           onClick={handleSaveGenerated}
           disabled={saving}
-          className="accent-gradient flex h-14 w-full items-center justify-center rounded-3xl text-base font-bold text-primary-foreground transition-transform active:scale-[0.98] disabled:opacity-50"
+          className="accent-gradient flex h-14 w-full items-center justify-center rounded-full text-base font-bold text-primary-foreground transition-transform active:scale-[0.98] disabled:opacity-50"
         >
           {saving ? "Dodawanie…" : selectedGen.size > 0 ? `Dodaj ${selectedGen.size} rutyn` : "Kontynuuj"}
         </button>
@@ -452,7 +452,7 @@ function SurveyWorkHours({
       </div>
       <button
         onClick={onNext}
-        className="accent-gradient mt-6 flex h-14 w-full items-center justify-center rounded-3xl text-base font-bold text-primary-foreground transition-transform active:scale-[0.98]"
+        className="accent-gradient mt-6 flex h-14 w-full items-center justify-center rounded-full text-base font-bold text-primary-foreground transition-transform active:scale-[0.98]"
         style={{ animation: "cascadeIn 0.5s ease-out 0.2s both" }}
       >
         Dalej
@@ -520,7 +520,7 @@ function SurveyGoals({
       </div>
       <button
         onClick={onNext}
-        className="accent-gradient mt-6 flex h-14 w-full items-center justify-center rounded-3xl text-base font-bold text-primary-foreground transition-transform active:scale-[0.98]"
+        className="accent-gradient mt-6 flex h-14 w-full items-center justify-center rounded-full text-base font-bold text-primary-foreground transition-transform active:scale-[0.98]"
         style={{ animation: "cascadeIn 0.5s ease-out 0.4s both" }}
       >
         Gotowe
@@ -648,7 +648,7 @@ function StepBlockApps({ onNext, onSkip }: { onNext: () => void; onSkip: () => v
         <button
           onClick={handleSave}
           disabled={saving}
-          className="accent-gradient flex h-14 w-full items-center justify-center rounded-3xl text-base font-bold text-primary-foreground transition-transform active:scale-[0.98] disabled:opacity-50"
+          className="accent-gradient flex h-14 w-full items-center justify-center rounded-full text-base font-bold text-primary-foreground transition-transform active:scale-[0.98] disabled:opacity-50"
         >
           {saving ? "Zapisywanie…" : selected.size > 0 ? "Zablokuj wybrane" : "Kontynuuj"}
         </button>
@@ -694,7 +694,7 @@ function StepDone({ onFinish }: { onFinish: () => void }) {
       </p>
       <button
         onClick={handleFinish}
-        className="accent-gradient flex h-14 w-full max-w-xs items-center justify-center gap-2 rounded-3xl text-base font-bold text-primary-foreground transition-transform active:scale-[0.98]"
+        className="accent-gradient flex h-14 w-full max-w-xs items-center justify-center gap-2 rounded-full text-base font-bold text-primary-foreground transition-transform active:scale-[0.98]"
         style={{ animation: "cascadeIn 0.5s ease-out 0.3s both" }}
       >
         Rozpocznij dzień

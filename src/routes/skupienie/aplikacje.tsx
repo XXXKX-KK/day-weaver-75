@@ -183,7 +183,7 @@ function AppPickerScreen() {
           <p className="text-sm text-muted-foreground">Nie udało się wczytać wyboru z konta.</p>
           <button
             onClick={() => refetch()}
-            className="h-10 rounded-2xl bg-foreground/10 px-4 text-sm font-semibold text-foreground"
+            className="h-10 rounded-full bg-foreground/10 px-4 text-sm font-semibold text-foreground"
           >
             Spróbuj ponownie
           </button>

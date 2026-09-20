@@ -43,7 +43,7 @@ function DayPlan() {
           <p className="text-sm text-muted-foreground">Nie udało się wczytać planu.</p>
           <button
             onClick={() => refetch()}
-            className="h-10 rounded-2xl bg-secondary px-4 text-sm font-semibold text-secondary-foreground"
+            className="h-10 rounded-full bg-secondary px-4 text-sm font-semibold text-secondary-foreground"
           >
             Spróbuj ponownie
           </button>

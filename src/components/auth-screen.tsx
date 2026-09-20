@@ -280,7 +280,7 @@ export function AuthScreen() {
           <button
             type="submit"
             disabled={loading}
-            className="accent-gradient accent-glow mt-1 h-12 w-full rounded-2xl font-semibold text-primary-foreground transition-opacity disabled:opacity-50"
+            className="accent-gradient accent-glow mt-1 h-12 w-full rounded-full font-semibold text-primary-foreground transition-opacity disabled:opacity-50"
           >
             {loading
               ? "Chwila…"

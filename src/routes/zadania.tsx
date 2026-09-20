@@ -415,7 +415,7 @@ function RetryCard({ label, onRetry }: { label: string; onRetry: () => void }) {
       <p className="text-sm text-muted-foreground">{label}</p>
       <button
         onClick={onRetry}
-        className="h-10 rounded-2xl bg-foreground/5 px-4 text-sm font-semibold text-foreground"
+        className="h-10 rounded-full bg-foreground/5 px-4 text-sm font-semibold text-foreground"
       >
         Spróbuj ponownie
       </button>
@@ -712,7 +712,7 @@ function SubtaskEditor({
       />
       <button
         onClick={addSubtask}
-        className="accent-gradient mb-4 flex h-12 w-full items-center justify-center gap-2 rounded-[22px] text-sm font-bold text-primary-foreground"
+        className="accent-gradient mb-4 flex h-12 w-full items-center justify-center gap-2 rounded-full text-sm font-bold text-primary-foreground"
       >
         <Plus className="h-4 w-4" strokeWidth={3} />
         Dodaj podzadanie
@@ -797,7 +797,7 @@ function TaskForm({
         <button
           type="button"
           onClick={() => setShowDatePicker(true)}
-          className="flex h-12 items-center gap-2 rounded-[22px] bg-foreground/5 px-4 text-sm font-semibold text-foreground"
+          className="flex h-12 items-center gap-2 rounded-full bg-foreground/5 px-4 text-sm font-semibold text-foreground"
         >
           <Calendar className="h-4 w-4 text-muted-foreground" />
           {formatDateShort(scheduledDate)}
@@ -805,7 +805,7 @@ function TaskForm({
         <button
           type="button"
           onClick={() => setShowTimePicker(true)}
-          className="flex h-12 items-center gap-2 rounded-[22px] bg-foreground/5 px-4 text-sm font-semibold text-foreground"
+          className="flex h-12 items-center gap-2 rounded-full bg-foreground/5 px-4 text-sm font-semibold text-foreground"
         >
           <Clock className="h-4 w-4 text-muted-foreground" />
           {scheduledTime || "Godzina"}
@@ -823,7 +823,7 @@ function TaskForm({
             scheduled_time: scheduledTime || undefined,
           })
         }
-        className="accent-gradient mb-4 h-16 w-full rounded-[28px] text-lg font-bold text-primary-foreground transition-opacity disabled:opacity-40"
+        className="accent-gradient mb-4 h-16 w-full rounded-full text-lg font-bold text-primary-foreground transition-opacity disabled:opacity-40"
       >
         {saving ? "Zapisywanie…" : "Zapisz zadanie"}
       </button>
@@ -906,7 +906,7 @@ function RoutineForm({
       <button
         type="button"
         onClick={() => setShowTimePicker(true)}
-        className="mb-4 flex h-12 w-full items-center gap-2 rounded-[22px] bg-foreground/5 px-4 text-sm font-semibold text-foreground"
+        className="mb-4 flex h-12 w-full items-center gap-2 rounded-full bg-foreground/5 px-4 text-sm font-semibold text-foreground"
       >
         <Clock className="h-4 w-4 text-muted-foreground" />
         {scheduledTime || "Wybierz godzinę"}
@@ -918,7 +918,7 @@ function RoutineForm({
       <button
         disabled={!title.trim() || weekdays.length === 0 || saving}
         onClick={() => onSave({ title: title.trim(), priority, weekdays, subtasks, scheduled_time: scheduledTime || undefined })}
-        className="accent-gradient mb-4 h-16 w-full rounded-[28px] text-lg font-bold text-primary-foreground transition-opacity disabled:opacity-40"
+        className="accent-gradient mb-4 h-16 w-full rounded-full text-lg font-bold text-primary-foreground transition-opacity disabled:opacity-40"
       >
         {saving ? "Zapisywanie…" : isEdit ? "Zapisz zmiany" : "Zapisz rutynę"}
       </button>

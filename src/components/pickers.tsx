@@ -339,13 +339,13 @@ export function TimePicker({
         <div className="flex gap-3 pb-6">
           <button
             onClick={clear}
-            className="h-14 flex-1 rounded-[28px] bg-foreground/5 text-[15px] font-bold text-muted-foreground"
+            className="h-14 flex-1 rounded-full bg-foreground/5 text-[15px] font-bold text-muted-foreground"
           >
             Wyczyść
           </button>
           <button
             onClick={confirm}
-            className="accent-gradient h-14 flex-1 rounded-[28px] text-[15px] font-bold text-primary-foreground"
+            className="accent-gradient h-14 flex-1 rounded-full text-[15px] font-bold text-primary-foreground"
           >
             Wybierz
           </button>

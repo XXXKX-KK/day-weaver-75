@@ -216,7 +216,7 @@ function FocusScreen() {
               {!usageAccessGranted && (
                 <button
                   onClick={openUsageSettings}
-                  className="h-8 rounded-xl bg-foreground/10 px-3 text-xs font-semibold text-foreground"
+                  className="h-8 rounded-full bg-foreground/10 px-3 text-xs font-semibold text-foreground"
                 >
                   Nadaj
                 </button>
@@ -232,7 +232,7 @@ function FocusScreen() {
               {!overlayGranted && (
                 <button
                   onClick={openOverlay}
-                  className="h-8 rounded-xl bg-foreground/10 px-3 text-xs font-semibold text-foreground"
+                  className="h-8 rounded-full bg-foreground/10 px-3 text-xs font-semibold text-foreground"
                 >
                   Nadaj
                 </button>
@@ -285,7 +285,7 @@ function FocusScreen() {
               setPinError("");
               setPinAction(pinSet ? "change" : "set");
             }}
-            className="h-9 rounded-2xl bg-foreground/10 px-4 text-xs font-semibold text-foreground"
+            className="h-9 rounded-full bg-foreground/10 px-4 text-xs font-semibold text-foreground"
           >
             {pinSet ? "Zmień" : "Ustaw"}
           </button>

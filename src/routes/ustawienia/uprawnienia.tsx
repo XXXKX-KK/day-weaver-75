@@ -98,7 +98,7 @@ function PermissionsScreen() {
             ) : (
               <button
                 onClick={openUsage}
-                className="h-8 rounded-xl bg-foreground/10 px-3 text-xs font-semibold"
+                className="h-8 rounded-full bg-foreground/10 px-3 text-xs font-semibold"
               >
                 Nadaj
               </button>
@@ -119,7 +119,7 @@ function PermissionsScreen() {
             ) : (
               <button
                 onClick={openOverlay}
-                className="h-8 rounded-xl bg-foreground/10 px-3 text-xs font-semibold"
+                className="h-8 rounded-full bg-foreground/10 px-3 text-xs font-semibold"
               >
                 Nadaj
               </button>

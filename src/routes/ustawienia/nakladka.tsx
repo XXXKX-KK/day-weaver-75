@@ -119,7 +119,7 @@ function CurrentTaskCard() {
         <button
           onClick={saveTask}
           disabled={saving || taskInput.trim() === currentTask}
-          className="accent-gradient shrink-0 rounded-xl px-4 py-3 text-sm font-semibold text-primary-foreground disabled:opacity-40"
+          className="accent-gradient shrink-0 rounded-full px-4 py-3 text-sm font-semibold text-primary-foreground disabled:opacity-40"
         >
           Zapisz
         </button>

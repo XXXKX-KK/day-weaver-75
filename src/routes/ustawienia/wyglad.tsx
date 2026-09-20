@@ -450,7 +450,7 @@ function CustomAccentPicker({
               saveRecentColor(preview);
               onApply(preview);
             }}
-            className="accent-gradient h-12 flex-1 rounded-2xl text-[15px] font-semibold text-primary-foreground"
+            className="accent-gradient h-12 flex-1 rounded-full text-[15px] font-semibold text-primary-foreground"
             type="button"
           >
             Gotowe
