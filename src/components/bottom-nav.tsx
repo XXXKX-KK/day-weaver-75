@@ -110,25 +110,18 @@ export function BottomNav({ ready }: { ready: boolean }) {
     }
   }, []);
 
-  useEffect(() => {
-    if (phase === "radial-fill" && pillRef.current) {
-      const el = pillRef.current;
-      el.style.setProperty("--hole", "78%");
-      requestAnimationFrame(() => {
-        el.style.transition = "--hole 0.32s ease-in-out";
-        el.style.setProperty("--hole", "0%");
-      });
+  const [showCover, setShowCover] = useState(false);
+  const [coverShrunk, setCoverShrunk] = useState(false);
 
-      const onEnd = (e: TransitionEvent) => {
-        if (e.propertyName !== "--hole") return;
-        el.style.removeProperty("--hole");
-        el.style.transition = "";
-        el.style.mask = "";
-        el.style.webkitMask = "";
-        setPhase("icons-pop");
-      };
-      el.addEventListener("transitionend", onEnd);
-      return () => el.removeEventListener("transitionend", onEnd);
+  useEffect(() => {
+    if (phase === "radial-fill") {
+      setShowCover(true);
+      setCoverShrunk(false);
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          setCoverShrunk(true);
+        });
+      });
     }
   }, [phase]);
 
@@ -166,7 +159,7 @@ export function BottomNav({ ready }: { ready: boolean }) {
                 ? {
                     y: 0,
                     transition: {
-                      duration: 0.28,
+                      duration: 0.5,
                       ease: [0.55, 0, 1, 0],
                     },
                   }
@@ -178,17 +171,17 @@ export function BottomNav({ ready }: { ready: boolean }) {
             }}
           >
             <motion.div
-              className="h-3 w-3 rounded-full"
+              className="h-6 w-6 rounded-full"
               style={{
                 background: "var(--primary)",
-                boxShadow: "0 0 12px var(--primary)",
+                boxShadow: "0 0 24px 4px var(--primary)",
               }}
               animate={
                 phase === "impact"
                   ? {
                       scaleX: [1, 1.8, 1],
                       scaleY: [1, 0.4, 1],
-                      transition: { duration: 0.08, ease: "easeOut" },
+                      transition: { duration: 0.12, ease: "easeOut" },
                     }
                   : {}
               }
@@ -229,13 +222,6 @@ export function BottomNav({ ready }: { ready: boolean }) {
               phase === "border-draw" ? "none" : "blur(28px) saturate(180%)",
             WebkitBackdropFilter:
               phase === "border-draw" ? "none" : "blur(28px) saturate(180%)",
-            ...(phase === "radial-fill"
-              ? {
-                  mask: "radial-gradient(circle at center, transparent var(--hole), #000 calc(var(--hole) + 3%))",
-                  WebkitMask:
-                    "radial-gradient(circle at center, transparent var(--hole), #000 calc(var(--hole) + 3%))",
-                }
-              : {}),
           }}
         >
           <PillMeasurer onMeasure={measurePill} phase={phase} />
@@ -259,7 +245,7 @@ export function BottomNav({ ready }: { ready: boolean }) {
                 initial={{ strokeDashoffset: perimeter / 2 }}
                 animate={{ strokeDashoffset: 0 }}
                 transition={{
-                  duration: 0.26,
+                  duration: 0.7,
                   ease: [0.4, 0, 0.2, 1],
                 }}
                 onAnimationComplete={() => {
@@ -267,6 +253,26 @@ export function BottomNav({ ready }: { ready: boolean }) {
                 }}
               />
             </svg>
+          )}
+
+          {/* Step 3: Cover overlay — shrinks from edges to center */}
+          {showCover && phase !== "done" && (
+            <div
+              className="pointer-events-none absolute inset-0 z-30 rounded-full"
+              style={{
+                background: "var(--background)",
+                clipPath: coverShrunk
+                  ? "inset(50% round 999px)"
+                  : "inset(0px round 999px)",
+                transition: "clip-path 0.8s cubic-bezier(0.4, 0, 0.2, 1)",
+              }}
+              onTransitionEnd={() => {
+                if (coverShrunk) {
+                  setShowCover(false);
+                  setPhase("icons-pop");
+                }
+              }}
+            />
           )}
 
           {/* Sliding highlight behind active tab */}
@@ -375,8 +381,8 @@ function TabContent({
         initial={introDone ? false : { scale: 0 }}
         animate={showIcon ? { scale: 1 } : introDone ? { scale: 1 } : { scale: 0 }}
         transition={{
-          duration: 0.15,
-          delay: phase === "icons-pop" ? index * 0.055 : 0,
+          duration: 0.22,
+          delay: phase === "icons-pop" ? index * 0.07 : 0,
           ease: [0.34, 1.56, 0.64, 1],
         }}
         onAnimationComplete={() => {
@@ -403,8 +409,8 @@ function TabContent({
               : { y: 8, opacity: 0 }
         }
         transition={{
-          duration: 0.12,
-          delay: phase === "labels-slide" ? index * 0.04 : 0,
+          duration: 0.18,
+          delay: phase === "labels-slide" ? index * 0.05 : 0,
           ease: "easeOut",
         }}
         onAnimationComplete={() => {
