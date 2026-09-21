@@ -30,40 +30,74 @@ const TOOLTIP_WIDTH = 280;
 const MARGIN = 12;
 const TOOLTIP_HEIGHT_EST = 190;
 
-const STEPS = [
+interface StepDef {
+  id: number;
+  route: string;
+  targetIds: string[];
+  content: string;
+}
+
+const STEPS: StepDef[] = [
   {
     id: 1,
     route: "/",
-    targetId: "start-day",
+    targetIds: ["start-day"],
     content:
       "Tu zaczynasz dzień — jednym przyciskiem odhaczasz rutyny i zadania po kolei.",
   },
   {
     id: 2,
     route: "/",
-    targetId: "progress",
+    targetIds: ["progress", "streak"],
     content:
       "Tu widzisz swój poziom i passę — dotknij, żeby zobaczyć statystyki i siatkę nawyków.",
   },
   {
     id: 3,
     route: "/",
-    targetId: "nav-skupienie",
+    targetIds: ["nav-skupienie"],
     content:
       "A tutaj włączasz blokadę rozpraszaczy, żeby nic nie przerwało Ci planu.",
   },
 ];
 
-function getTargetRect(targetId: string): Rect | null {
+function getElRect(targetId: string): { rect: Rect; borderRadius: string } | null {
   const el = document.querySelector(`[data-tour="${targetId}"]`);
   if (!el) return null;
   const r = el.getBoundingClientRect();
-  return { top: r.top, left: r.left, width: r.width, height: r.height };
+  const cs = getComputedStyle(el);
+  return {
+    rect: { top: r.top, left: r.left, width: r.width, height: r.height },
+    borderRadius: cs.borderRadius || "16px",
+  };
 }
+
+function unionRects(rects: Rect[]): Rect {
+  if (rects.length === 1) return rects[0]!;
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  for (const r of rects) {
+    minX = Math.min(minX, r.left);
+    minY = Math.min(minY, r.top);
+    maxX = Math.max(maxX, r.left + r.width);
+    maxY = Math.max(maxY, r.top + r.height);
+  }
+  return { top: minY, left: minX, width: maxX - minX, height: maxY - minY };
+}
+
+interface TargetInfo {
+  rects: { rect: Rect; borderRadius: string }[];
+  union: Rect;
+  borderRadius: string;
+}
+
+const GLASS_BG = "rgba(255,255,255,0.08)";
+const GLASS_BORDER = "1.5px solid var(--primary)";
+const GLASS_BACKDROP = "blur(20px) saturate(1.4)";
+const GLASS_SHADOW = "0 18px 40px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06)";
 
 export function Coachmarks({ onDone }: { onDone: () => void }) {
   const [stepIndex, setStepIndex] = useState(0);
-  const [rect, setRect] = useState<Rect | null>(null);
+  const [target, setTarget] = useState<TargetInfo | null>(null);
   const [searchDone, setSearchDone] = useState(false);
   const [mounted, setMounted] = useState(false);
   const navigate = useNavigate();
@@ -82,28 +116,48 @@ export function Coachmarks({ onDone }: { onDone: () => void }) {
   }, [step, pathname, navigate]);
 
   useEffect(() => {
-    if (!step?.targetId) {
-      setRect(null);
+    if (!step) {
+      setTarget(null);
       setSearchDone(true);
       return;
     }
-    if (pathname !== step.route) return;
+    const ids = step.targetIds;
+    const route = step.route;
+    if (!ids.length) {
+      setTarget(null);
+      setSearchDone(true);
+      return;
+    }
+    if (pathname !== route) return;
 
     let cancelled = false;
     let attempts = 0;
-    setRect(null);
+    setTarget(null);
     setSearchDone(false);
 
     function tryLocate() {
       if (cancelled) return;
-      const el = document.querySelector(`[data-tour="${step.targetId}"]`);
-      if (el) {
-        el.scrollIntoView({ block: "center", behavior: "auto" });
+      const results: { rect: Rect; borderRadius: string }[] = [];
+      for (const id of ids) {
+        const info = getElRect(id);
+        if (info) results.push(info);
+      }
+      if (results.length > 0) {
+        const firstEl = document.querySelector(`[data-tour="${ids[0]}"]`);
+        if (firstEl) firstEl.scrollIntoView({ block: "center", behavior: "auto" });
         setTimeout(() => {
-          if (!cancelled) {
-            setRect(getTargetRect(step.targetId));
-            setSearchDone(true);
+          if (cancelled) return;
+          const fresh: { rect: Rect; borderRadius: string }[] = [];
+          for (const id of ids) {
+            const info = getElRect(id);
+            if (info) fresh.push(info);
           }
+          if (fresh.length > 0) {
+            const u = unionRects(fresh.map((f) => f.rect));
+            const br = fresh.length === 1 ? fresh[0]!.borderRadius : "16px";
+            setTarget({ rects: fresh, union: u, borderRadius: br });
+          }
+          setSearchDone(true);
         }, 80);
         return;
       }
@@ -127,9 +181,20 @@ export function Coachmarks({ onDone }: { onDone: () => void }) {
   }, [step, pathname]);
 
   useEffect(() => {
-    if (!step?.targetId) return;
+    if (!step) return;
+    const ids = step.targetIds;
+    if (!ids.length) return;
     function update() {
-      setRect(getTargetRect(step.targetId));
+      const results: { rect: Rect; borderRadius: string }[] = [];
+      for (const id of ids) {
+        const info = getElRect(id);
+        if (info) results.push(info);
+      }
+      if (results.length > 0) {
+        const u = unionRects(results.map((r) => r.rect));
+        const br = results.length === 1 ? results[0]!.borderRadius : "16px";
+        setTarget({ rects: results, union: u, borderRadius: br });
+      }
     }
     window.addEventListener("resize", update);
     window.addEventListener("scroll", update, true);
@@ -148,7 +213,7 @@ export function Coachmarks({ onDone }: { onDone: () => void }) {
     if (isLast) {
       finish();
     } else {
-      setRect(null);
+      setTarget(null);
       setSearchDone(false);
       setStepIndex((i) => i + 1);
     }
@@ -156,19 +221,21 @@ export function Coachmarks({ onDone }: { onDone: () => void }) {
 
   if (!mounted || !step) return null;
 
-  const showSpotlight = !!rect && searchDone && pathname === step.route;
+  const showSpotlight = !!target && searchDone && pathname === step.route;
   const vh = window.innerHeight;
   const vw = window.innerWidth;
 
+  const rect = target?.union;
+
   let tooltipTop: number;
   let arrowAbove: boolean;
-  if (showSpotlight) {
-    const belowTop = rect!.top + rect!.height + PAD * 2 + 10;
+  if (showSpotlight && rect) {
+    const belowTop = rect.top + rect.height + PAD * 2 + 10;
     if (belowTop + TOOLTIP_HEIGHT_EST <= vh - MARGIN) {
       tooltipTop = belowTop;
       arrowAbove = false;
     } else {
-      tooltipTop = rect!.top - PAD - 10 - TOOLTIP_HEIGHT_EST;
+      tooltipTop = rect.top - PAD - 10 - TOOLTIP_HEIGHT_EST;
       arrowAbove = true;
     }
     tooltipTop = Math.max(
@@ -180,33 +247,33 @@ export function Coachmarks({ onDone }: { onDone: () => void }) {
     arrowAbove = false;
   }
 
-  const tooltipLeft = showSpotlight
+  const tooltipLeft = showSpotlight && rect
     ? Math.min(
-        Math.max(MARGIN, rect!.left + rect!.width / 2 - TOOLTIP_WIDTH / 2),
+        Math.max(MARGIN, rect.left + rect.width / 2 - TOOLTIP_WIDTH / 2),
         vw - TOOLTIP_WIDTH - MARGIN,
       )
     : vw / 2 - TOOLTIP_WIDTH / 2;
 
-  const arrowLeft = showSpotlight
-    ? Math.min(
-        Math.max(16, rect!.left + rect!.width / 2 - tooltipLeft),
-        TOOLTIP_WIDTH - 16,
-      )
-    : TOOLTIP_WIDTH / 2;
+  const arrowTargets = showSpotlight && target
+    ? target.rects.map((t) => {
+        const cx = t.rect.left + t.rect.width / 2;
+        return Math.min(Math.max(16, cx - tooltipLeft), TOOLTIP_WIDTH - 16);
+      })
+    : [TOOLTIP_WIDTH / 2];
 
   const overlay = (
     <>
-      {/* Blocks interaction with the rest of the app */}
       <div className="fixed inset-0 z-[94]" />
 
-      {showSpotlight ? (
+      {showSpotlight && rect ? (
         <div
-          className="fixed z-[95] rounded-2xl transition-all duration-200 ease-out"
+          className="fixed z-[95] transition-all duration-200 ease-out"
           style={{
-            top: rect!.top - PAD,
-            left: rect!.left - PAD,
-            width: rect!.width + PAD * 2,
-            height: rect!.height + PAD * 2,
+            top: rect.top - PAD,
+            left: rect.left - PAD,
+            width: rect.width + PAD * 2,
+            height: rect.height + PAD * 2,
+            borderRadius: target.borderRadius,
             border: "2px solid var(--primary)",
             boxShadow: "0 0 0 9999px rgba(0,0,0,0.65)",
             pointerEvents: "none",
@@ -217,34 +284,43 @@ export function Coachmarks({ onDone }: { onDone: () => void }) {
       )}
 
       <div
-        className="fixed z-[96] rounded-2xl bg-card/80 p-4 text-card-foreground shadow-[0_18px_40px_rgba(0,0,0,0.5)] backdrop-blur-xl transition-all duration-200 ease-out"
+        className="fixed z-[96] rounded-2xl p-4 text-card-foreground transition-all duration-200 ease-out"
         style={{
           top: tooltipTop,
           left: tooltipLeft,
           width: TOOLTIP_WIDTH,
-          border: "1.5px solid var(--primary)",
+          background: GLASS_BG,
+          border: GLASS_BORDER,
+          backdropFilter: GLASS_BACKDROP,
+          WebkitBackdropFilter: GLASS_BACKDROP,
+          boxShadow: GLASS_SHADOW,
         }}
       >
-        {showSpotlight && (
-          <div
-            className="absolute h-3 w-3 rotate-45 bg-card/80 backdrop-blur-xl"
-            style={
-              arrowAbove
-                ? {
-                    left: arrowLeft - 6,
-                    bottom: -7,
-                    borderRight: "1.5px solid var(--primary)",
-                    borderBottom: "1.5px solid var(--primary)",
-                  }
-                : {
-                    left: arrowLeft - 6,
-                    top: -7,
-                    borderLeft: "1.5px solid var(--primary)",
-                    borderTop: "1.5px solid var(--primary)",
-                  }
-            }
-          />
-        )}
+        {showSpotlight &&
+          arrowTargets.map((arrowLeft, i) => (
+            <div
+              key={i}
+              className="absolute h-3 w-3 rotate-45"
+              style={{
+                background: GLASS_BG,
+                backdropFilter: GLASS_BACKDROP,
+                WebkitBackdropFilter: GLASS_BACKDROP,
+                ...(arrowAbove
+                  ? {
+                      left: arrowLeft - 6,
+                      bottom: -7,
+                      borderRight: GLASS_BORDER,
+                      borderBottom: GLASS_BORDER,
+                    }
+                  : {
+                      left: arrowLeft - 6,
+                      top: -7,
+                      borderLeft: GLASS_BORDER,
+                      borderTop: GLASS_BORDER,
+                    }),
+              }}
+            />
+          ))}
 
         <p className="relative text-[14px] leading-snug">{step.content}</p>
 

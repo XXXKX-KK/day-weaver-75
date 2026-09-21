@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import "../../today.css";
 import { useNavigate } from "@tanstack/react-router";
 import { Check, ChevronRight, ChevronLeft } from "lucide-react";
-import { TenaxLogo } from "@/components/tenax-logo";
+import { TenaxShield } from "@/components/tenax-shield";
 import { useAddRoutine, type NewRoutineInput } from "@/lib/routines";
 import { isNativeBlocker, Blocker, type InstalledApp } from "@/lib/blocker";
 import { useSetAppBlocked } from "@/lib/blocked-apps";
@@ -19,7 +19,6 @@ import {
   GOAL_OPTIONS,
   generateRoutines,
 } from "@/lib/day-survey";
-import { useEffect } from "react";
 
 const ONBOARDING_KEY = "tenax:onboarding-done";
 
@@ -99,31 +98,90 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
   );
 }
 
+const PROMISE_HEADING =
+  "TENAX nie pozwoli Ci scrollować, dopóki nie zrobisz swojego dnia.";
+
+function useReducedMotion(): boolean {
+  const [reduced, setReduced] = useState(
+    () => typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+  );
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const handler = (e: MediaQueryListEvent) => setReduced(e.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
+  return reduced;
+}
+
+function useTypewriter(text: string, enabled: boolean, charMs = 20) {
+  const [displayed, setDisplayed] = useState(enabled ? "" : text);
+  const [done, setDone] = useState(!enabled);
+
+  useEffect(() => {
+    if (!enabled) {
+      setDisplayed(text);
+      setDone(true);
+      return;
+    }
+    setDisplayed("");
+    setDone(false);
+    let i = 0;
+    const id = setInterval(() => {
+      i += 1;
+      setDisplayed(text.slice(0, i));
+      if (i >= text.length) {
+        clearInterval(id);
+        setDone(true);
+      }
+    }, charMs);
+    return () => clearInterval(id);
+  }, [text, enabled, charMs]);
+
+  return { displayed, done };
+}
+
 function StepPromise({ onNext }: { onNext: () => void }) {
+  const reducedMotion = useReducedMotion();
+  const { displayed, done: typeDone } = useTypewriter(
+    PROMISE_HEADING,
+    !reducedMotion,
+  );
+
+  const entrance = reducedMotion
+    ? undefined
+    : "cascadeIn 0.4s ease-out both";
+
   return (
     <div className="flex flex-1 flex-col items-center justify-center text-center">
       <div
         className="mb-8 flex h-20 w-20 items-center justify-center rounded-full bg-primary/10"
-        style={{ animation: "cascadeIn 0.5s ease-out both" }}
+        style={{ animation: entrance }}
       >
-        <TenaxLogo size={40} />
+        <TenaxShield size={40} color="var(--primary)" />
       </div>
       <h1
         className="mb-4 max-w-[300px] text-[26px] font-extrabold leading-tight"
-        style={{ animation: "cascadeIn 0.5s ease-out 0.1s both" }}
+        style={{ animation: reducedMotion ? undefined : "cascadeIn 0.4s ease-out 0.1s both" }}
       >
-        TENAX nie pozwoli Ci scrollować, dopóki nie zrobisz swojego dnia.
+        {displayed}
       </h1>
       <p
-        className="mb-10 max-w-[280px] text-[15px] leading-relaxed text-muted-foreground"
-        style={{ animation: "cascadeIn 0.5s ease-out 0.2s both" }}
+        className="mb-10 max-w-[280px] text-[15px] leading-relaxed text-muted-foreground transition-opacity duration-300"
+        style={{
+          opacity: typeDone ? 1 : 0,
+        }}
       >
         Zaplanuj dzień, zablokuj rozpraszacze, odhaczaj — a wieczorem zbieraj progres.
       </p>
       <button
         onClick={onNext}
-        className="accent-gradient flex h-14 w-full max-w-xs items-center justify-center gap-2 rounded-full text-base font-bold text-primary-foreground transition-transform active:scale-[0.98]"
-        style={{ animation: "cascadeIn 0.5s ease-out 0.3s both" }}
+        className="accent-gradient flex h-14 w-full max-w-xs items-center justify-center gap-2 rounded-full text-base font-bold text-primary-foreground transition-all duration-300 active:scale-[0.98]"
+        style={{
+          opacity: typeDone ? 1 : 0,
+          transform: typeDone ? "translateY(0)" : "translateY(8px)",
+        }}
+        disabled={!typeDone}
       >
         Zaczynajmy
         <ChevronRight className="h-5 w-5" />

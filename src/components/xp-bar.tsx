@@ -34,6 +34,7 @@ export function XpBar() {
       <div className="flex items-center gap-3.5">
         <Link
           to="/statystyki"
+          data-tour="streak"
           className="flex items-center gap-1.5 rounded-full bg-foreground/[0.06] px-3 py-1.5"
         >
           <span className="text-sm" aria-hidden>🔥</span>

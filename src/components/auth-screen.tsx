@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
+import { TenaxShield } from "@/components/tenax-shield";
 
 type Mode = "signin" | "signup";
 
@@ -101,33 +102,14 @@ export function AuthScreen() {
           style={{ transformStyle: "preserve-3d" }}
           className="mb-4"
         >
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-            width={64}
-            height={64}
-            aria-hidden="true"
+          <TenaxShield
+            size={64}
+            color={AUTH_BLUE}
             style={{
               filter:
                 "drop-shadow(0 0 18px oklch(0.62 0.18 255 / 45%)) drop-shadow(0 0 6px oklch(0.62 0.18 255 / 30%))",
             }}
-          >
-            <path
-              d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"
-              stroke={AUTH_BLUE}
-              strokeWidth="2"
-              strokeLinejoin="round"
-              strokeLinecap="round"
-            />
-            <path
-              d="m9 12 2 2 4-4"
-              stroke={AUTH_BLUE}
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
+          />
         </motion.div>
 
         <h1 className="text-2xl font-bold leading-tight tracking-wide">
