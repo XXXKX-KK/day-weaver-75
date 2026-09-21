@@ -138,7 +138,7 @@
 
   /* Glassmorphism */
   --glass-bg: oklch(1 0 0 / 0.05);
-  --glass-border: oklch(1 0 0 / 0.08);
+  --glass-border: transparent;
 
   /* Pływająca pastylka nawigacji — szkło lekko podbarwione akcentem */
   --navpill: color-mix(in srgb, var(--primary) 15%, rgba(10, 10, 12, 0.6));
@@ -183,7 +183,7 @@
 
   /* Glassmorphism — light mode */
   --glass-bg: oklch(0 0 0 / 0.04);
-  --glass-border: oklch(0 0 0 / 0.06);
+  --glass-border: transparent;
 
   /* Pastylka nawigacji — mocno podbarwiona akcentem (wzór: apka „Dieta") */
   --navpill: color-mix(in srgb, var(--primary) 16%, rgba(255, 255, 255, 0.88));
