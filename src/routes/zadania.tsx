@@ -710,13 +710,15 @@ function SubtaskEditor({
           ))}
         </ul>
       ) : null}
-      <input
-        value={draft}
-        onChange={(e) => setDraft(e.target.value)}
-        onKeyDown={(e) => e.key === "Enter" && addSubtask()}
-        placeholder={placeholder}
-        className="mb-2 h-12 w-full rounded-2xl border border-input bg-foreground/5 px-4 text-sm outline-none focus:border-primary"
-      />
+      <div className="beam-wrap mb-2">
+        <input
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && addSubtask()}
+          placeholder={placeholder}
+          className="h-12 w-full rounded-2xl border border-input bg-foreground/5 px-4 text-sm outline-none focus:border-primary"
+        />
+      </div>
       <button
         onClick={addSubtask}
         className="accent-gradient mb-4 flex h-12 w-full items-center justify-center gap-2 rounded-full text-sm font-bold text-primary-foreground"
@@ -789,12 +791,14 @@ function TaskForm({
   return (
     <Sheet title="Nowe zadanie" onClose={onClose}>
       <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">Tytuł</label>
-      <input
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-        placeholder="np. Dokończ aplikację"
-        className="mb-4 h-13 w-full rounded-2xl border border-input bg-foreground/5 px-4 py-3.5 text-sm outline-none focus:border-primary"
-      />
+      <div className="beam-wrap mb-4">
+        <input
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="np. Dokończ aplikację"
+          className="h-13 w-full rounded-2xl border border-input bg-foreground/5 px-4 py-3.5 text-sm outline-none focus:border-primary"
+        />
+      </div>
 
       <PriorityPicker value={priority} onChange={setPriority} />
       <SubtaskEditor subtasks={subtasks} setSubtasks={setSubtasks} placeholder="np. Popraw logo" />
@@ -882,12 +886,14 @@ function RoutineForm({
   return (
     <Sheet title={isEdit ? "Edytuj rutynę" : "Nowa rutyna"} onClose={onClose}>
       <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">Tytuł</label>
-      <input
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-        placeholder="np. Poranna medytacja"
-        className="mb-4 h-13 w-full rounded-2xl border border-input bg-foreground/5 px-4 py-3.5 text-sm outline-none focus:border-primary"
-      />
+      <div className="beam-wrap mb-4">
+        <input
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="np. Poranna medytacja"
+          className="h-13 w-full rounded-2xl border border-input bg-foreground/5 px-4 py-3.5 text-sm outline-none focus:border-primary"
+        />
+      </div>
 
       <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">Dni tygodnia</label>
       <div className="mb-4 grid grid-cols-7 gap-2">

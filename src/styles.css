@@ -437,7 +437,7 @@ select:focus {
  * The beam gradient is drawn on a ::after pseudo-element of .beam-wrap
  * and masked to the border ring so no "radar sweep" bleeds into the field.
  */
-[data-auth] input:where(
+:where([data-auth], .beam-wrap) input:where(
   [type="text"], [type="email"], [type="password"], [type="search"],
   [type="tel"], [type="url"], [type="number"], [type="time"],
   :not([type])

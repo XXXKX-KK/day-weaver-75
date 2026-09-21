@@ -90,17 +90,19 @@ export function PinReset({ email, onComplete, onCancel }: PinResetProps) {
             Wysłaliśmy 6-cyfrowy kod na {email}
           </p>
 
-          <input
-            type="text"
-            inputMode="numeric"
-            autoComplete="one-time-code"
-            maxLength={6}
-            value={code}
-            onChange={(e) => handleCodeChange(e.target.value)}
-            disabled={phase === "verifying"}
-            placeholder="000000"
-            className="mb-4 h-14 w-48 rounded-2xl border border-input bg-elevated text-center text-2xl font-bold tracking-[0.3em] outline-none focus:border-primary disabled:opacity-50"
-          />
+          <div className="beam-wrap mb-4 w-48">
+            <input
+              type="text"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              maxLength={6}
+              value={code}
+              onChange={(e) => handleCodeChange(e.target.value)}
+              disabled={phase === "verifying"}
+              placeholder="000000"
+              className="h-14 w-full rounded-2xl border border-input bg-elevated text-center text-2xl font-bold tracking-[0.3em] outline-none focus:border-primary disabled:opacity-50"
+            />
+          </div>
 
           {error && <p className="mb-4 text-sm text-destructive">{error}</p>}
 

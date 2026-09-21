@@ -109,13 +109,15 @@ function CurrentTaskCard() {
         Na czym się teraz skupiasz?
       </p>
       <div className="flex items-center gap-[10px]">
-        <input
-          value={taskInput}
-          onChange={(e) => setTaskInput(e.target.value)}
-          placeholder="Wpisz cel..."
-          maxLength={80}
-          className="h-11 min-w-0 flex-1 rounded-xl border border-foreground/[0.08] bg-foreground/[0.06] px-[14px] text-[15px] outline-none focus:border-primary/40"
-        />
+        <div className="beam-wrap min-w-0 flex-1" style={{ borderRadius: '0.75rem' }}>
+          <input
+            value={taskInput}
+            onChange={(e) => setTaskInput(e.target.value)}
+            placeholder="Wpisz cel..."
+            maxLength={80}
+            className="h-11 w-full rounded-xl border border-foreground/[0.08] bg-foreground/[0.06] px-[14px] text-[15px] outline-none focus:border-primary/40"
+          />
+        </div>
         <button
           onClick={saveTask}
           disabled={saving || taskInput.trim() === currentTask}
@@ -189,20 +191,22 @@ function FocusNotesSection() {
 
         <div className="flex items-center gap-[10px] px-4 py-[11px]">
           <span className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full border-2 border-foreground/[0.12]" />
-          <input
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && draft.trim()) {
-                addNote.mutate(draft.trim(), {
-                  onSuccess: () => setDraft(""),
-                  onError: () => toast.error("Nie udało się dodać notatki."),
-                });
-              }
-            }}
-            placeholder="Dodaj notatkę..."
-            className="min-w-0 flex-1 bg-transparent text-[15px] outline-none"
-          />
+          <div className="beam-wrap min-w-0 flex-1">
+            <input
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && draft.trim()) {
+                  addNote.mutate(draft.trim(), {
+                    onSuccess: () => setDraft(""),
+                    onError: () => toast.error("Nie udało się dodać notatki."),
+                  });
+                }
+              }}
+              placeholder="Dodaj notatkę..."
+              className="w-full rounded-2xl bg-transparent text-[15px] outline-none"
+            />
+          </div>
           <button
             onClick={() => {
               if (!draft.trim()) return;

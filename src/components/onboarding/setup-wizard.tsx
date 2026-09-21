@@ -476,22 +476,26 @@ function SurveyWorkHours({
       >
         <div className="flex flex-1 flex-col items-center gap-1">
           <span className="text-xs font-medium text-muted-foreground">Od</span>
-          <input
-            type="time"
-            value={start}
-            onChange={(e) => onChange(e.target.value, end)}
-            className="w-full rounded-2xl bg-foreground/5 px-3 py-2 text-center text-lg font-bold"
-          />
+          <div className="beam-wrap">
+            <input
+              type="time"
+              value={start}
+              onChange={(e) => onChange(e.target.value, end)}
+              className="w-full rounded-2xl bg-foreground/5 px-3 py-2 text-center text-lg font-bold"
+            />
+          </div>
         </div>
         <span className="mt-4 text-muted-foreground">—</span>
         <div className="flex flex-1 flex-col items-center gap-1">
           <span className="text-xs font-medium text-muted-foreground">Do</span>
-          <input
-            type="time"
-            value={end}
-            onChange={(e) => onChange(start, e.target.value)}
-            className="w-full rounded-2xl bg-foreground/5 px-3 py-2 text-center text-lg font-bold"
-          />
+          <div className="beam-wrap">
+            <input
+              type="time"
+              value={end}
+              onChange={(e) => onChange(start, e.target.value)}
+              className="w-full rounded-2xl bg-foreground/5 px-3 py-2 text-center text-lg font-bold"
+            />
+          </div>
         </div>
       </div>
       <button

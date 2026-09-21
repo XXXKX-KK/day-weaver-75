@@ -160,7 +160,7 @@ function AppPickerScreen() {
         <h1 className="text-2xl font-bold leading-tight">Blokowane aplikacje</h1>
       </div>
 
-      <div className="relative mb-5" style={{ animation: "cascadeIn 0.5s ease-out 0.1s both" }}>
+      <div className="beam-wrap relative mb-5" style={{ animation: "cascadeIn 0.5s ease-out 0.1s both" }}>
         <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <input
           value={query}

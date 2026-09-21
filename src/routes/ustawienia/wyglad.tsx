@@ -388,21 +388,23 @@ function CustomAccentPicker({
               className="h-11 w-11 shrink-0 rounded-xl border border-foreground/[0.08]"
               style={{ backgroundColor: preview }}
             />
-            <input
-              value={hexInput}
-              onChange={(e) => {
-                const v = e.target.value;
-                setHexInput(v);
-                if (/^#[0-9a-f]{6}$/i.test(v)) {
-                  const hsv = hexToHsv(v);
-                  setHue(hsv.h);
-                  setSat(hsv.s);
-                  setVal(hsv.v);
-                }
-              }}
-              className="h-11 min-w-0 flex-1 rounded-xl border border-foreground/[0.08] bg-foreground/[0.06] px-[14px] font-mono text-[15px] uppercase outline-none focus:border-primary/40"
-              maxLength={7}
-            />
+            <div className="beam-wrap min-w-0 flex-1" style={{ borderRadius: '0.75rem' }}>
+              <input
+                value={hexInput}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setHexInput(v);
+                  if (/^#[0-9a-f]{6}$/i.test(v)) {
+                    const hsv = hexToHsv(v);
+                    setHue(hsv.h);
+                    setSat(hsv.s);
+                    setVal(hsv.v);
+                  }
+                }}
+                className="h-11 w-full rounded-xl border border-foreground/[0.08] bg-foreground/[0.06] px-[14px] font-mono text-[15px] uppercase outline-none focus:border-primary/40"
+                maxLength={7}
+              />
+            </div>
           </div>
         </div>
 
