@@ -392,6 +392,12 @@
  * semi-transparent fill to preserve glassmorphism).
  */
 
+@property --flood-r {
+  syntax: "<length-percentage>";
+  inherits: false;
+  initial-value: 75%;
+}
+
 @property --beam-angle {
   syntax: "<angle>";
   inherits: false;

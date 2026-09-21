@@ -110,18 +110,14 @@ export function BottomNav({ ready }: { ready: boolean }) {
     }
   }, []);
 
-  const [showCover, setShowCover] = useState(false);
-  const [coverShrunk, setCoverShrunk] = useState(false);
+  const [floodShrunk, setFloodShrunk] = useState(false);
 
   useEffect(() => {
     if (phase === "radial-fill") {
-      setShowCover(true);
-      setCoverShrunk(false);
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          setCoverShrunk(true);
-        });
-      });
+      setFloodShrunk(false);
+      requestAnimationFrame(() =>
+        requestAnimationFrame(() => setFloodShrunk(true)),
+      );
     }
   }, [phase]);
 
@@ -138,6 +134,7 @@ export function BottomNav({ ready }: { ready: boolean }) {
 
   const bottom = "calc(env(safe-area-inset-bottom, 0px) + 12px)";
   const introDone = phase === "done";
+  const preFill = phase === "border-draw" || phase === "radial-fill";
   const showPill =
     phase !== "waiting" && phase !== "dropping" && phase !== "impact";
   const perimeter =
@@ -208,20 +205,16 @@ export function BottomNav({ ready }: { ready: boolean }) {
             bottom,
             left: collapsed ? "12%" : "12px",
             right: collapsed ? "12%" : "12px",
-            background:
-              phase === "border-draw" ? "transparent" : "var(--navpill)",
+            background: preFill ? "transparent" : "var(--navpill)",
             border:
               phase === "border-draw"
                 ? "1px solid transparent"
                 : "1px solid var(--navpill-border)",
-            boxShadow:
-              phase === "border-draw"
-                ? "none"
-                : "inset 0 1px 0 var(--navpill-top), 0 8px 32px rgba(0,0,0,0.35)",
-            backdropFilter:
-              phase === "border-draw" ? "none" : "blur(28px) saturate(180%)",
-            WebkitBackdropFilter:
-              phase === "border-draw" ? "none" : "blur(28px) saturate(180%)",
+            boxShadow: preFill
+              ? "none"
+              : "inset 0 1px 0 var(--navpill-top), 0 8px 32px rgba(0,0,0,0.35)",
+            backdropFilter: preFill ? "none" : "blur(28px) saturate(180%)",
+            WebkitBackdropFilter: preFill ? "none" : "blur(28px) saturate(180%)",
           }}
         >
           <PillMeasurer onMeasure={measurePill} phase={phase} />
@@ -255,22 +248,23 @@ export function BottomNav({ ready }: { ready: boolean }) {
             </svg>
           )}
 
-          {/* Step 3: Cover overlay — shrinks from edges to center */}
-          {showCover && phase !== "done" && (
+          {/* Step 3: Radial flood — color fills from edges to center */}
+          {phase === "radial-fill" && (
             <div
               className="pointer-events-none absolute inset-0 z-30 rounded-full"
               style={{
-                background: "var(--background)",
-                clipPath: coverShrunk
-                  ? "inset(50% round 999px)"
-                  : "inset(0px round 999px)",
-                transition: "clip-path 0.8s cubic-bezier(0.4, 0, 0.2, 1)",
+                background: "var(--navpill)",
+                backdropFilter: "blur(28px) saturate(180%)",
+                WebkitBackdropFilter: "blur(28px) saturate(180%)",
+                WebkitMaskImage:
+                  "radial-gradient(circle at center, transparent calc(var(--flood-r)), #000 calc(var(--flood-r) + 1px))",
+                maskImage:
+                  "radial-gradient(circle at center, transparent calc(var(--flood-r)), #000 calc(var(--flood-r) + 1px))",
+                ["--flood-r" as any]: floodShrunk ? "0%" : "75%",
+                transition: "--flood-r 0.8s cubic-bezier(0.4, 0, 0.2, 1)",
               }}
               onTransitionEnd={() => {
-                if (coverShrunk) {
-                  setShowCover(false);
-                  setPhase("icons-pop");
-                }
+                if (floodShrunk) setPhase("icons-pop");
               }}
             />
           )}
