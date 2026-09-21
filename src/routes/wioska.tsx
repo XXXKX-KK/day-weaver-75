@@ -24,7 +24,7 @@ function VillageScreen() {
         action={
           <Link
             to="/"
-            className="mt-1 flex items-center gap-1 rounded-full bg-foreground/5 px-3 py-2 text-xs font-semibold text-foreground backdrop-blur-xl"
+            className="mt-1 flex items-center gap-1 rounded-full glass px-3 py-2 text-xs font-semibold text-foreground"
           >
             <ArrowLeft className="h-4 w-4" />
             Dziś
@@ -32,8 +32,8 @@ function VillageScreen() {
         }
       />
 
-      <div className="flex flex-col items-center gap-3 rounded-3xl bg-foreground/5 px-5 py-12 text-center">
-        <span className="flex h-14 w-14 items-center justify-center rounded-3xl bg-foreground/5">
+      <div className="flex flex-col items-center gap-3 rounded-3xl glass px-5 py-12 text-center">
+        <span className="flex h-14 w-14 items-center justify-center rounded-3xl glass">
           <Castle className="h-6 w-6 text-muted-foreground" />
         </span>
         <p className="text-base font-semibold">Twoja wioska pojawi się tutaj</p>

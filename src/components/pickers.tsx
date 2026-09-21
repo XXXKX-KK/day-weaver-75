@@ -100,7 +100,7 @@ export function CalendarPicker({
         <div className="mb-6 flex items-center gap-3">
           <button
             onClick={onClose}
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-foreground/5"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full glass"
           >
             <ChevronLeft className="h-5 w-5" />
           </button>
@@ -108,13 +108,13 @@ export function CalendarPicker({
         </div>
 
         <div className="mb-5 flex items-center justify-between px-2">
-          <button onClick={prev} className="flex h-10 w-10 items-center justify-center rounded-full bg-foreground/5">
+          <button onClick={prev} className="flex h-10 w-10 items-center justify-center rounded-full glass">
             <ChevronLeft className="h-5 w-5" />
           </button>
           <span className="text-[17px] font-bold">
             {PL_MONTHS[viewMonth]} {viewYear}
           </span>
-          <button onClick={next} className="flex h-10 w-10 items-center justify-center rounded-full bg-foreground/5">
+          <button onClick={next} className="flex h-10 w-10 items-center justify-center rounded-full glass">
             <ChevronRight className="h-[18px] w-[18px]" />
           </button>
         </div>
@@ -323,7 +323,7 @@ export function TimePicker({
         <div className="mb-6 flex items-center gap-3">
           <button
             onClick={onClose}
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-foreground/5"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full glass"
           >
             <ChevronLeft className="h-5 w-5" />
           </button>
@@ -339,7 +339,7 @@ export function TimePicker({
         <div className="flex gap-3 pb-6">
           <button
             onClick={clear}
-            className="h-14 flex-1 rounded-full bg-foreground/5 text-[15px] font-bold text-muted-foreground"
+            className="h-14 flex-1 rounded-full glass text-[15px] font-bold text-muted-foreground"
           >
             Wyczyść
           </button>

@@ -279,7 +279,7 @@ function StepRoutines({ onNext, onSkip }: { onNext: () => void; onSkip: () => vo
               key={i}
               type="button"
               onClick={() => toggleGen(i)}
-              className="flex items-center gap-4 rounded-3xl bg-foreground/5 px-4 py-3 text-left transition-colors"
+              className="flex items-center gap-4 rounded-3xl glass px-4 py-3 text-left transition-colors"
               style={{
                 animation: `cascadeIn 0.5s ease-out ${0.1 + i * 0.04}s both`,
                 border: active ? "1.5px solid var(--primary)" : "1.5px solid transparent",
@@ -404,7 +404,7 @@ function OptionButton({ active, label, onClick, delay }: { active: boolean; labe
     <button
       type="button"
       onClick={onClick}
-      className="flex items-center gap-4 rounded-3xl bg-foreground/5 px-4 py-4 text-left transition-colors"
+      className="flex items-center gap-4 rounded-3xl glass px-4 py-4 text-left transition-colors"
       style={{
         animation: `cascadeIn 0.5s ease-out ${delay}s both`,
         border: active ? "1.5px solid var(--primary)" : "1.5px solid transparent",
@@ -471,7 +471,7 @@ function SurveyWorkHours({
         Godziny pracy
       </h1>
       <div
-        className="flex items-center gap-4 rounded-3xl bg-foreground/5 px-5 py-5"
+        className="flex items-center gap-4 rounded-3xl glass px-5 py-5"
         style={{ animation: "cascadeIn 0.5s ease-out 0.1s both" }}
       >
         <div className="flex flex-1 flex-col items-center gap-1">
@@ -650,7 +650,7 @@ function StepBlockApps({ onNext, onSkip }: { onNext: () => void; onSkip: () => v
         </div>
       ) : apps.length === 0 ? (
         <div
-          className="rounded-3xl bg-foreground/5 px-5 py-8 text-center"
+          className="rounded-3xl glass px-5 py-8 text-center"
           style={{ animation: "cascadeIn 0.5s ease-out 0.15s both" }}
         >
           <p className="text-sm text-muted-foreground">
@@ -666,7 +666,7 @@ function StepBlockApps({ onNext, onSkip }: { onNext: () => void; onSkip: () => v
                 key={app.packageName}
                 type="button"
                 onClick={() => toggle(app.packageName)}
-                className="flex items-center gap-4 rounded-3xl bg-foreground/5 px-4 py-3 text-left transition-colors"
+                className="flex items-center gap-4 rounded-3xl glass px-4 py-3 text-left transition-colors"
                 style={{
                   animation: `cascadeIn 0.5s ease-out ${0.15 + i * 0.04}s both`,
                   border: active ? "1.5px solid var(--primary)" : "1.5px solid transparent",

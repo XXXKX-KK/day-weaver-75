@@ -152,7 +152,7 @@ function AppPickerScreen() {
       <div className="mb-5 flex items-center gap-3" style={{ animation: "cascadeIn 0.5s ease-out both" }}>
         <Link
           to="/skupienie"
-          className="flex h-10 w-10 items-center justify-center rounded-2xl bg-foreground/5"
+          className="flex h-10 w-10 items-center justify-center rounded-2xl glass"
           aria-label="Wróć"
         >
           <ChevronLeft className="h-5 w-5" />
@@ -171,7 +171,7 @@ function AppPickerScreen() {
       </div>
 
       {!native ? (
-        <div className="flex flex-col items-center gap-2 rounded-3xl bg-foreground/5 px-6 py-12 text-center" style={{ animation: "cascadeIn 0.5s ease-out 0.2s both" }}>
+        <div className="flex flex-col items-center gap-2 rounded-3xl glass px-6 py-12 text-center" style={{ animation: "cascadeIn 0.5s ease-out 0.2s both" }}>
           <p className="text-base font-semibold">Dostępne na telefonie</p>
           <p className="max-w-[22rem] text-sm text-muted-foreground">
             Lista zainstalowanych aplikacji jest odczytywana z urządzenia — otwórz ekran w aplikacji
@@ -179,7 +179,7 @@ function AppPickerScreen() {
           </p>
         </div>
       ) : blockedError ? (
-        <div className="flex flex-col items-center gap-3 rounded-3xl bg-foreground/5 px-6 py-10 text-center" style={{ animation: "cascadeIn 0.5s ease-out 0.2s both" }}>
+        <div className="flex flex-col items-center gap-3 rounded-3xl glass px-6 py-10 text-center" style={{ animation: "cascadeIn 0.5s ease-out 0.2s both" }}>
           <p className="text-sm text-muted-foreground">Nie udało się wczytać wyboru z konta.</p>
           <button
             onClick={() => refetch()}
@@ -265,7 +265,7 @@ function AppSection({
       <SectionTitle>{title}</SectionTitle>
       <div className="flex flex-col gap-2">
         {apps.map((app) => (
-          <div key={app.packageName} className="flex items-center gap-4 rounded-3xl bg-foreground/5 px-4 py-3">
+          <div key={app.packageName} className="flex items-center gap-4 rounded-3xl glass px-4 py-3">
             <span className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-2xl bg-foreground/10">
               {app.icon ? (
                 <img src={app.icon} alt="" className="h-8 w-8 rounded-xl" />

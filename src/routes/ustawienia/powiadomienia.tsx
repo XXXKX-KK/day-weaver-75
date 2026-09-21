@@ -55,7 +55,7 @@ function NotificationsScreen() {
       >
         <Link
           to="/ustawienia"
-          className="flex h-10 w-10 items-center justify-center rounded-2xl bg-foreground/5"
+          className="flex h-10 w-10 items-center justify-center rounded-2xl glass"
           aria-label="Wróć"
         >
           <ChevronLeft className="h-5 w-5" />
@@ -64,7 +64,7 @@ function NotificationsScreen() {
       </div>
 
       <div
-        className="flex items-center justify-between rounded-3xl bg-foreground/5 px-4 py-4"
+        className="flex items-center justify-between rounded-3xl glass px-4 py-4"
         style={{ animation: "cascadeIn 0.5s ease-out 0.1s both" }}
       >
         <div>

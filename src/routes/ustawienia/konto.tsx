@@ -39,7 +39,7 @@ function AccountScreen() {
       >
         <Link
           to="/ustawienia"
-          className="flex h-10 w-10 items-center justify-center rounded-2xl bg-foreground/5"
+          className="flex h-10 w-10 items-center justify-center rounded-2xl glass"
           aria-label="Wróć"
         >
           <ChevronLeft className="h-5 w-5" />
@@ -48,7 +48,7 @@ function AccountScreen() {
       </div>
 
       <div
-        className="mb-3 rounded-3xl bg-foreground/5 px-4 py-[14px]"
+        className="mb-3 rounded-3xl glass px-4 py-[14px]"
         style={{ animation: "cascadeIn 0.5s ease-out 0.1s both" }}
       >
         <p className="text-xs text-muted-foreground">Email</p>
@@ -57,14 +57,14 @@ function AccountScreen() {
 
       <button
         onClick={handleLogout}
-        className="mb-3 w-full rounded-3xl bg-foreground/5 px-4 py-4 text-left"
+        className="mb-3 w-full rounded-3xl glass px-4 py-4 text-left"
         style={{ animation: "cascadeIn 0.5s ease-out 0.2s both" }}
       >
         <p className="text-[15px] font-medium text-destructive">Wyloguj się</p>
       </button>
       <button
         onClick={handleReset}
-        className="w-full rounded-3xl bg-foreground/5 px-4 py-4 text-left"
+        className="w-full rounded-3xl glass px-4 py-4 text-left"
         style={{ animation: "cascadeIn 0.5s ease-out 0.3s both" }}
       >
         <p className="text-[15px] font-medium text-warning">Zresetuj dzień</p>

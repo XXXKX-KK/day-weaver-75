@@ -18,7 +18,7 @@ function PrivacyScreen() {
       >
         <Link
           to="/ustawienia"
-          className="flex h-10 w-10 items-center justify-center rounded-2xl bg-foreground/5"
+          className="flex h-10 w-10 items-center justify-center rounded-2xl glass"
           aria-label="Wróć"
         >
           <ChevronLeft className="h-5 w-5" />

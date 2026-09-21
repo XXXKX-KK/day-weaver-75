@@ -169,7 +169,7 @@ function Today() {
             </div>
             <h1 className="text-[28px] font-extrabold tracking-tight text-foreground">Dziś</h1>
           </div>
-          <div className="flex flex-col items-center gap-3 rounded-3xl bg-foreground/5 px-5 py-8 text-center">
+          <div className="flex flex-col items-center gap-3 rounded-3xl glass px-5 py-8 text-center">
             <p className="text-sm text-muted-foreground">Nie udało się wczytać dnia.</p>
             <button
               onClick={() => refetch()}
@@ -240,7 +240,7 @@ function Today() {
             Dzień zakończony
           </h1>
         </div>
-        <div className="mb-4 flex flex-col items-center gap-3 rounded-3xl bg-foreground/5 px-5 py-8 text-center animate-[cascadeIn_.5s_ease-out_.1s_both]">
+        <div className="mb-4 flex flex-col items-center gap-3 rounded-3xl glass px-5 py-8 text-center animate-[cascadeIn_.5s_ease-out_.1s_both]">
           <p className="text-5xl font-bold text-primary">{percent}%</p>
           <p className="text-sm text-muted-foreground">
             {done} z {total} pozycji wykonanych
@@ -254,7 +254,7 @@ function Today() {
           </div>
         </div>
         {unfinished.length > 0 && (
-          <div className="rounded-3xl bg-foreground/5 px-5 py-4 animate-[cascadeIn_.5s_ease-out_.2s_both]">
+          <div className="rounded-3xl glass px-5 py-4 animate-[cascadeIn_.5s_ease-out_.2s_both]">
             <p className="mb-3 text-sm font-semibold">Niewykonane ({unfinished.length})</p>
             <ul className="flex flex-col gap-2">
               {unfinished.map((i) => (
@@ -294,7 +294,7 @@ function Today() {
         <h1 className="text-[28px] font-extrabold tracking-tight text-foreground">Plan dnia</h1>
       </div>
 
-      <div className="mb-5 rounded-3xl bg-foreground/5 px-[18px] py-3.5 animate-[cascadeIn_.5s_ease-out_.2s_both]">
+      <div className="mb-5 rounded-3xl glass px-[18px] py-3.5 animate-[cascadeIn_.5s_ease-out_.2s_both]">
         <div className="mb-2 flex items-center justify-between">
           <span className="text-[13px] font-medium text-muted-foreground">Postęp dnia</span>
           <span className="text-[13px] font-bold text-foreground">
@@ -401,7 +401,7 @@ function DayItemPill({
 
   return (
     <div
-      className="relative overflow-hidden rounded-3xl bg-foreground/5 px-4 py-2.5 transition-colors duration-200 hover:bg-foreground/[0.08] animate-[cascadeIn_.5s_ease-out_both]"
+      className="relative overflow-hidden rounded-3xl glass px-4 py-2.5 transition-colors duration-200 hover:bg-foreground/[0.08] animate-[cascadeIn_.5s_ease-out_both]"
       style={{ animationDelay: `${0.3 + index * 0.06}s` }}
     >
       {isDragActive && (
@@ -541,7 +541,7 @@ function NotStarted({ starting, onStart }: { starting: boolean; onStart: () => v
           Gotowy na dziś?
         </h1>
       </div>
-      <div className="flex flex-col gap-6 rounded-3xl bg-foreground/5 px-5 py-8 animate-[cascadeIn_.5s_ease-out_.1s_both]">
+      <div className="flex flex-col gap-6 rounded-3xl glass px-5 py-8 animate-[cascadeIn_.5s_ease-out_.1s_both]">
         <div className="grid grid-cols-2 gap-3 text-center">
           <Stat value={todaysRoutines.length} label="Rutyny na dziś" />
           <Stat value={openTasks.length} label="Zadania" />
@@ -565,7 +565,7 @@ function NotStarted({ starting, onStart }: { starting: boolean; onStart: () => v
 
 function Stat({ value, label }: { value: string | number; label: string }) {
   return (
-    <div className="rounded-2xl bg-foreground/5 py-4">
+    <div className="rounded-2xl glass py-4">
       <p className="text-2xl font-bold">{value}</p>
       <p className="text-xs text-muted-foreground">{label}</p>
     </div>
