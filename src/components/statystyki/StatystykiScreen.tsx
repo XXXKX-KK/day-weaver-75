@@ -289,7 +289,7 @@ export default function StatystykiScreen({
         </div>
 
         {/* Segment */}
-        <div className="mb-5 grid grid-cols-2 gap-1 rounded-full bg-foreground/5 p-1">
+        <div className="mb-5 grid grid-cols-2 gap-1 rounded-full glass p-1">
           {(['postep', 'siatka'] as TabView[]).map((v) => (
             <button
               key={v}
@@ -318,7 +318,7 @@ export default function StatystykiScreen({
 
         {viewState === 'empty' && (
           <div className="flex flex-col items-center px-5 pb-10 pt-[54px] text-center">
-            <div className="mb-5 flex h-[70px] w-[70px] items-center justify-center rounded-[20px] bg-foreground/5 text-3xl">
+            <div className="mb-5 flex h-[70px] w-[70px] items-center justify-center rounded-[20px] glass text-3xl">
               📈
             </div>
             <div className="text-[17px] font-bold text-foreground">Zacznij dzień, żeby zobaczyć swój postęp</div>
@@ -394,7 +394,7 @@ export default function StatystykiScreen({
             </div>
 
             {/* Wykres XP */}
-            <div className="mb-3 rounded-[18px] bg-foreground/5 p-4">
+            <div className="mb-3 rounded-[18px] glass p-4">
               <div className="mb-[10px] flex items-baseline justify-between">
                 <span className="text-[14px] font-bold text-foreground">XP w czasie</span>
                 <span className="text-[12.5px] font-bold tabular-nums text-primary">{xpTotalLabel}</span>
@@ -425,7 +425,7 @@ export default function StatystykiScreen({
             </div>
 
             {/* Słupki */}
-            <div className="rounded-[18px] bg-foreground/5 p-4">
+            <div className="rounded-[18px] glass p-4">
               <div className="mb-[14px] text-[14px] font-bold text-foreground">Ukończenia — tydzień po tygodniu</div>
               <div className="flex h-24 items-end gap-[7px]">
                 {bars.map((b, i) => (
@@ -454,7 +454,7 @@ export default function StatystykiScreen({
         {/* Widok: Siatka (kalendarz) */}
         {isReady && !isPostep && (
           <div className={anim('animate-[fadeUp_.45s_ease_both]')}>
-            <div ref={gridRef} className="relative rounded-[18px] bg-foreground/5 px-[14px] py-4">
+            <div ref={gridRef} className="relative rounded-[18px] glass px-[14px] py-4">
               <div className="mb-3 flex items-baseline justify-between">
                 <span className="text-[14px] font-bold text-foreground">Aktywność dzienna</span>
                 <span className="text-[12px] font-bold tabular-nums text-muted-foreground">{new Date(summary.days[summary.days.length - 1].date).getFullYear()}</span>
@@ -559,7 +559,7 @@ export default function StatystykiScreen({
 function Skeleton({ className = '' }: { className?: string }) {
   return (
     <div
-      className={`rounded-[16px] bg-foreground/5 ${className}`}
+      className={`rounded-[16px] glass ${className}`}
       style={{
         animation: 'shimmer 1.3s infinite linear',
       }}
@@ -586,7 +586,7 @@ function Tile({
 }) {
   return (
     <div
-      className={`rounded-[16px] px-[15px] py-[14px] ${!accentTile ? 'bg-foreground/5' : ''} ${anim('animate-[fadeUp_.38s_cubic-bezier(.2,.7,.3,1)_both]')} ${
+      className={`rounded-[16px] px-[15px] py-[14px] ${!accentTile ? 'glass' : ''} ${anim('animate-[fadeUp_.38s_cubic-bezier(.2,.7,.3,1)_both]')} ${
         accentTile ? anim('[animation:fadeUp_.38s_cubic-bezier(.2,.7,.3,1)_both,pulseGlow_2.8s_ease-in-out_1.1s_infinite]') : ''
       }`}
       style={{

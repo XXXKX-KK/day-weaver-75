@@ -53,7 +53,7 @@ function SettingsHub() {
         className="mb-3 block"
         style={{ animation: "cascadeIn 0.5s ease-out 0.1s both" }}
       >
-        <div className="flex items-center gap-4 rounded-3xl bg-foreground/5 px-4 py-4">
+        <div className="flex items-center gap-4 rounded-3xl glass px-4 py-4">
           <span className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-foreground/10 to-foreground/[0.03] border border-foreground/[0.08]">
             <User className="h-5 w-5 text-muted-foreground" />
           </span>
@@ -77,7 +77,7 @@ function SettingsHub() {
               className="block"
               style={{ animation: `cascadeIn 0.5s ease-out ${0.2 + i * 0.06}s both` }}
             >
-              <div className="flex items-center gap-[14px] rounded-3xl bg-foreground/5 px-4 py-[14px]">
+              <div className="flex items-center gap-[14px] rounded-3xl glass px-4 py-[14px]">
                 <span className="flex h-9 w-9 items-center justify-center">
                   <Icon className="h-[22px] w-[22px] text-muted-foreground" strokeWidth={1.4} />
                 </span>
@@ -98,7 +98,7 @@ function SettingsHub() {
         className="mt-3 w-full"
         style={{ animation: `cascadeIn 0.5s ease-out ${0.2 + menuItems.length * 0.06}s both` }}
       >
-        <div className="flex items-center gap-[14px] rounded-3xl bg-foreground/5 px-4 py-[14px]">
+        <div className="flex items-center gap-[14px] rounded-3xl glass px-4 py-[14px]">
           <span className="flex h-9 w-9 items-center justify-center">
             <Compass className="h-[22px] w-[22px] text-muted-foreground" strokeWidth={1.4} />
           </span>
@@ -114,7 +114,7 @@ function SettingsHub() {
         style={{ animation: `cascadeIn 0.5s ease-out ${0.2 + (menuItems.length + 1) * 0.06}s both` }}
       >
         <Link to="/ustawienia/regulamin" className="block">
-          <div className="flex items-center gap-[14px] rounded-3xl bg-foreground/5 px-4 py-[14px]">
+          <div className="flex items-center gap-[14px] rounded-3xl glass px-4 py-[14px]">
             <span className="flex h-9 w-9 items-center justify-center">
               <FileText className="h-[22px] w-[22px] text-muted-foreground" strokeWidth={1.4} />
             </span>
@@ -126,7 +126,7 @@ function SettingsHub() {
           </div>
         </Link>
         <Link to="/ustawienia/polityka-prywatnosci" className="block">
-          <div className="flex items-center gap-[14px] rounded-3xl bg-foreground/5 px-4 py-[14px]">
+          <div className="flex items-center gap-[14px] rounded-3xl glass px-4 py-[14px]">
             <span className="flex h-9 w-9 items-center justify-center">
               <Shield className="h-[22px] w-[22px] text-muted-foreground" strokeWidth={1.4} />
             </span>

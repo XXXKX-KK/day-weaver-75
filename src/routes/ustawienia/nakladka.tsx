@@ -39,7 +39,7 @@ function OverlayScreen() {
       >
         <Link
           to="/ustawienia"
-          className="flex h-10 w-10 items-center justify-center rounded-2xl bg-foreground/5"
+          className="flex h-10 w-10 items-center justify-center rounded-2xl glass"
           aria-label="Wróć"
         >
           <ChevronLeft className="h-5 w-5" />
@@ -50,7 +50,7 @@ function OverlayScreen() {
       <CurrentTaskCard />
 
       <div
-        className="mb-3 flex items-center justify-between rounded-3xl bg-foreground/5 px-4 py-4"
+        className="mb-3 flex items-center justify-between rounded-3xl glass px-4 py-4"
         style={{ animation: "cascadeIn 0.5s ease-out 0.2s both" }}
       >
         <p className="text-[15px] font-medium">Pokazuj na nakładce</p>
@@ -102,7 +102,7 @@ function CurrentTaskCard() {
 
   return (
     <div
-      className="mb-3 rounded-3xl bg-foreground/5 p-4"
+      className="mb-3 rounded-3xl glass p-4"
       style={{ animation: "cascadeIn 0.5s ease-out 0.1s both" }}
     >
       <p className="mb-[10px] text-xs font-medium text-muted-foreground">
@@ -140,7 +140,7 @@ function FocusNotesSection() {
       <h2 className="mb-3 px-1 text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">
         Notatki na luz
       </h2>
-      <div className="rounded-3xl bg-foreground/5 overflow-hidden p-0">
+      <div className="rounded-3xl glass overflow-hidden p-0">
         {notes && notes.length > 0
           ? notes.map((note) => (
               <div

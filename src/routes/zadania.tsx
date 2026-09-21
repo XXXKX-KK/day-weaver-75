@@ -199,7 +199,7 @@ function TasksScreen() {
       )}
 
       <div
-        className="mb-6 grid grid-cols-2 gap-1 rounded-2xl bg-foreground/5 p-1"
+        className="mb-6 grid grid-cols-2 gap-1 rounded-2xl glass p-1"
         style={{ animation: "cascadeIn 0.5s ease-out 0.1s both" }}
       >
         {(["tasks", "routines"] as const).map((t) => (
@@ -402,7 +402,7 @@ function TasksScreen() {
 
 function GlassyEmptyState({ title, description }: { title: string; description: string }) {
   return (
-    <div className="flex flex-col items-center gap-2 rounded-3xl bg-foreground/5 px-6 py-12 text-center">
+    <div className="flex flex-col items-center gap-2 rounded-3xl glass px-6 py-12 text-center">
       <p className="text-base font-semibold">{title}</p>
       <p className="max-w-[22rem] text-sm text-muted-foreground">{description}</p>
     </div>
@@ -411,7 +411,7 @@ function GlassyEmptyState({ title, description }: { title: string; description: 
 
 function RetryCard({ label, onRetry }: { label: string; onRetry: () => void }) {
   return (
-    <div className="flex flex-col items-center gap-3 rounded-3xl bg-foreground/5 py-8 text-center">
+    <div className="flex flex-col items-center gap-3 rounded-3xl glass py-8 text-center">
       <p className="text-sm text-muted-foreground">{label}</p>
       <button
         onClick={onRetry}
@@ -511,7 +511,7 @@ function CompletedTaskCard({
   onDelete: () => void;
 }) {
   return (
-    <div className="flex items-center gap-3 rounded-3xl bg-foreground/5 p-5">
+    <div className="flex items-center gap-3 rounded-3xl glass p-5">
       <button
         onClick={onToggle}
         aria-label="Oznacz jako niezrobione"
@@ -544,7 +544,7 @@ function TaskCard({
   const setContactAction = useSetContactAction();
   return (
     <div className={cn(
-      "flex flex-col gap-2 rounded-3xl bg-foreground/5 p-5 transition-opacity duration-300",
+      "flex flex-col gap-2 rounded-3xl glass p-5 transition-opacity duration-300",
       done && "opacity-60",
     )}>
       <div className="flex items-start gap-3">
@@ -611,7 +611,7 @@ function RoutineCard({
   onToggle: () => void;
 }) {
   return (
-    <div className="flex items-center gap-4 rounded-3xl bg-foreground/5 px-5 py-4">
+    <div className="flex items-center gap-4 rounded-3xl glass px-5 py-4">
       <button
         onClick={onEdit}
         aria-label={`Edytuj rutynę ${routine.title}`}
@@ -690,7 +690,7 @@ function SubtaskEditor({
           {subtasks.map((s, idx) => (
             <li
               key={`${s}-${idx}`}
-              className="flex items-center justify-between rounded-xl bg-foreground/5 px-4 py-2.5 text-sm"
+              className="flex items-center justify-between rounded-xl glass px-4 py-2.5 text-sm"
             >
               {s}
               <button
@@ -736,7 +736,7 @@ function Sheet({
         <div className="mb-5 flex items-center gap-3">
           <button
             onClick={onClose}
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-foreground/5"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full glass"
           >
             <ChevronLeft className="h-5 w-5" />
           </button>
@@ -797,7 +797,7 @@ function TaskForm({
         <button
           type="button"
           onClick={() => setShowDatePicker(true)}
-          className="flex h-12 items-center gap-2 rounded-full bg-foreground/5 px-4 text-sm font-semibold text-foreground"
+          className="flex h-12 items-center gap-2 rounded-full glass px-4 text-sm font-semibold text-foreground"
         >
           <Calendar className="h-4 w-4 text-muted-foreground" />
           {formatDateShort(scheduledDate)}
@@ -805,7 +805,7 @@ function TaskForm({
         <button
           type="button"
           onClick={() => setShowTimePicker(true)}
-          className="flex h-12 items-center gap-2 rounded-full bg-foreground/5 px-4 text-sm font-semibold text-foreground"
+          className="flex h-12 items-center gap-2 rounded-full glass px-4 text-sm font-semibold text-foreground"
         >
           <Clock className="h-4 w-4 text-muted-foreground" />
           {scheduledTime || "Godzina"}
@@ -906,7 +906,7 @@ function RoutineForm({
       <button
         type="button"
         onClick={() => setShowTimePicker(true)}
-        className="mb-4 flex h-12 w-full items-center gap-2 rounded-full bg-foreground/5 px-4 text-sm font-semibold text-foreground"
+        className="mb-4 flex h-12 w-full items-center gap-2 rounded-full glass px-4 text-sm font-semibold text-foreground"
       >
         <Clock className="h-4 w-4 text-muted-foreground" />
         {scheduledTime || "Wybierz godzinę"}

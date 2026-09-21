@@ -10,7 +10,7 @@ export function XpBar() {
       <Link
         to="/statystyki"
         data-tour="progress"
-        className="flex items-center gap-3 rounded-full bg-foreground/[0.06] py-1.5 pl-1.5 pr-3.5"
+        className="flex items-center gap-3 rounded-full glass py-1.5 pl-1.5 pr-3.5"
       >
         <span className="accent-gradient flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[13px] font-extrabold text-primary-foreground">
           {level}
@@ -35,7 +35,7 @@ export function XpBar() {
         <Link
           to="/statystyki"
           data-tour="streak"
-          className="flex items-center gap-1.5 rounded-full bg-foreground/[0.06] px-3 py-1.5"
+          className="flex items-center gap-1.5 rounded-full glass px-3 py-1.5"
         >
           <span className="text-sm" aria-hidden>🔥</span>
           <span className="text-[13px] font-bold text-foreground">{streak}</span>
@@ -44,7 +44,7 @@ export function XpBar() {
         <Link
           to="/wioska"
           aria-label="Twoja wioska"
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-foreground/[0.06] text-muted-foreground transition-colors active:text-foreground"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full glass text-muted-foreground transition-colors active:text-foreground"
         >
           <Castle className="h-[18px] w-[18px]" />
         </Link>

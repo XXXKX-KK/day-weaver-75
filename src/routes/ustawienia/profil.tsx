@@ -23,7 +23,7 @@ function ProfileScreen() {
       >
         <Link
           to="/ustawienia"
-          className="flex h-10 w-10 items-center justify-center rounded-2xl bg-foreground/5"
+          className="flex h-10 w-10 items-center justify-center rounded-2xl glass"
           aria-label="Wróć"
         >
           <ChevronLeft className="h-5 w-5" />
@@ -42,14 +42,14 @@ function ProfileScreen() {
       </div>
 
       <div
-        className="mb-3 rounded-3xl bg-foreground/5 px-4 py-[14px]"
+        className="mb-3 rounded-3xl glass px-4 py-[14px]"
         style={{ animation: "cascadeIn 0.5s ease-out 0.2s both" }}
       >
         <p className="text-xs text-muted-foreground">Imię</p>
         <p className="mt-1 text-base">{profile?.display_name || "—"}</p>
       </div>
       <div
-        className="rounded-3xl bg-foreground/5 px-4 py-[14px]"
+        className="rounded-3xl glass px-4 py-[14px]"
         style={{ animation: "cascadeIn 0.5s ease-out 0.3s both" }}
       >
         <p className="text-xs text-muted-foreground">Email</p>

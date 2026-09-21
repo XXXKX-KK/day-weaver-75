@@ -336,7 +336,7 @@ function CustomAccentPicker({
         <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-foreground/20" />
         <h2 className="mb-4 text-lg font-bold">Własny akcent</h2>
 
-        <div className="rounded-3xl bg-foreground/5 p-4">
+        <div className="rounded-3xl glass p-4">
           {/* Color field */}
           <div
             onPointerDown={handleField}
@@ -496,7 +496,7 @@ function AppearanceScreen() {
       >
         <Link
           to="/ustawienia"
-          className="flex h-10 w-10 items-center justify-center rounded-2xl bg-foreground/5"
+          className="flex h-10 w-10 items-center justify-center rounded-2xl glass"
           aria-label="Wróć"
         >
           <ChevronLeft className="h-5 w-5" />
@@ -607,7 +607,7 @@ function AppearanceScreen() {
         {LANGUAGES.map((lang, i) => (
           <div
             key={lang.code}
-            className="flex items-center gap-4 rounded-3xl bg-foreground/5 px-4 py-4"
+            className="flex items-center gap-4 rounded-3xl glass px-4 py-4"
             style={{ animation: `cascadeIn 0.5s ease-out ${0.35 + i * 0.06}s both` }}
           >
             <Globe className="h-5 w-5 shrink-0 text-muted-foreground" />
