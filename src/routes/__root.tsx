@@ -22,6 +22,7 @@ import { CurrentTaskSync } from "@/components/current-task-sync";
 import { NotificationsSync } from "@/components/notifications-sync";
 import { BreakConfigSync } from "@/components/break-config-sync";
 import { BottomNav } from "@/components/bottom-nav";
+import { NavReadyProvider, useNavReady } from "@/lib/nav-ready";
 import { Toaster } from "@/components/ui/sonner";
 import { SetupWizard } from "@/components/onboarding/setup-wizard";
 import { Coachmarks } from "@/components/onboarding/coachmarks";
@@ -178,11 +179,13 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <AuthGate>
-          {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-          <Outlet />
-          <BottomNav />
-        </AuthGate>
+        <NavReadyProvider>
+          <AuthGate>
+            {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+            <Outlet />
+            <BottomNavGated />
+          </AuthGate>
+        </NavReadyProvider>
         <Toaster position="top-center" />
       </AuthProvider>
     </QueryClientProvider>
@@ -242,4 +245,9 @@ function AuthGate({ children }: { children: ReactNode }) {
       {showCoachmark && <Coachmarks onDone={() => setCoachmarkDismissed(true)} />}
     </OnboardingProvider>
   );
+}
+
+function BottomNavGated() {
+  const { ready } = useNavReady();
+  return <BottomNav ready={ready} />;
 }

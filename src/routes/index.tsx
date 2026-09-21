@@ -27,6 +27,7 @@ import { toast } from "sonner";
 import { ContactActionButtons } from "@/components/contact-action-buttons";
 import type { ContactActionType } from "@/lib/contact-action";
 import { PodsumowanieScreen } from "@/components/podsumowanie-screen";
+import { useNavReady } from "@/lib/nav-ready";
 import "../today.css";
 
 export const Route = createFileRoute("/")({
@@ -122,6 +123,11 @@ function Today() {
   const [showSummary, setShowSummary] = useState(false);
   const summaryTasksRef = useRef<{ id: string; title: string; done: boolean }[]>([]);
   const { showYesterday, yesterdayTasks, dismissYesterday } = useYesterdaySummary();
+  const { markReady } = useNavReady();
+
+  useEffect(() => {
+    if (!isLoading && !isError) markReady();
+  }, [isLoading, isError, markReady]);
 
   const lastDateRef = useRef(todayLocalISO());
   useEffect(() => {

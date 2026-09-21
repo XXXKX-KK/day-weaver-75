@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { Blocker, isNativeBlocker } from "@/lib/blocker";
 import { useAuth } from "@/lib/auth";
+import { useNavReady } from "@/lib/nav-ready";
 
 export const Route = createFileRoute("/skupienie/")({
   head: () => ({
@@ -39,6 +40,8 @@ export const Route = createFileRoute("/skupienie/")({
 function FocusScreen() {
   const { user } = useAuth();
   const native = isNativeBlocker();
+  const { markReady } = useNavReady();
+  useEffect(markReady, [markReady]);
   const [blockingEnabled, setBlockingEnabled] = useState(false);
   const [usageAccessGranted, setUsageAccessGranted] = useState(false);
   const [overlayGranted, setOverlayGranted] = useState(false);
