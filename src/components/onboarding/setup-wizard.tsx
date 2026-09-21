@@ -6,6 +6,7 @@ import { TenaxShield } from "@/components/tenax-shield";
 import { useAddRoutine, type NewRoutineInput } from "@/lib/routines";
 import { isNativeBlocker, Blocker, type InstalledApp } from "@/lib/blocker";
 import { useSetAppBlocked } from "@/lib/blocked-apps";
+import { useUpdateProfile } from "@/lib/profile";
 import { toast } from "sonner";
 import {
   type SurveyAnswers,
@@ -19,22 +20,6 @@ import {
   GOAL_OPTIONS,
   generateRoutines,
 } from "@/lib/day-survey";
-
-const ONBOARDING_KEY = "tenax:onboarding-done";
-
-export function isOnboardingDone(): boolean {
-  try {
-    return localStorage.getItem(ONBOARDING_KEY) === "1";
-  } catch {
-    return false;
-  }
-}
-
-function markOnboardingDone() {
-  try {
-    localStorage.setItem(ONBOARDING_KEY, "1");
-  } catch {}
-}
 
 const POPULAR_APPS = [
   "com.instagram.android",
@@ -50,9 +35,10 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
   const [step, setStep] = useState(0);
   const native = isNativeBlocker();
   const totalSteps = native ? 4 : 3;
+  const updateProfile = useUpdateProfile();
 
   const finish = () => {
-    markOnboardingDone();
+    updateProfile.mutate({ onboarding_done: true });
     onComplete();
   };
 

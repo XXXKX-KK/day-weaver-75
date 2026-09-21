@@ -1,22 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { createPortal } from "react-dom";
-
-const COACHMARK_KEY = "tenax:coachmark-done";
-
-export function isCoachmarkDone(): boolean {
-  try {
-    return localStorage.getItem(COACHMARK_KEY) === "1";
-  } catch {
-    return false;
-  }
-}
-
-function markCoachmarkDone() {
-  try {
-    localStorage.setItem(COACHMARK_KEY, "1");
-  } catch {}
-}
+import { useUpdateProfile } from "@/lib/profile";
 
 interface Rect {
   top: number;
@@ -102,6 +87,7 @@ export function Coachmarks({ onDone }: { onDone: () => void }) {
   const [mounted, setMounted] = useState(false);
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const updateProfile = useUpdateProfile();
 
   const step = STEPS[stepIndex];
   const isLast = stepIndex + 1 >= STEPS.length;
@@ -205,7 +191,7 @@ export function Coachmarks({ onDone }: { onDone: () => void }) {
   }, [step]);
 
   function finish() {
-    markCoachmarkDone();
+    updateProfile.mutate({ coachmark_done: true });
     onDone();
   }
 

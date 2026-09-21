@@ -23,8 +23,9 @@ import { NotificationsSync } from "@/components/notifications-sync";
 import { BreakConfigSync } from "@/components/break-config-sync";
 import { BottomNav } from "@/components/bottom-nav";
 import { Toaster } from "@/components/ui/sonner";
-import { SetupWizard, isOnboardingDone } from "@/components/onboarding/setup-wizard";
-import { Coachmarks, isCoachmarkDone } from "@/components/onboarding/coachmarks";
+import { SetupWizard } from "@/components/onboarding/setup-wizard";
+import { Coachmarks } from "@/components/onboarding/coachmarks";
+import { useProfile, useUpdateProfile } from "@/lib/profile";
 import { OnboardingProvider } from "@/lib/onboarding-context";
 
 function NotFoundComponent() {
@@ -192,16 +193,19 @@ function RootComponent() {
  *  and the app (with its nav) once a user is present. */
 function AuthGate({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
-  const [showOnboarding, setShowOnboarding] = useState(() => !isOnboardingDone());
-  const [showCoachmark, setShowCoachmark] = useState(() => isOnboardingDone() && !isCoachmarkDone());
+  const { data: profile, isLoading: profileLoading } = useProfile();
+  const updateProfile = useUpdateProfile();
   const navigate = useNavigate();
+  const [wizardDismissed, setWizardDismissed] = useState(false);
+  const [coachmarkDismissed, setCoachmarkDismissed] = useState(false);
 
   const restartCoachmark = useCallback(() => {
-    setShowCoachmark(true);
+    setCoachmarkDismissed(false);
+    updateProfile.mutate({ coachmark_done: false });
     navigate({ to: "/" });
-  }, [navigate]);
+  }, [updateProfile, navigate]);
 
-  if (loading) {
+  if (loading || (user && profileLoading)) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <p className="text-sm text-muted-foreground">Ładowanie…</p>
@@ -211,12 +215,14 @@ function AuthGate({ children }: { children: ReactNode }) {
 
   if (!user) return <AuthScreen />;
 
+  const showOnboarding = !wizardDismissed && (!profile || !profile.onboarding_done);
+  const showCoachmark = !coachmarkDismissed && !!profile?.onboarding_done && !profile?.coachmark_done;
+
   if (showOnboarding) {
     return (
       <SetupWizard
         onComplete={() => {
-          setShowOnboarding(false);
-          setShowCoachmark(!isCoachmarkDone());
+          setWizardDismissed(true);
         }}
       />
     );
@@ -233,7 +239,7 @@ function AuthGate({ children }: { children: ReactNode }) {
       {/* Mirrors break config (delay + daily limit) into native prefs. */}
       <BreakConfigSync />
       {children}
-      {showCoachmark && <Coachmarks onDone={() => setShowCoachmark(false)} />}
+      {showCoachmark && <Coachmarks onDone={() => setCoachmarkDismissed(true)} />}
     </OnboardingProvider>
   );
 }
