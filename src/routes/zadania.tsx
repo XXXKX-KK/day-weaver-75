@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Calendar, Check, ChevronDown, ChevronLeft, Clock, Plus, Repeat, Trash2, X } from "lucide-react";
 import { CalendarPicker, TimePicker } from "@/components/pickers";
 import {
@@ -46,6 +46,7 @@ import {
   cancelRoutineReminder,
 } from "@/lib/notifications";
 import { todayLocalISO } from "@/lib/day";
+import { useNavReady } from "@/lib/nav-ready";
 
 /** ISO weekday order 1=Mon .. 7=Sun, with short PL labels. */
 const WEEKDAYS: { n: number; short: string }[] = [
@@ -101,6 +102,11 @@ function TasksScreen() {
     isError: routinesError,
     refetch: refetchRoutines,
   } = useRoutines();
+
+  const { markReady } = useNavReady();
+  useEffect(() => {
+    if (!isLoading && !isError) markReady();
+  }, [isLoading, isError, markReady]);
   const addRoutine = useAddRoutine();
   const updateRoutine = useUpdateRoutine();
   const toggleRoutineActive = useToggleRoutineActive();

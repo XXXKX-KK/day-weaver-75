@@ -13,8 +13,10 @@ import {
   UserCircle,
 } from "lucide-react";
 import { Screen, ScreenHeader } from "@/components/ui-kit";
+import { useEffect } from "react";
 import { useAuth } from "@/lib/auth";
 import { useOnboarding } from "@/lib/onboarding-context";
+import { useNavReady } from "@/lib/nav-ready";
 
 export const Route = createFileRoute("/ustawienia/")({
   head: () => ({
@@ -41,6 +43,8 @@ const menuItems = [
 function SettingsHub() {
   const { user } = useAuth();
   const { restartCoachmark } = useOnboarding();
+  const { markReady } = useNavReady();
+  useEffect(markReady, [markReady]);
 
   return (
     <Screen>

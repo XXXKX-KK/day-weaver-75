@@ -28,18 +28,6 @@ function markIntroPlayed() {
   } catch {}
 }
 
-function useReducedMotion(): boolean {
-  const [reduced, setReduced] = useState(false);
-  useEffect(() => {
-    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
-    setReduced(mq.matches);
-    const handler = (e: MediaQueryListEvent) => setReduced(e.matches);
-    mq.addEventListener("change", handler);
-    return () => mq.removeEventListener("change", handler);
-  }, []);
-  return reduced;
-}
-
 /**
  * Collapses the pill on scroll-down, expands on scroll-up / near the top.
  * SSR-safe: window is only touched inside the effect. `expand()` forces the
@@ -82,27 +70,32 @@ function useNavCollapse(): [boolean, () => void] {
   return [collapsed, () => setCollapsed(false)];
 }
 
-export function BottomNav() {
+type IntroPhase = "waiting" | "dropping" | "impact" | "drawing" | "revealing" | "done";
+
+export function BottomNav({ ready }: { ready: boolean }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [collapsed, expand] = useNavCollapse();
   const [mounted, setMounted] = useState(false);
-  const reducedMotion = useReducedMotion();
 
-  const shouldAnimate = useRef(false);
-  const [introPhase, setIntroPhase] = useState<
-    "idle" | "dropping" | "impact" | "drawing" | "revealing" | "done"
-  >("idle");
+  const wantsIntro = useRef<boolean | null>(null);
+  const [introPhase, setIntroPhase] = useState<IntroPhase>("waiting");
 
   useEffect(() => {
     setMounted(true);
     if (!isIntroPlayed() && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      shouldAnimate.current = true;
-      setIntroPhase("dropping");
-      markIntroPlayed();
+      wantsIntro.current = true;
     } else {
+      wantsIntro.current = false;
       setIntroPhase("done");
     }
   }, []);
+
+  useEffect(() => {
+    if (!ready || wantsIntro.current !== true) return;
+    if (introPhase !== "waiting") return;
+    markIntroPlayed();
+    setIntroPhase("dropping");
+  }, [ready, introPhase]);
 
   const activeIndex = Math.max(
     0,
@@ -114,10 +107,8 @@ export function BottomNav() {
   if (!mounted) return null;
 
   const introDone = introPhase === "done";
-  const showDot =
-    introPhase === "dropping" || introPhase === "impact";
-  const showPill =
-    introPhase === "drawing" || introPhase === "revealing" || introPhase === "done";
+  const showDot = introPhase === "dropping" || introPhase === "impact";
+  const showPill = introPhase === "drawing" || introPhase === "revealing" || introPhase === "done";
 
   const bottomOffset = "calc(env(safe-area-inset-bottom, 0px) + 12px)";
 
