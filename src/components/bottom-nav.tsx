@@ -2,7 +2,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import { CalendarDays, ListChecks, Settings, ShieldCheck } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { motion, useAnimationControls } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 
 const tabs = [
@@ -28,14 +28,6 @@ function markIntroPlayed() {
   } catch {}
 }
 
-/**
- * Collapses the pill on scroll-down, expands on scroll-up / near the top.
- * SSR-safe: window is only touched inside the effect. `expand()` forces the
- * expanded state (used on tab tap). Honours prefers-reduced-motion.
- *
- * Our app scrolls the window (no inner scroll container), so this listens to
- * window rather than a scrollRef.
- */
 function useNavCollapse(): [boolean, () => void] {
   const [collapsed, setCollapsed] = useState(false);
   const lastY = useRef(0);
@@ -70,7 +62,7 @@ function useNavCollapse(): [boolean, () => void] {
   return [collapsed, () => setCollapsed(false)];
 }
 
-type IntroPhase = "waiting" | "dropping" | "impact" | "drawing" | "revealing" | "done";
+type IntroPhase = "waiting" | "dropping" | "impact" | "expanding" | "revealing" | "done";
 
 export function BottomNav({ ready }: { ready: boolean }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
@@ -78,7 +70,7 @@ export function BottomNav({ ready }: { ready: boolean }) {
   const [mounted, setMounted] = useState(false);
 
   const wantsIntro = useRef<boolean | null>(null);
-  const [introPhase, setIntroPhase] = useState<IntroPhase>("waiting");
+  const [phase, setPhase] = useState<IntroPhase>("waiting");
 
   useEffect(() => {
     setMounted(true);
@@ -86,16 +78,16 @@ export function BottomNav({ ready }: { ready: boolean }) {
       wantsIntro.current = true;
     } else {
       wantsIntro.current = false;
-      setIntroPhase("done");
+      setPhase("done");
     }
   }, []);
 
   useEffect(() => {
     if (!ready || wantsIntro.current !== true) return;
-    if (introPhase !== "waiting") return;
+    if (phase !== "waiting") return;
     markIntroPlayed();
-    setIntroPhase("dropping");
-  }, [ready, introPhase]);
+    setPhase("dropping");
+  }, [ready, phase]);
 
   const activeIndex = Math.max(
     0,
@@ -106,199 +98,209 @@ export function BottomNav({ ready }: { ready: boolean }) {
 
   if (!mounted) return null;
 
-  const introDone = introPhase === "done";
-  const showDot = introPhase === "dropping" || introPhase === "impact";
-  const showPill = introPhase === "drawing" || introPhase === "revealing" || introPhase === "done";
-
-  const bottomOffset = "calc(env(safe-area-inset-bottom, 0px) + 12px)";
+  const bottom = "calc(env(safe-area-inset-bottom, 0px) + 12px)";
+  const introDone = phase === "done";
 
   return createPortal(
     <>
-      {/* ─── Phase 1 & 2: Falling accent dot ─── */}
-      {showDot && (
-        <motion.div
-          className="fixed left-1/2 z-50"
-          style={{ bottom: bottomOffset }}
-          initial={{ y: "-100vh", x: "-50%", scale: 1 }}
-          animate={
-            introPhase === "dropping"
-              ? {
-                  y: 0,
-                  x: "-50%",
-                  scale: 1,
-                  transition: {
-                    y: { duration: 0.5, ease: [0.5, 0, 0.75, 0] },
-                  },
-                }
-              : introPhase === "impact"
-                ? {
-                    y: 0,
-                    x: "-50%",
-                    scaleY: [0.6, 1.15, 1],
-                    scaleX: [1.4, 0.9, 1],
-                    transition: {
-                      duration: 0.35,
-                      ease: "easeOut",
-                    },
-                  }
-                : undefined
-          }
-          onAnimationComplete={() => {
-            if (introPhase === "dropping") {
-              setIntroPhase("impact");
-            } else if (introPhase === "impact") {
-              setIntroPhase("drawing");
+      {/* ── Step 1: Falling dot ── */}
+      <AnimatePresence>
+        {(phase === "dropping" || phase === "impact") && (
+          <motion.div
+            className="pointer-events-none fixed left-1/2 z-50 -translate-x-1/2"
+            style={{ bottom }}
+            initial={{ y: "-100vh" }}
+            animate={
+              phase === "dropping"
+                ? { y: 0, transition: { duration: 0.35, ease: [0.55, 0, 1, 0] } }
+                : { y: 0 }
             }
+            exit={{ opacity: 0, transition: { duration: 0.05 } }}
+            onAnimationComplete={() => {
+              if (phase === "dropping") setPhase("impact");
+            }}
+          >
+            {/* ── Step 2: Squish on impact ── */}
+            <motion.div
+              className="h-3 w-3 rounded-full"
+              style={{
+                background: "var(--primary)",
+                boxShadow: "0 0 12px var(--primary)",
+              }}
+              animate={
+                phase === "impact"
+                  ? {
+                      scaleX: [1, 1.8, 1],
+                      scaleY: [1, 0.4, 1],
+                      transition: { duration: 0.12, ease: "easeOut" },
+                    }
+                  : {}
+              }
+              onAnimationComplete={() => {
+                if (phase === "impact") setPhase("expanding");
+              }}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Step 3 & 4: Expanding pill + icon fade-in ── */}
+      {(phase === "expanding" || phase === "revealing" || introDone) && (
+        <nav
+          aria-label="Nawigacja główna"
+          className={cn(
+            "fixed z-40 flex items-stretch rounded-full",
+            introDone && "transition-[left,right] duration-[220ms] ease-out",
+          )}
+          style={{
+            bottom,
+            left: collapsed ? "12%" : "12px",
+            right: collapsed ? "12%" : "12px",
+            background: "var(--navpill)",
+            border: "1px solid var(--navpill-border)",
+            boxShadow: "inset 0 1px 0 var(--navpill-top), 0 8px 32px rgba(0,0,0,0.35)",
+            backdropFilter: "blur(28px) saturate(180%)",
+            WebkitBackdropFilter: "blur(28px) saturate(180%)",
           }}
         >
-          <div
-            className="h-4 w-4 rounded-full"
-            style={{
-              background: "var(--primary)",
-              boxShadow: "0 0 16px 4px color-mix(in oklab, var(--primary) 60%, transparent)",
-            }}
-          />
-        </motion.div>
-      )}
+          {/* Clip container for the expanding width animation */}
+          <ExpandingShell
+            phase={phase}
+            onExpandDone={() => setPhase("revealing")}
+          >
+            {/* Sliding highlight behind the active tab */}
+            <div
+              className="pointer-events-none absolute inset-y-[6px] left-0 rounded-full transition-transform duration-300 ease-out"
+              style={{
+                width: `${100 / tabs.length}%`,
+                transform: `translateX(${activeIndex * 100}%)`,
+                background: "color-mix(in oklab, var(--primary) 28%, transparent)",
+                border: "1px solid color-mix(in oklab, var(--primary) 50%, transparent)",
+                opacity: phase === "revealing" || introDone ? 1 : 0,
+                transition: "transform 300ms ease-out, opacity 200ms ease-out",
+              }}
+            />
 
-      {/* ─── Phase 3 & 4: Nav pill drawing + icon reveal ─── */}
-      {showPill && (
-        <NavPill
-          collapsed={collapsed}
-          expand={expand}
-          activeIndex={activeIndex}
-          introPhase={introPhase}
-          onDrawComplete={() => setIntroPhase("revealing")}
-          onRevealComplete={() => setIntroPhase("done")}
-          introDone={introDone}
-        />
+            {tabs.map(({ to, label, icon: Icon }, i) => {
+              const active = i === activeIndex;
+              return (
+                <Link
+                  key={to}
+                  to={to}
+                  aria-label={label}
+                  onClick={expand}
+                  {...(to === "/skupienie" ? { "data-tour": "nav-skupienie" } : {})}
+                  className={cn(
+                    "relative z-10 flex flex-1 flex-col items-center justify-center gap-1 rounded-full",
+                    "transition-[height] duration-[220ms] ease-out",
+                    collapsed ? "h-10" : "h-[54px]",
+                    active ? "text-primary" : "text-muted-foreground",
+                  )}
+                >
+                  {/* ── Step 4: Staggered icon/label fade-in ── */}
+                  <TabContent
+                    icon={Icon}
+                    label={label}
+                    active={active}
+                    collapsed={collapsed}
+                    phase={phase}
+                    index={i}
+                    onLastRevealed={() => setPhase("done")}
+                  />
+                </Link>
+              );
+            })}
+          </ExpandingShell>
+        </nav>
       )}
     </>,
     document.body,
   );
 }
 
-function NavPill({
-  collapsed,
-  expand,
-  activeIndex,
-  introPhase,
-  onDrawComplete,
-  onRevealComplete,
-  introDone,
+function ExpandingShell({
+  phase,
+  onExpandDone,
+  children,
 }: {
-  collapsed: boolean;
-  expand: () => void;
-  activeIndex: number;
-  introPhase: string;
-  onDrawComplete: () => void;
-  onRevealComplete: () => void;
-  introDone: boolean;
+  phase: IntroPhase;
+  onExpandDone: () => void;
+  children: React.ReactNode;
 }) {
-  const pillControls = useAnimationControls();
-  const isDrawing = introPhase === "drawing";
-  const isRevealing = introPhase === "revealing";
-
-  useEffect(() => {
-    if (!isDrawing) return;
-    const run = async () => {
-      await pillControls.start({
-        scaleX: 1,
-        opacity: 1,
-        transition: { duration: 0.45, ease: [0.22, 1, 0.36, 1] },
-      });
-      onDrawComplete();
-    };
-    void run();
-  }, [isDrawing, pillControls, onDrawComplete]);
-
-  const bottomOffset = "calc(env(safe-area-inset-bottom, 0px) + 12px)";
+  const isExpanding = phase === "expanding";
+  const introDone = phase === "done";
 
   return (
-    <motion.nav
-      aria-label="Nawigacja główna"
-      className="fixed z-40 flex items-stretch rounded-full"
-      initial={
-        introDone
-          ? false
-          : { scaleX: 0, opacity: 0 }
+    <motion.div
+      className="flex w-full items-stretch overflow-hidden rounded-full"
+      initial={introDone ? false : { clipPath: "inset(0 50% 0 50% round 9999px)" }}
+      animate={
+        isExpanding
+          ? {
+              clipPath: "inset(0 0% 0 0% round 9999px)",
+              transition: { duration: 0.9, ease: [0.4, 0, 0.2, 1] },
+            }
+          : introDone
+            ? { clipPath: "inset(0 0% 0 0% round 9999px)" }
+            : undefined
       }
-      animate={pillControls}
-      style={{
-        bottom: bottomOffset,
-        left: collapsed ? "12%" : "12px",
-        right: collapsed ? "12%" : "12px",
-        background: "var(--navpill)",
-        border: "1px solid var(--navpill-border)",
-        boxShadow: "inset 0 1px 0 var(--navpill-top), 0 8px 32px rgba(0,0,0,0.35)",
-        backdropFilter: "blur(28px) saturate(180%)",
-        WebkitBackdropFilter: "blur(28px) saturate(180%)",
-        transformOrigin: "center center",
-        transition: introDone
-          ? "left 220ms ease-out, right 220ms ease-out"
-          : undefined,
+      onAnimationComplete={() => {
+        if (isExpanding) onExpandDone();
+      }}
+      style={{ position: "relative" }}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+function TabContent({
+  icon: Icon,
+  label,
+  active,
+  collapsed,
+  phase,
+  index,
+  onLastRevealed,
+}: {
+  icon: (typeof tabs)[number]["icon"];
+  label: string;
+  active: boolean;
+  collapsed: boolean;
+  phase: IntroPhase;
+  index: number;
+  onLastRevealed: () => void;
+}) {
+  const isRevealing = phase === "revealing";
+  const introDone = phase === "done";
+
+  return (
+    <motion.div
+      className="flex flex-col items-center gap-1"
+      initial={introDone ? false : { opacity: 0, scale: 0.95 }}
+      animate={
+        isRevealing || introDone
+          ? { opacity: 1, scale: 1 }
+          : { opacity: 0, scale: 0.95 }
+      }
+      transition={{
+        duration: 0.25,
+        delay: isRevealing ? index * 0.06 : 0,
+        ease: "easeOut",
+      }}
+      onAnimationComplete={() => {
+        if (isRevealing && index === tabs.length - 1) onLastRevealed();
       }}
     >
-      {/* Sliding highlight behind the active tab */}
-      <div
-        className="pointer-events-none absolute inset-y-[6px] left-0 rounded-full transition-transform duration-300 ease-out"
-        style={{
-          width: `${100 / tabs.length}%`,
-          transform: `translateX(${activeIndex * 100}%)`,
-          background: "color-mix(in oklab, var(--primary) 28%, transparent)",
-          border: "1px solid color-mix(in oklab, var(--primary) 50%, transparent)",
-          opacity: introDone || isRevealing ? 1 : 0,
-          transition: "transform 300ms ease-out, opacity 200ms ease-out",
-        }}
-      />
-      {tabs.map(({ to, label, icon: Icon }, i) => {
-        const active = i === activeIndex;
-        return (
-          <Link
-            key={to}
-            to={to}
-            aria-label={label}
-            onClick={expand}
-            {...(to === "/skupienie" ? { "data-tour": "nav-skupienie" } : {})}
-            className={cn(
-              "relative z-10 flex flex-1 flex-col items-center justify-center gap-1 rounded-full",
-              "transition-[height] duration-[220ms] ease-out",
-              collapsed ? "h-10" : "h-[54px]",
-              active ? "text-primary" : "text-muted-foreground",
-            )}
-          >
-            <motion.div
-              className="flex flex-col items-center gap-1"
-              initial={introDone ? false : { opacity: 0, y: 8 }}
-              animate={
-                isRevealing || introDone
-                  ? { opacity: 1, y: 0 }
-                  : { opacity: 0, y: 8 }
-              }
-              transition={{
-                duration: 0.3,
-                delay: isRevealing ? i * 0.07 : 0,
-                ease: "easeOut",
-              }}
-              onAnimationComplete={() => {
-                if (isRevealing && i === tabs.length - 1) {
-                  onRevealComplete();
-                }
-              }}
-            >
-              <Icon className="size-5" strokeWidth={active ? 2.4 : 1.9} />
-              <span
-                className={cn(
-                  "overflow-hidden text-[10px] font-medium leading-none transition-all duration-[220ms] ease-out",
-                  collapsed ? "max-h-0 opacity-0" : "max-h-4 opacity-100",
-                )}
-              >
-                {label}
-              </span>
-            </motion.div>
-          </Link>
-        );
-      })}
-    </motion.nav>
+      <Icon className="size-5" strokeWidth={active ? 2.4 : 1.9} />
+      <span
+        className={cn(
+          "overflow-hidden text-[10px] font-medium leading-none transition-all duration-[220ms] ease-out",
+          collapsed ? "max-h-0 opacity-0" : "max-h-4 opacity-100",
+        )}
+      >
+        {label}
+      </span>
+    </motion.div>
   );
 }
