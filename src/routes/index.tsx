@@ -117,13 +117,13 @@ function useYesterdaySummary() {
 function Today() {
   const queryClient = useQueryClient();
   const { data: today, isLoading, isError, refetch } = useToday();
-  const { markReady } = useNavReady();
   const startDay = useStartDay();
   const completeDay = useCompleteDay();
   const reorderDayItems = useReorderDayItems();
   const [showSummary, setShowSummary] = useState(false);
   const summaryTasksRef = useRef<{ id: string; title: string; done: boolean }[]>([]);
   const { showYesterday, yesterdayTasks, dismissYesterday } = useYesterdaySummary();
+  const { markReady } = useNavReady();
 
   useEffect(() => {
     if (!isLoading && !isError) markReady();

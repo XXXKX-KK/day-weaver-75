@@ -22,12 +22,12 @@ import { CurrentTaskSync } from "@/components/current-task-sync";
 import { NotificationsSync } from "@/components/notifications-sync";
 import { BreakConfigSync } from "@/components/break-config-sync";
 import { BottomNav } from "@/components/bottom-nav";
+import { NavReadyProvider, useNavReady } from "@/lib/nav-ready";
 import { Toaster } from "@/components/ui/sonner";
 import { SetupWizard } from "@/components/onboarding/setup-wizard";
 import { Coachmarks } from "@/components/onboarding/coachmarks";
 import { useProfile, useUpdateProfile } from "@/lib/profile";
 import { OnboardingProvider } from "@/lib/onboarding-context";
-import { NavReadyProvider, useNavReady } from "@/lib/nav-ready";
 
 function NotFoundComponent() {
   return (
@@ -55,7 +55,6 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   console.error(error);
   const router = useRouter();
   const retried = useRef(false);
-  const [showError, setShowError] = useState(false);
 
   useEffect(() => {
     reportLovableError(error, { boundary: "tanstack_root_error_component" });
@@ -67,16 +66,7 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
       }, 1500);
       return () => clearTimeout(t);
     }
-    setShowError(true);
   }, [error, router, reset]);
-
-  if (!showError) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <p className="text-sm text-muted-foreground">Ładowanie…</p>
-      </div>
-    );
-  }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
@@ -189,22 +179,17 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <AuthGate>
-          <NavReadyProvider>
+        <NavReadyProvider>
+          <AuthGate>
             {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
             <Outlet />
             <BottomNavGated />
-          </NavReadyProvider>
-        </AuthGate>
+          </AuthGate>
+        </NavReadyProvider>
         <Toaster position="top-center" />
       </AuthProvider>
     </QueryClientProvider>
   );
-}
-
-function BottomNavGated() {
-  const { ready } = useNavReady();
-  return <BottomNav ready={ready} />;
 }
 
 /** Shows a loader while the session resolves, the auth screen when logged out,
@@ -260,4 +245,9 @@ function AuthGate({ children }: { children: ReactNode }) {
       {showCoachmark && <Coachmarks onDone={() => setCoachmarkDismissed(true)} />}
     </OnboardingProvider>
   );
+}
+
+function BottomNavGated() {
+  const { ready } = useNavReady();
+  return <BottomNav ready={ready} />;
 }

@@ -103,15 +103,16 @@ function TasksScreen() {
     refetch: refetchRoutines,
   } = useRoutines();
 
-  const { markReady } = useNavReady();
-  useEffect(() => {
-    if (!isLoading && !isError) markReady();
-  }, [isLoading, isError, markReady]);
   const addRoutine = useAddRoutine();
   const updateRoutine = useUpdateRoutine();
   const toggleRoutineActive = useToggleRoutineActive();
   const deleteRoutine = useDeleteRoutine();
   const reorderRoutines = useReorderRoutines();
+
+  const { markReady } = useNavReady();
+  useEffect(() => {
+    if (!isLoading && !isError && !routinesLoading && !routinesError) markReady();
+  }, [isLoading, isError, routinesLoading, routinesError, markReady]);
 
   const [tab, setTab] = useState<"tasks" | "routines">("tasks");
   const [formOpen, setFormOpen] = useState(false);

@@ -1,6 +1,6 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { CalendarDays, ListChecks, Settings, ShieldCheck } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -12,22 +12,6 @@ const tabs = [
   { to: "/ustawienia", label: "Ustawienia", icon: Settings },
 ] as const;
 
-const NAV_INTRO_KEY = "tenax:nav-intro-done";
-
-function isIntroPlayed(): boolean {
-  try {
-    return sessionStorage.getItem(NAV_INTRO_KEY) === "1";
-  } catch {
-    return false;
-  }
-}
-
-function markIntroPlayed() {
-  try {
-    sessionStorage.setItem(NAV_INTRO_KEY, "1");
-  } catch {}
-}
-
 function useNavCollapse(): [boolean, () => void] {
   const [collapsed, setCollapsed] = useState(false);
   const lastY = useRef(0);
@@ -35,7 +19,9 @@ function useNavCollapse(): [boolean, () => void] {
   const reduced = useRef(false);
 
   useEffect(() => {
-    reduced.current = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    reduced.current = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
     lastY.current = window.scrollY;
 
     const onScroll = () => {
@@ -62,37 +48,96 @@ function useNavCollapse(): [boolean, () => void] {
   return [collapsed, () => setCollapsed(false)];
 }
 
-type IntroPhase = "waiting" | "dropping" | "impact" | "expanding" | "revealing" | "done";
+type IntroPhase =
+  | "waiting"
+  | "dropping"
+  | "impact"
+  | "border-draw"
+  | "radial-fill"
+  | "icons-pop"
+  | "labels-slide"
+  | "done";
+
+function getPillPerimeter(w: number, h: number): number {
+  const r = h / 2;
+  return 2 * (w - 2 * r) + 2 * Math.PI * r;
+}
+
+function getPillPath(w: number, h: number): string {
+  const r = h / 2;
+  const cx = w / 2;
+  return [
+    `M ${cx} ${h}`,
+    `L ${r} ${h}`,
+    `A ${r} ${r} 0 0 1 ${r} 0`,
+    `L ${cx} 0`,
+    `M ${cx} ${h}`,
+    `L ${w - r} ${h}`,
+    `A ${r} ${r} 0 0 0 ${w - r} 0`,
+    `L ${cx} 0`,
+  ].join(" ");
+}
 
 export function BottomNav({ ready }: { ready: boolean }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [collapsed, expand] = useNavCollapse();
   const [mounted, setMounted] = useState(false);
-
-  const wantsIntro = useRef<boolean | null>(null);
   const [phase, setPhase] = useState<IntroPhase>("waiting");
+  const reducedMotion = useRef(false);
+  const pillRef = useRef<HTMLElement | null>(null);
+  const [pillSize, setPillSize] = useState({ w: 0, h: 0 });
 
   useEffect(() => {
     setMounted(true);
-    if (!isIntroPlayed() && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      wantsIntro.current = true;
-    } else {
-      wantsIntro.current = false;
+    reducedMotion.current = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+    if (reducedMotion.current) {
       setPhase("done");
     }
   }, []);
 
   useEffect(() => {
-    if (!ready || wantsIntro.current !== true) return;
+    if (!ready || reducedMotion.current) return;
     if (phase !== "waiting") return;
-    markIntroPlayed();
     setPhase("dropping");
   }, [ready, phase]);
+
+  const measurePill = useCallback(() => {
+    if (pillRef.current) {
+      const rect = pillRef.current.getBoundingClientRect();
+      setPillSize({ w: rect.width, h: rect.height });
+    }
+  }, []);
+
+  useEffect(() => {
+    if (phase === "radial-fill" && pillRef.current) {
+      const el = pillRef.current;
+      el.style.setProperty("--hole", "78%");
+      requestAnimationFrame(() => {
+        el.style.transition = "--hole 0.32s ease-in-out";
+        el.style.setProperty("--hole", "0%");
+      });
+
+      const onEnd = (e: TransitionEvent) => {
+        if (e.propertyName !== "--hole") return;
+        el.style.removeProperty("--hole");
+        el.style.transition = "";
+        el.style.mask = "";
+        el.style.webkitMask = "";
+        setPhase("icons-pop");
+      };
+      el.addEventListener("transitionend", onEnd);
+      return () => el.removeEventListener("transitionend", onEnd);
+    }
+  }, [phase]);
 
   const activeIndex = Math.max(
     0,
     tabs.findIndex(({ to }) =>
-      to === "/" ? pathname === "/" || pathname.startsWith("/dzien") : pathname.startsWith(to),
+      to === "/"
+        ? pathname === "/" || pathname.startsWith("/dzien")
+        : pathname.startsWith(to),
     ),
   );
 
@@ -100,10 +145,16 @@ export function BottomNav({ ready }: { ready: boolean }) {
 
   const bottom = "calc(env(safe-area-inset-bottom, 0px) + 12px)";
   const introDone = phase === "done";
+  const showPill =
+    phase !== "waiting" && phase !== "dropping" && phase !== "impact";
+  const perimeter =
+    pillSize.w > 0 ? getPillPerimeter(pillSize.w, pillSize.h) : 600;
+  const pillPath =
+    pillSize.w > 0 ? getPillPath(pillSize.w, pillSize.h) : "";
 
   return createPortal(
     <>
-      {/* ── Step 1: Falling dot ── */}
+      {/* ── Step 1: Falling dot + bounce ── */}
       <AnimatePresence>
         {(phase === "dropping" || phase === "impact") && (
           <motion.div
@@ -112,7 +163,13 @@ export function BottomNav({ ready }: { ready: boolean }) {
             initial={{ y: "-100vh" }}
             animate={
               phase === "dropping"
-                ? { y: 0, transition: { duration: 0.35, ease: [0.55, 0, 1, 0] } }
+                ? {
+                    y: 0,
+                    transition: {
+                      duration: 0.28,
+                      ease: [0.55, 0, 1, 0],
+                    },
+                  }
                 : { y: 0 }
             }
             exit={{ opacity: 0, transition: { duration: 0.05 } }}
@@ -120,7 +177,6 @@ export function BottomNav({ ready }: { ready: boolean }) {
               if (phase === "dropping") setPhase("impact");
             }}
           >
-            {/* ── Step 2: Squish on impact ── */}
             <motion.div
               className="h-3 w-3 rounded-full"
               style={{
@@ -132,21 +188,24 @@ export function BottomNav({ ready }: { ready: boolean }) {
                   ? {
                       scaleX: [1, 1.8, 1],
                       scaleY: [1, 0.4, 1],
-                      transition: { duration: 0.12, ease: "easeOut" },
+                      transition: { duration: 0.08, ease: "easeOut" },
                     }
                   : {}
               }
               onAnimationComplete={() => {
-                if (phase === "impact") setPhase("expanding");
+                if (phase === "impact") setPhase("border-draw");
               }}
             />
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* ── Step 3 & 4: Expanding pill + icon fade-in ── */}
-      {(phase === "expanding" || phase === "revealing" || introDone) && (
+      {/* ── Steps 2–6: Pill with border draw, fill, icons, labels ── */}
+      {showPill && (
         <nav
+          ref={(el) => {
+            pillRef.current = el;
+          }}
           aria-label="Nawigacja główna"
           className={cn(
             "fixed z-40 flex items-stretch rounded-full",
@@ -156,61 +215,111 @@ export function BottomNav({ ready }: { ready: boolean }) {
             bottom,
             left: collapsed ? "12%" : "12px",
             right: collapsed ? "12%" : "12px",
-            background: "var(--navpill)",
-            border: "1px solid var(--navpill-border)",
-            boxShadow: "inset 0 1px 0 var(--navpill-top), 0 8px 32px rgba(0,0,0,0.35)",
-            backdropFilter: "blur(28px) saturate(180%)",
-            WebkitBackdropFilter: "blur(28px) saturate(180%)",
+            background:
+              phase === "border-draw" ? "transparent" : "var(--navpill)",
+            border:
+              phase === "border-draw"
+                ? "1px solid transparent"
+                : "1px solid var(--navpill-border)",
+            boxShadow:
+              phase === "border-draw"
+                ? "none"
+                : "inset 0 1px 0 var(--navpill-top), 0 8px 32px rgba(0,0,0,0.35)",
+            backdropFilter:
+              phase === "border-draw" ? "none" : "blur(28px) saturate(180%)",
+            WebkitBackdropFilter:
+              phase === "border-draw" ? "none" : "blur(28px) saturate(180%)",
+            ...(phase === "radial-fill"
+              ? {
+                  mask: "radial-gradient(circle at center, transparent var(--hole), #000 calc(var(--hole) + 3%))",
+                  WebkitMask:
+                    "radial-gradient(circle at center, transparent var(--hole), #000 calc(var(--hole) + 3%))",
+                }
+              : {}),
           }}
         >
-          {/* Clip container for the expanding width animation */}
-          <ExpandingShell
-            phase={phase}
-            onExpandDone={() => setPhase("revealing")}
-          >
-            {/* Sliding highlight behind the active tab */}
-            <div
-              className="pointer-events-none absolute inset-y-[6px] left-0 rounded-full transition-transform duration-300 ease-out"
-              style={{
-                width: `${100 / tabs.length}%`,
-                transform: `translateX(${activeIndex * 100}%)`,
-                background: "color-mix(in oklab, var(--primary) 28%, transparent)",
-                border: "1px solid color-mix(in oklab, var(--primary) 50%, transparent)",
-                opacity: phase === "revealing" || introDone ? 1 : 0,
-                transition: "transform 300ms ease-out, opacity 200ms ease-out",
-              }}
-            />
+          <PillMeasurer onMeasure={measurePill} phase={phase} />
 
-            {tabs.map(({ to, label, icon: Icon }, i) => {
-              const active = i === activeIndex;
-              return (
-                <Link
-                  key={to}
-                  to={to}
-                  aria-label={label}
-                  onClick={expand}
-                  {...(to === "/skupienie" ? { "data-tour": "nav-skupienie" } : {})}
-                  className={cn(
-                    "relative z-10 flex flex-1 flex-col items-center justify-center gap-1 rounded-full",
-                    "transition-[height] duration-[220ms] ease-out",
-                    collapsed ? "h-10" : "h-[54px]",
-                    active ? "text-primary" : "text-muted-foreground",
-                  )}
-                >
-                  {/* ── Step 4: Staggered icon/label fade-in ── */}
-                  <TabContent
-                    icon={Icon}
-                    label={label}
-                    active={active}
-                    collapsed={collapsed}
-                    phase={phase}
-                    index={i}
-                    onLastRevealed={() => setPhase("done")}
-                  />
-                </Link>
-              );
-            })}
-          </ExpandingShell>
+          {/* Step 2: SVG border draw from bottom-center outward */}
+          {phase === "border-draw" && pillSize.w > 0 && (
+            <svg
+              className="pointer-events-none absolute inset-0 z-50"
+              width={pillSize.w}
+              height={pillSize.h}
+              viewBox={`0 0 ${pillSize.w} ${pillSize.h}`}
+              style={{ overflow: "visible" }}
+            >
+              <motion.path
+                d={pillPath}
+                fill="none"
+                stroke="var(--navpill-border)"
+                strokeWidth={1.5}
+                strokeLinecap="round"
+                strokeDasharray={perimeter / 2}
+                initial={{ strokeDashoffset: perimeter / 2 }}
+                animate={{ strokeDashoffset: 0 }}
+                transition={{
+                  duration: 0.26,
+                  ease: [0.4, 0, 0.2, 1],
+                }}
+                onAnimationComplete={() => {
+                  if (phase === "border-draw") setPhase("radial-fill");
+                }}
+              />
+            </svg>
+          )}
+
+          {/* Sliding highlight behind active tab */}
+          <div
+            className="pointer-events-none absolute inset-y-[6px] left-0 rounded-full transition-transform duration-300 ease-out"
+            style={{
+              width: `${100 / tabs.length}%`,
+              transform: `translateX(${activeIndex * 100}%)`,
+              background:
+                "color-mix(in oklab, var(--primary) 28%, transparent)",
+              border:
+                "1px solid color-mix(in oklab, var(--primary) 50%, transparent)",
+              opacity:
+                phase === "icons-pop" ||
+                phase === "labels-slide" ||
+                introDone
+                  ? 1
+                  : 0,
+              transition: "transform 300ms ease-out, opacity 200ms ease-out",
+            }}
+          />
+
+          {tabs.map(({ to, label, icon: Icon }, i) => {
+            const active = i === activeIndex;
+            return (
+              <Link
+                key={to}
+                to={to}
+                aria-label={label}
+                onClick={expand}
+                {...(to === "/skupienie"
+                  ? { "data-tour": "nav-skupienie" }
+                  : {})}
+                className={cn(
+                  "relative z-10 flex flex-1 flex-col items-center justify-center gap-1 rounded-full",
+                  "transition-[height] duration-[220ms] ease-out",
+                  collapsed ? "h-10" : "h-[54px]",
+                  active ? "text-primary" : "text-muted-foreground",
+                )}
+              >
+                <TabContent
+                  icon={Icon}
+                  label={label}
+                  active={active}
+                  collapsed={collapsed}
+                  phase={phase}
+                  index={i}
+                  onLastIconPopped={() => setPhase("labels-slide")}
+                  onLastLabelSlid={() => setPhase("done")}
+                />
+              </Link>
+            );
+          })}
         </nav>
       )}
     </>,
@@ -218,40 +327,21 @@ export function BottomNav({ ready }: { ready: boolean }) {
   );
 }
 
-function ExpandingShell({
+function PillMeasurer({
+  onMeasure,
   phase,
-  onExpandDone,
-  children,
 }: {
+  onMeasure: () => void;
   phase: IntroPhase;
-  onExpandDone: () => void;
-  children: React.ReactNode;
 }) {
-  const isExpanding = phase === "expanding";
-  const introDone = phase === "done";
-
-  return (
-    <motion.div
-      className="flex w-full items-stretch overflow-hidden rounded-full"
-      initial={introDone ? false : { clipPath: "inset(0 50% 0 50% round 9999px)" }}
-      animate={
-        isExpanding
-          ? {
-              clipPath: "inset(0 0% 0 0% round 9999px)",
-              transition: { duration: 0.9, ease: [0.4, 0, 0.2, 1] },
-            }
-          : introDone
-            ? { clipPath: "inset(0 0% 0 0% round 9999px)" }
-            : undefined
-      }
-      onAnimationComplete={() => {
-        if (isExpanding) onExpandDone();
-      }}
-      style={{ position: "relative" }}
-    >
-      {children}
-    </motion.div>
-  );
+  const measured = useRef(false);
+  useEffect(() => {
+    if (phase === "border-draw" && !measured.current) {
+      measured.current = true;
+      requestAnimationFrame(onMeasure);
+    }
+  }, [phase, onMeasure]);
+  return null;
 }
 
 function TabContent({
@@ -261,7 +351,8 @@ function TabContent({
   collapsed,
   phase,
   index,
-  onLastRevealed,
+  onLastIconPopped,
+  onLastLabelSlid,
 }: {
   icon: (typeof tabs)[number]["icon"];
   label: string;
@@ -269,38 +360,61 @@ function TabContent({
   collapsed: boolean;
   phase: IntroPhase;
   index: number;
-  onLastRevealed: () => void;
+  onLastIconPopped: () => void;
+  onLastLabelSlid: () => void;
 }) {
-  const isRevealing = phase === "revealing";
   const introDone = phase === "done";
+  const showIcon =
+    phase === "icons-pop" || phase === "labels-slide" || introDone;
+  const showLabel = phase === "labels-slide" || introDone;
 
   return (
-    <motion.div
-      className="flex flex-col items-center gap-1"
-      initial={introDone ? false : { opacity: 0, scale: 0.95 }}
-      animate={
-        isRevealing || introDone
-          ? { opacity: 1, scale: 1 }
-          : { opacity: 0, scale: 0.95 }
-      }
-      transition={{
-        duration: 0.25,
-        delay: isRevealing ? index * 0.06 : 0,
-        ease: "easeOut",
-      }}
-      onAnimationComplete={() => {
-        if (isRevealing && index === tabs.length - 1) onLastRevealed();
-      }}
-    >
-      <Icon className="size-5" strokeWidth={active ? 2.4 : 1.9} />
-      <span
+    <div className="flex flex-col items-center gap-1">
+      {/* Step 4: Icons pop L→R */}
+      <motion.div
+        initial={introDone ? false : { scale: 0 }}
+        animate={showIcon ? { scale: 1 } : introDone ? { scale: 1 } : { scale: 0 }}
+        transition={{
+          duration: 0.15,
+          delay: phase === "icons-pop" ? index * 0.055 : 0,
+          ease: [0.34, 1.56, 0.64, 1],
+        }}
+        onAnimationComplete={() => {
+          if (phase === "icons-pop" && index === tabs.length - 1) {
+            onLastIconPopped();
+          }
+        }}
+      >
+        <Icon className="size-5" strokeWidth={active ? 2.4 : 1.9} />
+      </motion.div>
+
+      {/* Step 5: Labels slide up */}
+      <motion.span
         className={cn(
           "overflow-hidden text-[10px] font-medium leading-none transition-all duration-[220ms] ease-out",
           collapsed ? "max-h-0 opacity-0" : "max-h-4 opacity-100",
         )}
+        initial={introDone ? false : { y: 8, opacity: 0 }}
+        animate={
+          showLabel
+            ? { y: 0, opacity: 1 }
+            : introDone
+              ? { y: 0, opacity: 1 }
+              : { y: 8, opacity: 0 }
+        }
+        transition={{
+          duration: 0.12,
+          delay: phase === "labels-slide" ? index * 0.04 : 0,
+          ease: "easeOut",
+        }}
+        onAnimationComplete={() => {
+          if (phase === "labels-slide" && index === tabs.length - 1) {
+            onLastLabelSlid();
+          }
+        }}
       >
         {label}
-      </span>
-    </motion.div>
+      </motion.span>
+    </div>
   );
 }

@@ -392,6 +392,12 @@
  * semi-transparent fill to preserve glassmorphism).
  */
 
+@property --hole {
+  syntax: "<percentage>";
+  inherits: false;
+  initial-value: 78%;
+}
+
 @property --beam-angle {
   syntax: "<angle>";
   inherits: false;
