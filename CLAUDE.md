@@ -64,4 +64,4 @@ Tailwind v4, Capacitor 8 (Android), Supabase (Postgres + RLS + Auth).
 - Karta sugestii pojawia się **wyłącznie** w apce, na zakładce Dziś. Nigdy w
   nakładce blokady ani w powiadomieniach.
 - Kolejne reguły dopisuje się jako osobne moduły; priorytet rozstrzyga
-  `RULE_PRIORITY` w `src/lib/suggestions/index.ts`.
+  kolejność w tablicy `RULES` w `src/lib/suggestions/index.ts`.
