@@ -20,6 +20,7 @@ import {
 import { XpBar } from "@/components/xp-bar";
 import { SortableList } from "@/components/sortable-list";
 import { SuggestionCard } from "@/components/suggestion-card";
+import { CalendarEvents } from "@/components/calendar-events";
 import { useRoutines } from "@/lib/routines";
 import { useTasks } from "@/lib/tasks";
 import { useProfile } from "@/lib/profile";
@@ -316,6 +317,8 @@ function Today() {
           />
         </div>
       </div>
+
+      <CalendarEvents />
 
       <SuggestionCard dayId={today?.day?.id ?? null} />
 

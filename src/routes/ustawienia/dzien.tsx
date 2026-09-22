@@ -5,6 +5,7 @@ import { Screen } from "@/components/ui-kit";
 import { Switch } from "@/components/ui/switch";
 import { TimePicker } from "@/components/pickers";
 import { useProfile, useUpdateProfile } from "@/lib/profile";
+import { CalendarSettings } from "@/components/calendar-settings";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/ustawienia/dzien")({
@@ -109,6 +110,8 @@ function DaySettingsScreen() {
               onCheckedChange={(v) => save({ autostart_day: v })}
             />
           </div>
+
+          <CalendarSettings />
 
           {picker && (
             <TimePicker

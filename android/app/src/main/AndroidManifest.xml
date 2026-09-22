@@ -64,6 +64,9 @@
     <!-- Local daily reminders (@capacitor/local-notifications). -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <!-- Read-only, asked at runtime only after the user turns calendar events
+         on in Settings. Events are read on-device and never uploaded. -->
+    <uses-permission android:name="android.permission.READ_CALENDAR" />
 
     <queries>
         <intent>

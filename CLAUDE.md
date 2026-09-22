@@ -35,6 +35,16 @@ Tailwind v4, Capacitor 8 (Android), Supabase (Postgres + RLS + Auth).
 - `profiles.streak_base` / `streak_base_date` zamrażają passę sprzed
   wprowadzenia Rozwoju, żeby nie przeliczać historii wstecz.
 
+## Kalendarz
+
+- Czytany z urządzenia (`CalendarContract`, `READ_CALENDAR`), bez Google
+  Calendar API i bez logowania Google. Tylko odczyt.
+- Przełącznik i wybrane kalendarze siedzą w natywnych SharedPreferences, nie
+  w Supabase: id kalendarzy mają sens wyłącznie na tym urządzeniu, a dzięki temu
+  żadne dane z kalendarza nie opuszczają telefonu.
+- Wydarzenia są read-only: nie dają XP, nie liczą się do postępu ani passy.
+- Uprawnienie pytane dopiero po włączeniu opcji w Ustawieniach → Dzień.
+
 ## Ukryte / planowane funkcje
 
 ### Wioska (gra)

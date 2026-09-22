@@ -95,6 +95,15 @@ function PrivacyScreen() {
                 urządzenie.
               </strong>
             </li>
+            <li>
+              Wydarzenia z kalendarza na Twoim telefonie — tytuł, godziny i nazwa kalendarza —
+              odczytywane tylko wtedy, gdy sam włączysz opcję „Pokazuj wydarzenia z kalendarza".
+              Pokazujemy je na ekranie Dziś, aby plan dnia uwzględniał to, co i tak masz umówione.{" "}
+              <strong className="text-foreground">
+                Wydarzeń nie zapisujemy, nie modyfikujemy i nie wysyłamy na serwer — są czytane na
+                bieżąco na urządzeniu.
+              </strong>
+            </li>
           </ul>
 
           <p className="text-sm leading-relaxed text-muted-foreground">
@@ -137,6 +146,12 @@ function PrivacyScreen() {
                 Uruchamianie po restarcie (RECEIVE_BOOT_COMPLETED)
               </strong>{" "}
               — aby blokada wznowiła działanie po ponownym uruchomieniu telefonu.
+            </li>
+            <li>
+              <strong className="text-foreground">Odczyt kalendarza (READ_CALENDAR)</strong> — aby
+              pokazać dzisiejsze wydarzenia na ekranie Dziś. Prosimy o nie dopiero wtedy, gdy
+              włączysz tę opcję w Ustawieniach, a dostęp jest wyłącznie do odczytu — nie tworzymy
+              ani nie zmieniamy wydarzeń.
             </li>
             <li>
               <strong className="text-foreground">Internet</strong> — do synchronizacji Twojego konta
