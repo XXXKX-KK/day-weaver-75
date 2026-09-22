@@ -1,3 +1,4 @@
+import type { Level } from "@/lib/day-survey";
 import type { GrowthArea, Priority, RoutineKind } from "@/lib/store";
 
 /**
@@ -23,6 +24,14 @@ export type RoutineStat = {
   done30: number;
   occurrences21: number;
   done21: number;
+  occurrences14: number;
+  done14: number;
+  /** The last seven *occurrences*, not days — a Mon/Wed/Fri routine needs over
+   *  two weeks to reach seven, and counting by date would misjudge it. */
+  recentPlanned: number;
+  recentDone: number;
+  /** True when some growth habit already hangs off this routine. */
+  hasAnchoredHabit: boolean;
 };
 
 /** A suggestion the user already saw today, so it isn't offered twice. */
@@ -33,6 +42,9 @@ export type SuggestionContext = {
   shownToday: ShownEvent[];
   /** Completion of today's plan, 0..1. Gates the second daily slot. */
   dayProgress: number;
+  /** What the user said they want to work on, from the starter survey. */
+  surveyAreas: GrowthArea[];
+  surveyLevels: Partial<Record<GrowthArea, Level>>;
 };
 
 /** What "Dodaj do planu" does when accepted. */

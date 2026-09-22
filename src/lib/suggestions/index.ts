@@ -1,5 +1,8 @@
 import { shrinkRule } from "./rules/shrink";
+import { progressRule } from "./rules/progress";
 import { mergeRule } from "./rules/merge";
+import { attachRule } from "./rules/attach";
+import { gapRule } from "./rules/gap";
 import type { Suggestion, SuggestionContext, SuggestionRule } from "./types";
 
 export type {
@@ -11,7 +14,10 @@ export type {
   SuggestionRule,
 } from "./types";
 export { SHRINK_RULE_ID } from "./rules/shrink";
+export { PROGRESS_RULE_ID } from "./rules/progress";
 export { MERGE_RULE_ID } from "./rules/merge";
+export { ATTACH_RULE_ID } from "./rules/attach";
+export { GAP_RULE_ID } from "./rules/gap";
 
 /** Two a day, maximum. Advice stops being advice when it becomes a feed. */
 export const MAX_PER_DAY = 2;
@@ -20,10 +26,16 @@ export const MAX_PER_DAY = 2;
 const SECOND_SLOT_PROGRESS = 0.5;
 
 /**
- * Order is priority. Shrinking a habit the user is already failing comes before
- * anything that adds to their plate.
+ * Order is priority. Rescuing or advancing a habit the user already has beats
+ * tidying up, and anything that *adds* to their plate goes last.
  */
-const RULES: SuggestionRule[] = [shrinkRule, mergeRule];
+const RULES: SuggestionRule[] = [
+  shrinkRule,
+  progressRule,
+  mergeRule,
+  attachRule,
+  gapRule,
+];
 
 /**
  * The one suggestion to show right now, or null when there is nothing worth

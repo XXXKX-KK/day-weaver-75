@@ -1,7 +1,17 @@
 import { describe, expect, it } from "vitest";
-import { pickSuggestion, MERGE_RULE_ID, SHRINK_RULE_ID } from "./index";
+import {
+  pickSuggestion,
+  ATTACH_RULE_ID,
+  GAP_RULE_ID,
+  MERGE_RULE_ID,
+  PROGRESS_RULE_ID,
+  SHRINK_RULE_ID,
+} from "./index";
 import { shrinkRule } from "./rules/shrink";
 import { mergeRule } from "./rules/merge";
+import { progressRule } from "./rules/progress";
+import { attachRule } from "./rules/attach";
+import { gapRule } from "./rules/gap";
 import type { RoutineStat, SuggestionContext } from "./types";
 
 const ALL_DAYS = [1, 2, 3, 4, 5, 6, 7];
@@ -19,12 +29,24 @@ function stat(
     done30: 0,
     occurrences21: 0,
     done21: 0,
+    occurrences14: 0,
+    done14: 0,
+    recentPlanned: 0,
+    recentDone: 0,
+    hasAnchoredHabit: false,
     ...over,
   };
 }
 
 function ctx(over: Partial<SuggestionContext> = {}): SuggestionContext {
-  return { stats: [], shownToday: [], dayProgress: 0, ...over };
+  return {
+    stats: [],
+    shownToday: [],
+    dayProgress: 0,
+    surveyAreas: [],
+    surveyLevels: {},
+    ...over,
+  };
 }
 
 // Numbers taken from the author's own 30 days.
@@ -156,10 +178,165 @@ describe("SCALENIE", () => {
   });
 });
 
+describe("PROGRESJA", () => {
+  const pompki = stat({
+    routineId: "pompki",
+    title: "10 pompek",
+    kind: "growth",
+    area: "body",
+    recentPlanned: 7,
+    recentDone: 7,
+  });
+
+  it("raises a bigger count by half, rounded to a five", () => {
+    const [suggestion] = progressRule.evaluate(ctx({ stats: [pompki] }));
+    expect(suggestion?.observation).toBe("10 pompek — siedem na siedem ostatnich razy.");
+    expect(suggestion?.action).toEqual({
+      type: "raise_bar",
+      routineId: "pompki",
+      title: "15 pompek",
+    });
+  });
+
+  it("doubles a small count", () => {
+    const strony = { ...pompki, routineId: "strony", title: "Przeczytaj 5 stron" };
+    const [suggestion] = progressRule.evaluate(ctx({ stats: [strony] }));
+    expect(suggestion?.action).toMatchObject({ title: "Przeczytaj 10 stron" });
+  });
+
+  it("waits for a clean seven", () => {
+    const slipped = { ...pompki, recentDone: 6 };
+    expect(progressRule.evaluate(ctx({ stats: [slipped] }))).toHaveLength(0);
+  });
+
+  it("leaves a habit with no number alone", () => {
+    const vague = { ...pompki, routineId: "medytacja", title: "Medytacja" };
+    expect(progressRule.evaluate(ctx({ stats: [vague] }))).toHaveLength(0);
+  });
+});
+
+describe("PODCZEPIENIE", () => {
+  const prysznic = stat({
+    routineId: "prysznic",
+    title: "Prysznic",
+    occurrences14: 14,
+    done14: 14,
+  });
+
+  it("hangs a starter habit off a routine the user never misses", () => {
+    const [suggestion] = attachRule.evaluate(
+      ctx({ stats: [prysznic], surveyAreas: ["body"] }),
+    );
+    expect(suggestion?.observation).toBe("Prysznic robisz 14 razy na 14.");
+    expect(suggestion?.action).toEqual({
+      type: "add_habit",
+      title: "10 pompek",
+      area: "body",
+      weekdays: ALL_DAYS,
+      anchorRoutineId: "prysznic",
+    });
+  });
+
+  it("skips a routine that already carries a habit", () => {
+    const taken = { ...prysznic, hasAnchoredHabit: true };
+    expect(attachRule.evaluate(ctx({ stats: [taken], surveyAreas: ["body"] }))).toHaveLength(0);
+  });
+
+  it("skips a routine that is merely good, not reliable", () => {
+    const wobbly = { ...prysznic, done14: 10 };
+    expect(
+      attachRule.evaluate(ctx({ stats: [wobbly], surveyAreas: ["body"] })),
+    ).toHaveLength(0);
+  });
+
+  it("says nothing when the survey named no areas", () => {
+    expect(attachRule.evaluate(ctx({ stats: [prysznic] }))).toHaveLength(0);
+  });
+
+  it("uses the habit matching the level the user reported", () => {
+    const [suggestion] = attachRule.evaluate(
+      ctx({ stats: [prysznic], surveyAreas: ["body"], surveyLevels: { body: "irregular" } }),
+    );
+    expect(suggestion?.action).toMatchObject({ title: "Trening 20 min" });
+  });
+});
+
+describe("LUKA", () => {
+  it("offers a way back into an area with nothing in the plan", () => {
+    const [suggestion] = gapRule.evaluate(ctx({ surveyAreas: ["mind"] }));
+    expect(suggestion?.observation).toBe("Głowa: od dwóch tygodni nic w planie.");
+    expect(suggestion?.action).toMatchObject({
+      type: "add_habit",
+      area: "mind",
+      title: "Przeczytaj 5 stron",
+      anchorRoutineId: null,
+    });
+  });
+
+  it("stays quiet when the area already ran recently", () => {
+    const reading = stat({
+      routineId: "czytanie",
+      title: "Czytanie",
+      kind: "growth",
+      area: "mind",
+      occurrences14: 5,
+      done14: 2,
+    });
+    expect(gapRule.evaluate(ctx({ stats: [reading], surveyAreas: ["mind"] }))).toHaveLength(0);
+  });
+});
+
 describe("pickSuggestion", () => {
   it("puts ZMNIEJSZENIE ahead of SCALENIE when both apply", () => {
     const picked = pickSuggestion(ctx({ stats: [kreatyna, bialko, trening] }));
     expect(picked?.ruleId).toBe(SHRINK_RULE_ID);
+  });
+
+  // Checked pairwise rather than by draining one context, because the daily cap
+  // would cut a single run off after two picks.
+  describe("priority ZMNIEJSZENIE > PROGRESJA > SCALENIE > PODCZEPIENIE > LUKA", () => {
+    const pompki = stat({
+      routineId: "pompki",
+      title: "10 pompek",
+      kind: "growth",
+      area: "body",
+      recentPlanned: 7,
+      recentDone: 7,
+    });
+    const prysznic = stat({
+      routineId: "prysznic",
+      title: "Prysznic",
+      occurrences14: 14,
+      done14: 14,
+    });
+
+    it("ZMNIEJSZENIE beats PROGRESJA", () => {
+      expect(pickSuggestion(ctx({ stats: [trening, pompki] }))?.ruleId).toBe(SHRINK_RULE_ID);
+    });
+
+    it("PROGRESJA beats SCALENIE", () => {
+      expect(pickSuggestion(ctx({ stats: [pompki, kreatyna, bialko] }))?.ruleId).toBe(
+        PROGRESS_RULE_ID,
+      );
+    });
+
+    it("SCALENIE beats PODCZEPIENIE", () => {
+      expect(
+        pickSuggestion(
+          ctx({ stats: [kreatyna, bialko, prysznic], surveyAreas: ["body"] }),
+        )?.ruleId,
+      ).toBe(MERGE_RULE_ID);
+    });
+
+    it("PODCZEPIENIE beats LUKA", () => {
+      expect(
+        pickSuggestion(ctx({ stats: [prysznic], surveyAreas: ["body"] }))?.ruleId,
+      ).toBe(ATTACH_RULE_ID);
+    });
+
+    it("LUKA is the last resort", () => {
+      expect(pickSuggestion(ctx({ surveyAreas: ["body"] }))?.ruleId).toBe(GAP_RULE_ID);
+    });
   });
 
   it("renders nothing when no rule matches", () => {

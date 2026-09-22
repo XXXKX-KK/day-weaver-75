@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth";
 import { useRoutines } from "@/lib/routines";
+import { useProfile } from "@/lib/profile";
 import { useToday, todayLocalISO } from "@/lib/day";
 import {
   pickSuggestion,
@@ -23,6 +24,10 @@ type StatRow = {
   done_30: number;
   occurrences_21: number;
   done_21: number;
+  occurrences_14: number;
+  done_14: number;
+  recent_planned: number;
+  recent_done: number;
 };
 
 type EventRow = {
@@ -72,12 +77,16 @@ export function useSuggestion(): Suggestion | null {
   const { data: stats } = useRoutineStats();
   const { data: events } = useSuggestionEventsToday();
   const { data: today } = useToday();
+  const { data: profile } = useProfile();
 
   return useMemo(() => {
     if (!routines || !stats || !events || !today) return null;
     if (today.status !== "in_progress") return null;
 
     const statByRoutine = new Map(stats.map((s) => [s.routine_id, s]));
+    const anchored = new Set(
+      routines.flatMap((r) => (r.anchor_routine_id ? [r.anchor_routine_id] : [])),
+    );
     const merged: RoutineStat[] = routines.map((r) => {
       const s = statByRoutine.get(r.id);
       return {
@@ -92,6 +101,11 @@ export function useSuggestion(): Suggestion | null {
         done30: s?.done_30 ?? 0,
         occurrences21: s?.occurrences_21 ?? 0,
         done21: s?.done_21 ?? 0,
+        occurrences14: s?.occurrences_14 ?? 0,
+        done14: s?.done_14 ?? 0,
+        recentPlanned: s?.recent_planned ?? 0,
+        recentDone: s?.recent_done ?? 0,
+        hasAnchoredHabit: anchored.has(r.id),
       };
     });
 
@@ -105,8 +119,10 @@ export function useSuggestion(): Suggestion | null {
       stats: merged,
       shownToday,
       dayProgress: today.items.length > 0 ? done / today.items.length : 0,
+      surveyAreas: profile?.survey?.areas ?? [],
+      surveyLevels: profile?.survey?.levels ?? {},
     });
-  }, [routines, stats, events, today]);
+  }, [routines, stats, events, today, profile]);
 }
 
 /** Log that a suggestion was put in front of the user; returns the row id. */
