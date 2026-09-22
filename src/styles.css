@@ -516,4 +516,11 @@ select:focus {
     -webkit-backdrop-filter: blur(16px) saturate(1.3);
     box-shadow: 0 0 0 2px color-mix(in oklab, var(--primary) 30%, transparent);
   }
+  .beam-wrap:focus-within::after {
+    animation: none;
+    opacity: 0;
+  }
+  .beam-wrap:focus-within {
+    filter: none;
+  }
 }
