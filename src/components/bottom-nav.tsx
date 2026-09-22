@@ -261,7 +261,7 @@ export function BottomNav({ ready }: { ready: boolean }) {
                 maskImage:
                   "radial-gradient(circle at center, transparent calc(var(--flood-r)), #000 calc(var(--flood-r) + 1px))",
                 ["--flood-r" as any]: floodShrunk ? "0%" : "75%",
-                transition: "--flood-r 0.8s cubic-bezier(0.4, 0, 0.2, 1)",
+                transition: "--flood-r 0.53s cubic-bezier(0.4, 0, 0.2, 1)",
               }}
               onTransitionEnd={() => {
                 if (floodShrunk) setPhase("icons-pop");
@@ -271,7 +271,7 @@ export function BottomNav({ ready }: { ready: boolean }) {
 
           {/* Sliding highlight behind active tab */}
           <div
-            className="pointer-events-none absolute inset-y-[6px] left-0 rounded-full transition-transform duration-300 ease-out"
+            className="pointer-events-none absolute inset-y-[6px] left-0 rounded-full transition-transform duration-200 ease-out"
             style={{
               width: `${100 / tabs.length}%`,
               transform: `translateX(${activeIndex * 100}%)`,
@@ -285,7 +285,7 @@ export function BottomNav({ ready }: { ready: boolean }) {
                 introDone
                   ? 1
                   : 0,
-              transition: "transform 300ms ease-out, opacity 200ms ease-out",
+              transition: "transform 200ms ease-out, opacity 140ms ease-out",
             }}
           />
 
@@ -375,8 +375,8 @@ function TabContent({
         initial={introDone ? false : { scale: 0 }}
         animate={showIcon ? { scale: 1 } : introDone ? { scale: 1 } : { scale: 0 }}
         transition={{
-          duration: 0.22,
-          delay: phase === "icons-pop" ? index * 0.07 : 0,
+          duration: 0.15,
+          delay: phase === "icons-pop" ? index * 0.045 : 0,
           ease: [0.34, 1.56, 0.64, 1],
         }}
         onAnimationComplete={() => {
@@ -403,8 +403,8 @@ function TabContent({
               : { y: 8, opacity: 0 }
         }
         transition={{
-          duration: 0.18,
-          delay: phase === "labels-slide" ? index * 0.05 : 0,
+          duration: 0.12,
+          delay: phase === "labels-slide" ? index * 0.035 : 0,
           ease: "easeOut",
         }}
         onAnimationComplete={() => {
