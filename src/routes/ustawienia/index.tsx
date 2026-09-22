@@ -8,6 +8,7 @@ import {
   Palette,
   Shield,
   ShieldCheck,
+  Sprout,
   Target,
   User,
   UserCircle,
@@ -42,7 +43,7 @@ const menuItems = [
 
 function SettingsHub() {
   const { user } = useAuth();
-  const { restartCoachmark } = useOnboarding();
+  const { restartCoachmark, restartSurvey } = useOnboarding();
   const { markReady } = useNavReady();
   useEffect(markReady, [markReady]);
 
@@ -109,6 +110,23 @@ function SettingsHub() {
           <div className="min-w-0 flex-1 text-left">
             <p className="text-[16px] font-medium">Pokaż samouczek jeszcze raz</p>
             <p className="mt-px text-[13px] text-muted-foreground">Przejdź ponownie przewodnik po aplikacji</p>
+          </div>
+        </div>
+      </button>
+
+      <button
+        type="button"
+        onClick={restartSurvey}
+        className="mt-3 w-full"
+        style={{ animation: `cascadeIn 0.5s ease-out ${0.2 + (menuItems.length + 1) * 0.06}s both` }}
+      >
+        <div className="flex items-center gap-[14px] rounded-3xl glass px-4 py-[14px]">
+          <span className="flex h-9 w-9 items-center justify-center">
+            <Sprout className="h-[22px] w-[22px] text-muted-foreground" strokeWidth={1.4} />
+          </span>
+          <div className="min-w-0 flex-1 text-left">
+            <p className="text-[16px] font-medium">Powtórz ankietę startową</p>
+            <p className="mt-px text-[13px] text-muted-foreground">Przestaw kierunek i dobierz nawyki od nowa</p>
           </div>
         </div>
       </button>

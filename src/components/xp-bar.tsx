@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { Castle } from "lucide-react";
 import { useGamification } from "@/lib/gamification";
+import { VILLAGE_ENABLED } from "@/lib/features";
 
 export function XpBar() {
   const { level, intoLevel, toNext, progress, streak } = useGamification();
@@ -41,13 +42,15 @@ export function XpBar() {
           <span className="text-[13px] font-bold text-foreground">{streak}</span>
         </Link>
 
-        <Link
-          to="/wioska"
-          aria-label="Twoja wioska"
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full glass text-muted-foreground transition-colors active:text-foreground"
-        >
-          <Castle className="h-[18px] w-[18px]" />
-        </Link>
+        {VILLAGE_ENABLED && (
+          <Link
+            to="/wioska"
+            aria-label="Twoja wioska"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full glass text-muted-foreground transition-colors active:text-foreground"
+          >
+            <Castle className="h-[18px] w-[18px]" />
+          </Link>
+        )}
       </div>
     </div>
   );

@@ -208,6 +208,11 @@ function AuthGate({ children }: { children: ReactNode }) {
     navigate({ to: "/" });
   }, [updateProfile, navigate]);
 
+  const restartSurvey = useCallback(() => {
+    setWizardDismissed(false);
+    updateProfile.mutate({ onboarding_done: false });
+  }, [updateProfile]);
+
   if (loading || (user && profileLoading)) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
@@ -232,7 +237,10 @@ function AuthGate({ children }: { children: ReactNode }) {
   }
 
   return (
-    <OnboardingProvider restartCoachmark={restartCoachmark}>
+    <OnboardingProvider
+      restartCoachmark={restartCoachmark}
+      restartSurvey={restartSurvey}
+    >
       {/* Keeps native prefs mirrored to the Supabase blocked-apps selection. */}
       <BlockedAppsSync />
       {/* Mirrors the day's first not-done item into current_task for the overlay. */}

@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth";
 import { reorderByIds } from "@/lib/reorder";
-import type { Priority } from "@/lib/store";
+import type { AnchorLabel, GrowthArea, Priority, RoutineKind } from "@/lib/store";
 
 /** A routine's subtask template (routine_subtasks). No done-state — routines
  *  are recurring templates; the per-day "done" lives on day items, not here. */
@@ -26,6 +26,14 @@ export type RoutineRow = {
   is_active: boolean;
   archived_at: string | null;
   created_at: string;
+  /** Upkeep vs. the habits that actually move the user forward. */
+  kind: RoutineKind;
+  /** Only meaningful for growth rows. */
+  area: GrowthArea | null;
+  /** A growth habit rides directly behind an existing routine… */
+  anchor_routine_id: string | null;
+  /** …or behind a moment of the day when no routine fits. */
+  anchor_label: AnchorLabel | null;
   routine_subtasks: RoutineSubtaskRow[];
 };
 
@@ -39,6 +47,10 @@ export type NewRoutineInput = {
   weekdays: number[];
   subtasks: string[];
   scheduled_time?: string | undefined;
+  kind?: RoutineKind | undefined;
+  area?: GrowthArea | null | undefined;
+  anchor_routine_id?: string | null | undefined;
+  anchor_label?: AnchorLabel | null | undefined;
 };
 
 /** Same payload as adding, plus the id of the routine being edited. */
@@ -78,7 +90,7 @@ export function useRoutines() {
       const { data, error } = await supabase
         .from("routines")
         .select(
-          "id, title, description, weekdays, position, priority, scheduled_time, is_active, archived_at, created_at, routine_subtasks(id, title, position)",
+          "id, title, description, weekdays, position, priority, scheduled_time, is_active, archived_at, created_at, kind, area, anchor_routine_id, anchor_label, routine_subtasks(id, title, position)",
         )
         .is("archived_at", null);
       if (error) throw error;
@@ -99,38 +111,77 @@ async function nextRoutinePosition(): Promise<number> {
   return ((data?.position as number | null) ?? -1) + 1;
 }
 
+/** Insert one routine plus its subtask templates; returns the new row's id.
+ *  user_id is filled by the DB (DEFAULT auth.uid()). */
+async function insertRoutine(input: NewRoutineInput, position: number): Promise<string> {
+  const { data: routine, error } = await supabase
+    .from("routines")
+    .insert({
+      title: input.title,
+      description: input.description ?? null,
+      priority: input.priority,
+      weekdays: normalizeWeekdays(input.weekdays),
+      scheduled_time: input.scheduled_time ?? null,
+      position,
+      is_active: true,
+      kind: input.kind ?? "maintenance",
+      area: input.area ?? null,
+      anchor_routine_id: input.anchor_routine_id ?? null,
+      anchor_label: input.anchor_label ?? null,
+    })
+    .select("id")
+    .single();
+  if (error) throw error;
+
+  const subtasks = input.subtasks
+    .map((title) => title.trim())
+    .filter((title) => title.length > 0);
+  if (subtasks.length > 0) {
+    const { error: subError } = await supabase.from("routine_subtasks").insert(
+      subtasks.map((title, pos) => ({ routine_id: routine.id, title, position: pos })),
+    );
+    if (subError) throw subError;
+  }
+  return routine.id as string;
+}
+
 export function useAddRoutine() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (input: NewRoutineInput) => {
-      // user_id is filled by the DB (DEFAULT auth.uid()).
-      const { data: routine, error } = await supabase
-        .from("routines")
-        .insert({
-          title: input.title,
-          description: input.description ?? null,
-          priority: input.priority,
-          weekdays: normalizeWeekdays(input.weekdays),
-          scheduled_time: input.scheduled_time ?? null,
-          position: await nextRoutinePosition(),
-          is_active: true,
-        })
-        .select("id")
-        .single();
-      if (error) throw error;
+      await insertRoutine(input, await nextRoutinePosition());
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ROUTINES_KEY }),
+  });
+}
 
-      const subtasks = input.subtasks
-        .map((title) => title.trim())
-        .filter((title) => title.length > 0);
-      if (subtasks.length > 0) {
-        const { error: subError } = await supabase.from("routine_subtasks").insert(
-          subtasks.map((title, position) => ({
-            routine_id: routine.id,
-            title,
-            position,
-          })),
+/**
+ * What onboarding produces. Upkeep tiles carry a local `key` so a growth habit
+ * can name one as its anchor before either row exists in the DB; the keys are
+ * resolved to real ids during the insert.
+ */
+export type StarterPlan = {
+  maintenance: (NewRoutineInput & { key: string })[];
+  growth: (NewRoutineInput & { anchorKey?: string | null | undefined })[];
+};
+
+export function useCreateStarterPlan() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (plan: StarterPlan) => {
+      let position = await nextRoutinePosition();
+      const idByKey = new Map<string, string>();
+
+      // Upkeep first — a growth habit may anchor to one of these.
+      for (const { key, ...routine } of plan.maintenance) {
+        idByKey.set(key, await insertRoutine(routine, position++));
+      }
+      for (const { anchorKey, ...routine } of plan.growth) {
+        const anchorId = anchorKey ? (idByKey.get(anchorKey) ?? null) : null;
+        await insertRoutine(
+          { ...routine, kind: "growth", anchor_routine_id: anchorId },
+          position++,
         );
-        if (subError) throw subError;
       }
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ROUTINES_KEY }),
@@ -150,6 +201,12 @@ export function useUpdateRoutine() {
           priority: input.priority,
           weekdays: normalizeWeekdays(input.weekdays),
           scheduled_time: input.scheduled_time ?? null,
+          ...(input.kind !== undefined ? { kind: input.kind } : {}),
+          ...(input.area !== undefined ? { area: input.area } : {}),
+          ...(input.anchor_routine_id !== undefined
+            ? { anchor_routine_id: input.anchor_routine_id }
+            : {}),
+          ...(input.anchor_label !== undefined ? { anchor_label: input.anchor_label } : {}),
         })
         .eq("id", input.id);
       if (error) throw error;

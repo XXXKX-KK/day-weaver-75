@@ -34,6 +34,8 @@ export function buildMockDays(): DayProgress[] {
       completed,
       streak_counted: planned ? completed / planned >= 0.6 : false,
       xp: completed * (8 + Math.floor(rnd() * 6)),
+      growth_planned: 1,
+      growth_done: planned && completed / planned >= 0.6 ? 1 : 0,
     });
   }
 
@@ -43,11 +45,13 @@ export function buildMockDays(): DayProgress[] {
     d.completed = Math.max(1, Math.ceil(d.planned * 0.82));
     d.xp = d.completed * 11;
     d.streak_counted = true;
+    d.growth_done = d.growth_planned;
   };
   const weak = (d: DayProgress) => {
     d.completed = Math.max(0, Math.floor(d.planned * 0.3));
     d.xp = d.completed * 8;
     d.streak_counted = false;
+    d.growth_done = 0;
   };
   weak(days[L - 12]);
   for (let i = L - 11; i < L; i++) strong(days[i]);

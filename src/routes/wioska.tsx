@@ -1,3 +1,11 @@
+/**
+ * Zakładka celowo ukryta — wejście z paska XP renderuje się tylko przy
+ * VILLAGE_ENABLED = true (src/lib/features.ts). Sama trasa działa dalej, więc
+ * /wioska wpisane ręcznie otwiera ekran.
+ *
+ * Miejsce pod przyszłą grę: wioska/zamek w stylu Heroes of Might & Magic V,
+ * odblokowywana zdobytym XP i passą. Włączenie: przestaw flagę VILLAGE_ENABLED.
+ */
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeft, Castle } from "lucide-react";
 import { Screen, ScreenHeader } from "@/components/ui-kit";

@@ -18,6 +18,9 @@ function buildSummary(days: DayProgress[], level: number, streak: number, totalX
   let longest = 0;
   let run = 0;
   for (const d of days) {
+    // A day with nothing from Rozwój planned is neutral — it neither extends
+    // the run nor breaks it.
+    if (d.growth_planned === 0) continue;
     if (d.streak_counted) {
       run++;
       longest = Math.max(longest, run);

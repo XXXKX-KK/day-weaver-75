@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
-import { Calendar, Check, ChevronDown, ChevronLeft, Clock, Plus, Repeat, Trash2, X } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Calendar, Check, ChevronDown, ChevronLeft, Clock, Plus, Repeat, Sprout, Trash2, X } from "lucide-react";
 import { CalendarPicker, TimePicker } from "@/components/pickers";
 import {
   AlertDialog,
@@ -13,7 +13,15 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Screen, ScreenHeader } from "@/components/ui-kit";
-import { PRIORITY_LABELS, type Priority } from "@/lib/store";
+import {
+  AREA_LABELS,
+  ANCHOR_LABELS,
+  PRIORITY_LABELS,
+  type AnchorLabel,
+  type GrowthArea,
+  type Priority,
+  type RoutineKind,
+} from "@/lib/store";
 import {
   useAddTask,
   useDeleteTask,
@@ -60,6 +68,33 @@ const WEEKDAYS: { n: number; short: string }[] = [
 ];
 
 const ALL_WEEKDAYS = WEEKDAYS.map((d) => d.n);
+
+type LibraryTab = "tasks" | "routines" | "growth";
+
+const LIBRARY_TABS: { value: LibraryTab; label: string }[] = [
+  { value: "tasks", label: "Jednorazowe" },
+  { value: "routines", label: "Rutyny" },
+  { value: "growth", label: "Rozwój" },
+];
+
+const NEW_LABELS: Record<LibraryTab, string> = {
+  tasks: "Nowe zadanie",
+  routines: "Nowa rutyna",
+  growth: "Nowy nawyk",
+};
+
+/** "Po: Prysznic" under a growth habit that rides behind something else. */
+function anchorCaption(
+  routine: RoutineRow,
+  titleById: Map<string, string>,
+): string | null {
+  if (routine.anchor_routine_id) {
+    const title = titleById.get(routine.anchor_routine_id);
+    return title ? `Po: ${title}` : null;
+  }
+  if (routine.anchor_label) return `Po: ${ANCHOR_LABELS[routine.anchor_label]}`;
+  return null;
+}
 
 /** "Codziennie" for all seven, otherwise the short day labels in order. */
 function formatWeekdays(days: number[]): string {
@@ -114,7 +149,7 @@ function TasksScreen() {
     if (!isLoading && !isError && !routinesLoading && !routinesError) markReady();
   }, [isLoading, isError, routinesLoading, routinesError, markReady]);
 
-  const [tab, setTab] = useState<"tasks" | "routines">("tasks");
+  const [tab, setTab] = useState<LibraryTab>("tasks");
   const [formOpen, setFormOpen] = useState(false);
   const [routineFormOpen, setRoutineFormOpen] = useState(false);
   const [editingRoutine, setEditingRoutine] = useState<RoutineRow | null>(null);
@@ -123,7 +158,23 @@ function TasksScreen() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const inSelectMode = selectedIds.size > 0;
 
-  const handleTabChange = (t: "tasks" | "routines") => {
+  // Rutyny and Rozwój read the same table, split by kind.
+  const maintenanceRoutines = useMemo(
+    () => (routines ?? []).filter((r) => r.kind !== "growth"),
+    [routines],
+  );
+  const growthRoutines = useMemo(
+    () => (routines ?? []).filter((r) => r.kind === "growth"),
+    [routines],
+  );
+  const routineTitleById = useMemo(
+    () => new Map((routines ?? []).map((r) => [r.id, r.title])),
+    [routines],
+  );
+  const shownRoutines = tab === "growth" ? growthRoutines : maintenanceRoutines;
+  const formKind: RoutineKind = tab === "growth" ? "growth" : "maintenance";
+
+  const handleTabChange = (t: LibraryTab) => {
     setSelectedIds(new Set());
     setTab(t);
   };
@@ -206,19 +257,21 @@ function TasksScreen() {
       )}
 
       <div
-        className="mb-6 grid grid-cols-2 gap-1 rounded-2xl glass p-1"
+        className="mb-6 grid grid-cols-3 gap-1 rounded-2xl glass p-1"
         style={{ animation: "cascadeIn 0.5s ease-out 0.1s both" }}
       >
-        {(["tasks", "routines"] as const).map((t) => (
+        {LIBRARY_TABS.map(({ value, label }) => (
           <button
-            key={t}
-            onClick={() => handleTabChange(t)}
+            key={value}
+            onClick={() => handleTabChange(value)}
             className={cn(
-              "h-11 rounded-xl text-sm font-semibold transition-colors",
-              tab === t ? "accent-gradient text-primary-foreground" : "text-muted-foreground",
+              "h-11 rounded-xl text-[13px] font-semibold transition-colors",
+              tab === value
+                ? "accent-gradient text-primary-foreground"
+                : "text-muted-foreground",
             )}
           >
-            {t === "tasks" ? "Jednorazowe" : "Rutyny"}
+            {label}
           </button>
         ))}
       </div>
@@ -267,14 +320,21 @@ function TasksScreen() {
           <p className="px-1 text-sm text-muted-foreground">Wczytywanie rutyn…</p>
         ) : routinesError ? (
           <RetryCard label="Nie udało się wczytać rutyn." onRetry={() => refetchRoutines()} />
-        ) : !routines || routines.length === 0 ? (
-          <GlassyEmptyState
-            title="Brak rutyn"
-            description="Dodaj pierwszą rutynę, a będzie wracać w wybrane dni tygodnia."
-          />
+        ) : shownRoutines.length === 0 ? (
+          tab === "growth" ? (
+            <GlassyEmptyState
+              title="Brak nawyków Rozwoju"
+              description="Dodaj jedną rzecz, która robi z Ciebie lepszą wersję. To ona napędza passę."
+            />
+          ) : (
+            <GlassyEmptyState
+              title="Brak rutyn"
+              description="Dodaj pierwszą rutynę, a będzie wracać w wybrane dni tygodnia."
+            />
+          )
         ) : (
           <SortableList
-            items={routines}
+            items={shownRoutines}
             onReorder={(ids) =>
               reorderRoutines.mutate(ids, {
                 onError: () => toast.error("Nie udało się zapisać kolejności."),
@@ -286,6 +346,7 @@ function TasksScreen() {
             renderItem={(r) => (
               <RoutineCard
                 routine={r}
+                anchorCaption={anchorCaption(r, routineTitleById)}
                 onEdit={() => !inSelectMode && setEditingRoutine(r)}
                 onToggle={() =>
                   !inSelectMode &&
@@ -304,11 +365,12 @@ function TasksScreen() {
       {!inSelectMode ? (
         <button
           onClick={() => (tab === "tasks" ? setFormOpen(true) : setRoutineFormOpen(true))}
+          aria-label={NEW_LABELS[tab]}
           className="accent-gradient accent-glow fixed left-1/2 z-40 flex h-14 -translate-x-1/2 items-center gap-2 rounded-full px-6 font-bold text-primary-foreground transition-transform active:scale-95"
           style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 80px)" }}
         >
           <Plus className="h-5 w-5" strokeWidth={3} />
-          {tab === "tasks" ? "Nowe zadanie" : "Nowa rutyna"}
+          {NEW_LABELS[tab]}
         </button>
       ) : null}
 
@@ -339,6 +401,8 @@ function TasksScreen() {
       {routineFormOpen ? (
         <RoutineForm
           saving={addRoutine.isPending}
+          kind={formKind}
+          anchorOptions={maintenanceRoutines}
           onClose={() => setRoutineFormOpen(false)}
           onSave={(routine) =>
             addRoutine.mutate(routine, {
@@ -356,6 +420,8 @@ function TasksScreen() {
         <RoutineForm
           saving={updateRoutine.isPending}
           initial={editingRoutine}
+          kind={editingRoutine.kind}
+          anchorOptions={maintenanceRoutines.filter((r) => r.id !== editingRoutine.id)}
           onClose={() => setEditingRoutine(null)}
           onSave={(routine) =>
             updateRoutine.mutate(
@@ -610,22 +676,26 @@ function TaskCard({
 
 function RoutineCard({
   routine,
+  anchorCaption: anchor,
   onEdit,
   onToggle,
 }: {
   routine: RoutineRow;
+  anchorCaption: string | null;
   onEdit: () => void;
   onToggle: () => void;
 }) {
+  const isGrowth = routine.kind === "growth";
+  const Icon = isGrowth ? Sprout : Repeat;
   return (
     <div className="flex items-center gap-4 rounded-3xl glass px-5 py-4">
       <button
         onClick={onEdit}
-        aria-label={`Edytuj rutynę ${routine.title}`}
+        aria-label={`Edytuj ${isGrowth ? "nawyk" : "rutynę"} ${routine.title}`}
         className="flex min-w-0 flex-1 items-center gap-4 text-left"
       >
         <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-primary-soft">
-          <Repeat className="h-4 w-4 text-primary" />
+          <Icon className="h-4 w-4 text-primary" />
         </span>
         <div className="min-w-0 flex-1">
           <p
@@ -639,10 +709,12 @@ function RoutineCard({
           <p className="truncate text-xs text-muted-foreground">
             {formatWeekdays(routine.weekdays)}
             {routine.scheduled_time ? ` · ${routine.scheduled_time.slice(0, 5)}` : ""}
+            {routine.area ? ` · ${AREA_LABELS[routine.area]}` : ""}
             {routine.routine_subtasks.length > 0
               ? ` · ${routine.routine_subtasks.length} podzadań`
               : ""}
           </p>
+          {anchor && <p className="truncate text-xs text-primary">{anchor}</p>}
         </div>
       </button>
       <Switch checked={routine.is_active} onCheckedChange={onToggle} />
@@ -857,18 +929,32 @@ function TaskForm({
   );
 }
 
+/** Anchor refs are "routine:<id>" or "label:<anchor_label>" so one picker can
+ *  offer both an existing routine and a moment of the day. */
+function initialAnchorRef(initial: RoutineRow | undefined): string | null {
+  if (initial?.anchor_routine_id) return `routine:${initial.anchor_routine_id}`;
+  if (initial?.anchor_label) return `label:${initial.anchor_label}`;
+  return null;
+}
+
 function RoutineForm({
   saving,
   initial,
+  kind,
+  anchorOptions,
   onClose,
   onSave,
 }: {
   saving: boolean;
   initial?: RoutineRow | undefined;
+  kind: RoutineKind;
+  anchorOptions: RoutineRow[];
   onClose: () => void;
   onSave: (routine: NewRoutineInput) => void;
 }) {
   const isEdit = !!initial;
+  const effectiveKind: RoutineKind = initial?.kind ?? kind;
+  const isGrowth = effectiveKind === "growth";
   const [title, setTitle] = useState(initial?.title ?? "");
   const [priority, setPriority] = useState<Priority>(initial?.priority ?? "normal");
   const [weekdays, setWeekdays] = useState<number[]>(initial?.weekdays ?? ALL_WEEKDAYS);
@@ -877,23 +963,89 @@ function RoutineForm({
     initial?.routine_subtasks.map((s) => s.title) ?? [],
   );
   const [showTimePicker, setShowTimePicker] = useState(false);
+  const [area, setArea] = useState<GrowthArea | null>(initial?.area ?? null);
+  const [anchorRef, setAnchorRef] = useState<string | null>(initialAnchorRef(initial));
 
   const toggleDay = (n: number) =>
     setWeekdays((prev) =>
       prev.includes(n) ? prev.filter((d) => d !== n) : [...prev, n].sort((a, b) => a - b),
     );
 
+  const sheetTitle = isGrowth
+    ? isEdit
+      ? "Edytuj nawyk"
+      : "Nowy nawyk Rozwoju"
+    : isEdit
+      ? "Edytuj rutynę"
+      : "Nowa rutyna";
+
   return (
-    <Sheet title={isEdit ? "Edytuj rutynę" : "Nowa rutyna"} onClose={onClose}>
+    <Sheet title={sheetTitle} onClose={onClose}>
       <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">Tytuł</label>
       <div className="beam-wrap mb-4">
         <input
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          placeholder="np. Poranna medytacja"
+          placeholder={isGrowth ? "np. 10 pompek" : "np. Poranna medytacja"}
           className="h-13 w-full rounded-2xl border border-input bg-foreground/5 px-4 py-3.5 text-sm outline-none focus:border-primary"
         />
       </div>
+
+      {isGrowth && (
+        <>
+          <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Obszar
+          </label>
+          <div className="mb-4 grid grid-cols-2 gap-2">
+            {(Object.keys(AREA_LABELS) as GrowthArea[]).map((a) => (
+              <button
+                key={a}
+                type="button"
+                onClick={() => setArea(area === a ? null : a)}
+                className={cn(
+                  "h-11 rounded-2xl text-sm font-medium transition-colors",
+                  area === a
+                    ? "accent-gradient text-primary-foreground"
+                    : "bg-foreground/5 text-muted-foreground",
+                )}
+              >
+                {AREA_LABELS[a]}
+              </button>
+            ))}
+          </div>
+
+          <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Kotwica
+          </label>
+          <div className="mb-4 flex flex-wrap gap-2">
+            {[
+              { ref: null, label: "Bez kotwicy" },
+              ...anchorOptions.map((r) => ({ ref: `routine:${r.id}`, label: r.title })),
+              ...(Object.keys(ANCHOR_LABELS) as AnchorLabel[]).map((l) => ({
+                ref: `label:${l}`,
+                label: ANCHOR_LABELS[l],
+              })),
+            ].map((o) => {
+              const active = anchorRef === o.ref;
+              return (
+                <button
+                  key={o.ref ?? "none"}
+                  type="button"
+                  onClick={() => setAnchorRef(o.ref)}
+                  className={cn(
+                    "rounded-full px-4 py-2.5 text-[13px] font-medium transition-colors",
+                    active
+                      ? "accent-gradient text-primary-foreground"
+                      : "bg-foreground/5 text-muted-foreground",
+                  )}
+                >
+                  {o.label}
+                </button>
+              );
+            })}
+          </div>
+        </>
+      )}
 
       <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">Dni tygodnia</label>
       <div className="mb-4 grid grid-cols-7 gap-2">
@@ -930,7 +1082,23 @@ function RoutineForm({
 
       <button
         disabled={!title.trim() || weekdays.length === 0 || saving}
-        onClick={() => onSave({ title: title.trim(), priority, weekdays, subtasks, scheduled_time: scheduledTime || undefined })}
+        onClick={() =>
+          onSave({
+            title: title.trim(),
+            priority,
+            weekdays,
+            subtasks,
+            scheduled_time: scheduledTime || undefined,
+            kind: effectiveKind,
+            area: isGrowth ? area : null,
+            anchor_routine_id: anchorRef?.startsWith("routine:")
+              ? anchorRef.slice("routine:".length)
+              : null,
+            anchor_label: anchorRef?.startsWith("label:")
+              ? (anchorRef.slice("label:".length) as AnchorLabel)
+              : null,
+          })
+        }
         className="accent-gradient mb-4 h-16 w-full rounded-full text-lg font-bold text-primary-foreground transition-opacity disabled:opacity-40"
       >
         {saving ? "Zapisywanie…" : isEdit ? "Zapisz zmiany" : "Zapisz rutynę"}

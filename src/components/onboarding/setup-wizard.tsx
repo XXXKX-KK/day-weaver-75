@@ -1,61 +1,56 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useMemo } from "react";
 import "../../today.css";
 import { useNavigate } from "@tanstack/react-router";
-import { Check, ChevronRight, ChevronLeft } from "lucide-react";
+import { Check, ChevronRight, ChevronLeft, Plus } from "lucide-react";
 import { TenaxShield } from "@/components/tenax-shield";
-import { useAddRoutine, type NewRoutineInput } from "@/lib/routines";
+import { useCreateStarterPlan } from "@/lib/routines";
 import { isNativeBlocker, Blocker, type InstalledApp } from "@/lib/blocker";
 import { useSetAppBlocked } from "@/lib/blocked-apps";
 import { useUpdateProfile } from "@/lib/profile";
 import { toast } from "sonner";
+import type { GrowthArea } from "@/lib/store";
 import {
   type SurveyAnswers,
-  type WakeUp,
-  type WorkType,
-  type FocusCount,
-  type Goal,
+  type Distraction,
+  type Level,
   DEFAULT_ANSWERS,
-  WAKE_OPTIONS,
-  WORK_OPTIONS,
-  GOAL_OPTIONS,
-  generateRoutines,
+  MAX_AREAS,
+  AREA_OPTIONS,
+  LEVEL_OPTIONS,
+  LEVEL_QUESTION,
+  MAINTENANCE_TILES,
+  DISTRACTION_OPTIONS,
+  STARTER_HABITS,
+  ANCHOR_REF_WAKE_UP,
+  ANCHOR_REF_AFTER_WORK,
+  tileAnchorRef,
+  selectedTiles,
+  growthHabitsFor,
+  anchorTitleFor,
+  buildStarterPlan,
+  packagesForDistractions,
 } from "@/lib/day-survey";
 
-const POPULAR_APPS = [
-  "com.instagram.android",
-  "com.zhiliaoapp.musically",
-  "com.snapchat.android",
-  "com.twitter.android",
-  "com.facebook.katana",
-  "com.reddit.frontpage",
-  "com.google.android.youtube",
-];
+export const PROMISE_HEADING =
+  "TENAX nie pozwoli Ci scrollować, dopóki nie zrobisz czegoś dla siebie.";
 
 export function SetupWizard({ onComplete }: { onComplete: () => void }) {
   const [step, setStep] = useState(0);
+  const [answers, setAnswers] = useState<SurveyAnswers>({ ...DEFAULT_ANSWERS });
   const native = isNativeBlocker();
   const totalSteps = native ? 4 : 3;
   const updateProfile = useUpdateProfile();
 
-  const finish = () => {
-    updateProfile.mutate({ onboarding_done: true });
+  const finish = (final: SurveyAnswers) => {
+    updateProfile.mutate({ onboarding_done: true, survey: final });
     onComplete();
   };
 
-  const nextStep = () => {
-    const next = step + 1;
-    if (next === 2 && !native) {
-      setStep(3);
-    } else if (next >= totalSteps) {
-      finish();
-    } else {
-      setStep(next);
-    }
-  };
+  // Web skips the block screen; its step index stays 2 so the dots line up.
+  const afterSurvey = () => setStep(native ? 2 : 3);
 
   return (
     <div className="overlay-bg fixed inset-0 z-50 flex flex-col">
-      {/* Progress dots */}
       <div className="flex justify-center gap-2 px-6 pt-[max(env(safe-area-inset-top,16px),16px)]">
         {Array.from({ length: totalSteps }).map((_, i) => {
           const stepIdx = !native && i >= 2 ? i + 1 : i;
@@ -75,21 +70,32 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
       </div>
 
       <div className="flex flex-1 flex-col overflow-y-auto px-6 pb-[max(env(safe-area-inset-bottom,16px),16px)]">
-        {step === 0 && <StepPromise onNext={nextStep} />}
-        {step === 1 && <StepRoutines onNext={nextStep} onSkip={nextStep} />}
-        {step === 2 && native && <StepBlockApps onNext={nextStep} onSkip={nextStep} />}
-        {step === 3 && <StepDone onFinish={finish} />}
+        {step === 0 && <StepPromise onNext={() => setStep(1)} />}
+        {step === 1 && (
+          <StepSurvey
+            answers={answers}
+            setAnswers={setAnswers}
+            onDone={afterSurvey}
+          />
+        )}
+        {step === 2 && native && (
+          <StepBlockApps
+            answers={answers}
+            setAnswers={setAnswers}
+            onNext={() => setStep(3)}
+          />
+        )}
+        {step === 3 && <StepDone onFinish={() => finish(answers)} />}
       </div>
     </div>
   );
 }
 
-const PROMISE_HEADING =
-  "TENAX nie pozwoli Ci scrollować, dopóki nie zrobisz swojego dnia.";
-
 function useReducedMotion(): boolean {
   const [reduced, setReduced] = useState(
-    () => typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+    () =>
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches,
   );
   useEffect(() => {
     const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -129,14 +135,8 @@ function useTypewriter(text: string, enabled: boolean, charMs = 20) {
 
 function StepPromise({ onNext }: { onNext: () => void }) {
   const reducedMotion = useReducedMotion();
-  const { displayed, done: typeDone } = useTypewriter(
-    PROMISE_HEADING,
-    !reducedMotion,
-  );
-
-  const entrance = reducedMotion
-    ? undefined
-    : "cascadeIn 0.4s ease-out both";
+  const { displayed, done: typeDone } = useTypewriter(PROMISE_HEADING, !reducedMotion);
+  const entrance = reducedMotion ? undefined : "cascadeIn 0.4s ease-out both";
 
   return (
     <div className="flex flex-1 flex-col items-center justify-center text-center">
@@ -148,17 +148,17 @@ function StepPromise({ onNext }: { onNext: () => void }) {
       </div>
       <h1
         className="mb-4 max-w-[300px] text-[26px] font-extrabold leading-tight"
-        style={{ animation: reducedMotion ? undefined : "cascadeIn 0.4s ease-out 0.1s both" }}
+        style={{
+          animation: reducedMotion ? undefined : "cascadeIn 0.4s ease-out 0.1s both",
+        }}
       >
         {displayed}
       </h1>
       <p
         className="mb-10 max-w-[280px] text-[15px] leading-relaxed text-muted-foreground transition-opacity duration-300"
-        style={{
-          opacity: typeDone ? 1 : 0,
-        }}
+        style={{ opacity: typeDone ? 1 : 0 }}
       >
-        Zaplanuj dzień, zablokuj rozpraszacze, odhaczaj — a wieczorem zbieraj progres.
+        Wybierzesz jedną rzecz, która Cię pcha do przodu. Reszta poczeka.
       </p>
       <button
         onClick={onNext}
@@ -176,230 +176,108 @@ function StepPromise({ onNext }: { onNext: () => void }) {
   );
 }
 
-function StepRoutines({ onNext, onSkip }: { onNext: () => void; onSkip: () => void }) {
-  const [surveyStep, setSurveyStep] = useState(0);
-  const [answers, setAnswers] = useState<SurveyAnswers>({ ...DEFAULT_ANSWERS });
-  const [generated, setGenerated] = useState<NewRoutineInput[]>([]);
-  const [selectedGen, setSelectedGen] = useState<Set<number>>(new Set());
-  const [showPreview, setShowPreview] = useState(false);
+/** The survey is a list of screens derived from the answers themselves — pick
+ *  two areas and you get two level questions and two anchor questions. */
+type SurveyScreen =
+  | { kind: "areas" }
+  | { kind: "level"; area: GrowthArea }
+  | { kind: "tiles" }
+  | { kind: "anchor"; area: GrowthArea }
+  | { kind: "preview" };
 
-  const addRoutine = useAddRoutine();
-  const [saving, setSaving] = useState(false);
-
-  const handleSaveGenerated = async () => {
-    const toSave = generated.filter((_, i) => selectedGen.has(i));
-    if (toSave.length === 0) { onSkip(); return; }
-    setSaving(true);
-    try {
-      for (const r of toSave) await addRoutine.mutateAsync(r);
-      onNext();
-    } catch {
-      toast.error("Nie udało się dodać rutyn.");
-      setSaving(false);
-    }
-  };
-
-  const finishSurvey = () => {
-    const routines = generateRoutines(answers);
-    setGenerated(routines);
-    setSelectedGen(new Set(routines.map((_, i) => i)));
-    setShowPreview(true);
-  };
-
-  const hasFixedHours = answers.workType === "fixed";
-  const totalSurveySteps = hasFixedHours ? 5 : 4;
-
-  if (!showPreview) {
-    const effectiveStep = getEffectiveSurveyStep(surveyStep, hasFixedHours);
-    return (
-      <SurveyQuestion
-        questionIndex={effectiveStep}
-        answers={answers}
-        setAnswers={setAnswers}
-        onNext={() => {
-          const nextRaw = surveyStep + 1;
-          if (nextRaw >= totalSurveySteps) {
-            finishSurvey();
-          } else {
-            setSurveyStep(nextRaw);
-          }
-        }}
-        onBack={() => {
-          if (surveyStep === 0) { onSkip(); }
-          else setSurveyStep(surveyStep - 1);
-        }}
-        onSkip={onSkip}
-        currentStep={surveyStep + 1}
-        totalSteps={totalSurveySteps}
-      />
-    );
-  }
-
-  // ── Preview generated routines ──
-  const toggleGen = (idx: number) => {
-    setSelectedGen((prev) => {
-      const next = new Set(prev);
-      if (next.has(idx)) next.delete(idx);
-      else next.add(idx);
-      return next;
-    });
-  };
-
-  return (
-    <div className="flex flex-1 flex-col pt-8">
-      <button
-        type="button"
-        onClick={() => {
-          setShowPreview(false);
-          setSurveyStep(totalSurveySteps - 1);
-        }}
-        className="mb-4 flex items-center gap-1 text-sm font-medium text-muted-foreground"
-      >
-        <ChevronLeft className="h-4 w-4" />
-        Wróć
-      </button>
-      <h1
-        className="mb-2 text-2xl font-extrabold leading-tight"
-        style={{ animation: "cascadeIn 0.5s ease-out both" }}
-      >
-        Twój plan dnia
-      </h1>
-      <p
-        className="mb-6 text-sm text-muted-foreground"
-        style={{ animation: "cascadeIn 0.5s ease-out 0.1s both" }}
-      >
-        Odznacz to, czego nie chcesz — resztę dodamy za Ciebie.
-      </p>
-
-      <div className="flex flex-col gap-2">
-        {generated.map((r, i) => {
-          const active = selectedGen.has(i);
-          return (
-            <button
-              key={i}
-              type="button"
-              onClick={() => toggleGen(i)}
-              className="flex items-center gap-4 rounded-3xl glass px-4 py-3 text-left transition-colors"
-              style={{
-                animation: `cascadeIn 0.5s ease-out ${0.1 + i * 0.04}s both`,
-                border: active ? "1.5px solid var(--primary)" : "1.5px solid transparent",
-              }}
-            >
-              <div className="flex-1">
-                <p className="text-[15px] font-semibold">{r.title}</p>
-                {r.scheduled_time && (
-                  <p className="mt-0.5 text-[13px] text-muted-foreground">{r.scheduled_time}</p>
-                )}
-              </div>
-              <div
-                className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full transition-colors"
-                style={{
-                  backgroundColor: active ? "var(--primary)" : "transparent",
-                  border: active ? "none" : "1.5px solid color-mix(in oklab, var(--foreground) 20%, transparent)",
-                }}
-              >
-                {active && <Check className="h-3.5 w-3.5 text-primary-foreground" strokeWidth={3} />}
-              </div>
-            </button>
-          );
-        })}
-      </div>
-
-      <div className="mt-auto flex flex-col gap-3 pb-4 pt-8">
-        <button
-          onClick={handleSaveGenerated}
-          disabled={saving}
-          className="accent-gradient flex h-14 w-full items-center justify-center rounded-full text-base font-bold text-primary-foreground transition-transform active:scale-[0.98] disabled:opacity-50"
-        >
-          {saving ? "Dodawanie…" : selectedGen.size > 0 ? `Dodaj ${selectedGen.size} rutyn` : "Kontynuuj"}
-        </button>
-        <button
-          onClick={onSkip}
-          className="h-10 text-sm font-medium text-muted-foreground"
-          type="button"
-        >
-          Pomiń
-        </button>
-      </div>
-    </div>
-  );
+function surveyScreens(answers: SurveyAnswers): SurveyScreen[] {
+  const levelled = answers.areas.filter((a) => answers.levels[a]);
+  return [
+    { kind: "areas" },
+    ...answers.areas.map((area) => ({ kind: "level" as const, area })),
+    { kind: "tiles" },
+    ...levelled.map((area) => ({ kind: "anchor" as const, area })),
+    { kind: "preview" },
+  ];
 }
 
-const SURVEY_QUESTIONS_COUNT = 5;
-
-function getEffectiveSurveyStep(rawStep: number, hasFixedHours: boolean): number {
-  if (!hasFixedHours && rawStep >= 2) return rawStep + 1;
-  return rawStep;
-}
-
-function SurveyQuestion({
-  questionIndex,
+function StepSurvey({
   answers,
   setAnswers,
-  onNext,
-  onBack,
-  onSkip,
-  currentStep,
-  totalSteps,
+  onDone,
 }: {
-  questionIndex: number;
   answers: SurveyAnswers;
   setAnswers: React.Dispatch<React.SetStateAction<SurveyAnswers>>;
-  onNext: () => void;
-  onBack: () => void;
-  onSkip: () => void;
-  currentStep: number;
-  totalSteps: number;
+  onDone: () => void;
 }) {
+  const [index, setIndex] = useState(0);
+  const screens = surveyScreens(answers);
+  const clamped = Math.min(index, screens.length - 1);
+  const screen = screens[clamped] ?? { kind: "areas" as const };
+
+  const next = () => setIndex(Math.min(clamped + 1, screens.length - 1));
+  const back = () => setIndex(Math.max(clamped - 1, 0));
+
   return (
     <div className="flex flex-1 flex-col pt-8">
-      <button
-        type="button"
-        onClick={onBack}
-        className="mb-4 flex items-center gap-1 text-sm font-medium text-muted-foreground"
-      >
-        <ChevronLeft className="h-4 w-4" />
-        Wróć
-      </button>
+      {clamped > 0 && (
+        <button
+          type="button"
+          onClick={back}
+          className="mb-4 flex items-center gap-1 text-sm font-medium text-muted-foreground"
+        >
+          <ChevronLeft className="h-4 w-4" />
+          Wróć
+        </button>
+      )}
 
       <p
         className="mb-2 text-xs font-medium text-muted-foreground"
         style={{ animation: "cascadeIn 0.5s ease-out both" }}
       >
-        {currentStep} z {totalSteps}
+        {clamped + 1} z {screens.length}
       </p>
 
-      {questionIndex === 0 && (
-        <SurveyWakeUp value={answers.wakeUp} onChange={(v) => { setAnswers((a) => ({ ...a, wakeUp: v })); onNext(); }} />
+      {screen.kind === "areas" && (
+        <QuestionAreas answers={answers} setAnswers={setAnswers} onNext={next} />
       )}
-      {questionIndex === 1 && (
-        <SurveyWorkType value={answers.workType} onChange={(v) => { setAnswers((a) => ({ ...a, workType: v })); onNext(); }} />
-      )}
-      {questionIndex === 2 && (
-        <SurveyWorkHours
-          start={answers.workStart}
-          end={answers.workEnd}
-          onChange={(s, e) => setAnswers((a) => ({ ...a, workStart: s, workEnd: e }))}
-          onNext={onNext}
+      {screen.kind === "level" && (
+        <QuestionLevel
+          area={screen.area}
+          value={answers.levels[screen.area]}
+          onPick={(level) => {
+            setAnswers((a) => ({ ...a, levels: { ...a.levels, [screen.area]: level } }));
+            next();
+          }}
         />
       )}
-      {questionIndex === 3 && (
-        <SurveyFocusCount value={answers.focusCount} onChange={(v) => { setAnswers((a) => ({ ...a, focusCount: v })); onNext(); }} />
+      {screen.kind === "tiles" && (
+        <QuestionTiles answers={answers} setAnswers={setAnswers} onNext={next} />
       )}
-      {questionIndex === 4 && (
-        <SurveyGoals value={answers.goals} onChange={(v) => setAnswers((a) => ({ ...a, goals: v }))} onNext={onNext} />
+      {screen.kind === "anchor" && (
+        <QuestionAnchor
+          area={screen.area}
+          answers={answers}
+          onPick={(ref) => {
+            setAnswers((a) => ({ ...a, anchors: { ...a.anchors, [screen.area]: ref } }));
+            next();
+          }}
+          onSkip={next}
+        />
       )}
-
-      <div className="mt-auto pb-4 pt-8">
-        <button onClick={onSkip} className="h-10 w-full text-sm font-medium text-muted-foreground" type="button">
-          Pomiń
-        </button>
-      </div>
+      {screen.kind === "preview" && <PreviewPlan answers={answers} onDone={onDone} />}
     </div>
   );
 }
 
-function OptionButton({ active, label, onClick, delay }: { active: boolean; label: string; onClick: () => void; delay: number }) {
+function OptionButton({
+  active,
+  label,
+  hint,
+  onClick,
+  delay,
+}: {
+  active: boolean;
+  label: string;
+  hint?: string;
+  onClick: () => void;
+  delay: number;
+}) {
   return (
     <button
       type="button"
@@ -410,12 +288,19 @@ function OptionButton({ active, label, onClick, delay }: { active: boolean; labe
         border: active ? "1.5px solid var(--primary)" : "1.5px solid transparent",
       }}
     >
-      <span className="flex-1 text-[15px] font-semibold">{label}</span>
+      <span className="flex-1">
+        <span className="block text-[15px] font-semibold">{label}</span>
+        {hint && (
+          <span className="mt-0.5 block text-[13px] text-muted-foreground">{hint}</span>
+        )}
+      </span>
       <div
         className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full transition-colors"
         style={{
           backgroundColor: active ? "var(--primary)" : "transparent",
-          border: active ? "none" : "1.5px solid color-mix(in oklab, var(--foreground) 20%, transparent)",
+          border: active
+            ? "none"
+            : "1.5px solid color-mix(in oklab, var(--foreground) 20%, transparent)",
         }}
       >
         {active && <Check className="h-3.5 w-3.5 text-primary-foreground" strokeWidth={3} />}
@@ -424,161 +309,434 @@ function OptionButton({ active, label, onClick, delay }: { active: boolean; labe
   );
 }
 
-function SurveyWakeUp({ value, onChange }: { value: WakeUp; onChange: (v: WakeUp) => void }) {
-  return (
-    <>
-      <h1 className="mb-6 text-2xl font-extrabold leading-tight" style={{ animation: "cascadeIn 0.5s ease-out 0.05s both" }}>
-        O której wstajesz?
-      </h1>
-      <div className="flex flex-col gap-3">
-        {WAKE_OPTIONS.map((o, i) => (
-          <OptionButton key={o.value} active={value === o.value} label={o.label} onClick={() => onChange(o.value)} delay={0.1 + i * 0.06} />
-        ))}
-      </div>
-    </>
-  );
-}
-
-function SurveyWorkType({ value, onChange }: { value: WorkType; onChange: (v: WorkType) => void }) {
-  return (
-    <>
-      <h1 className="mb-6 text-2xl font-extrabold leading-tight" style={{ animation: "cascadeIn 0.5s ease-out 0.05s both" }}>
-        Czym się zajmujesz?
-      </h1>
-      <div className="flex flex-col gap-3">
-        {WORK_OPTIONS.map((o, i) => (
-          <OptionButton key={o.value} active={value === o.value} label={o.label} onClick={() => onChange(o.value)} delay={0.1 + i * 0.06} />
-        ))}
-      </div>
-    </>
-  );
-}
-
-function SurveyWorkHours({
-  start,
-  end,
-  onChange,
-  onNext,
+function PrimaryButton({
+  onClick,
+  children,
+  disabled,
+  delay = 0.3,
 }: {
-  start: string;
-  end: string;
-  onChange: (s: string, e: string) => void;
-  onNext: () => void;
+  onClick: () => void;
+  children: React.ReactNode;
+  disabled?: boolean;
+  delay?: number;
 }) {
   return (
-    <>
-      <h1 className="mb-6 text-2xl font-extrabold leading-tight" style={{ animation: "cascadeIn 0.5s ease-out 0.05s both" }}>
-        Godziny pracy
-      </h1>
-      <div
-        className="flex items-center gap-4 rounded-3xl glass px-5 py-5"
-        style={{ animation: "cascadeIn 0.5s ease-out 0.1s both" }}
-      >
-        <div className="flex flex-1 flex-col items-center gap-1">
-          <span className="text-xs font-medium text-muted-foreground">Od</span>
-          <div className="beam-wrap">
-            <input
-              type="time"
-              value={start}
-              onChange={(e) => onChange(e.target.value, end)}
-              className="w-full rounded-2xl bg-foreground/5 px-3 py-2 text-center text-lg font-bold"
-            />
-          </div>
-        </div>
-        <span className="mt-4 text-muted-foreground">—</span>
-        <div className="flex flex-1 flex-col items-center gap-1">
-          <span className="text-xs font-medium text-muted-foreground">Do</span>
-          <div className="beam-wrap">
-            <input
-              type="time"
-              value={end}
-              onChange={(e) => onChange(start, e.target.value)}
-              className="w-full rounded-2xl bg-foreground/5 px-3 py-2 text-center text-lg font-bold"
-            />
-          </div>
-        </div>
-      </div>
-      <button
-        onClick={onNext}
-        className="accent-gradient mt-6 flex h-14 w-full items-center justify-center rounded-full text-base font-bold text-primary-foreground transition-transform active:scale-[0.98]"
-        style={{ animation: "cascadeIn 0.5s ease-out 0.2s both" }}
-      >
-        Dalej
-        <ChevronRight className="ml-2 h-5 w-5" />
-      </button>
-    </>
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className="accent-gradient mt-6 flex h-14 w-full items-center justify-center rounded-full text-base font-bold text-primary-foreground transition-transform active:scale-[0.98] disabled:opacity-50"
+      style={{ animation: `cascadeIn 0.5s ease-out ${delay}s both` }}
+    >
+      {children}
+    </button>
   );
 }
 
-function SurveyFocusCount({ value, onChange }: { value: FocusCount; onChange: (v: FocusCount) => void }) {
-  const options: { value: FocusCount; label: string }[] = [
-    { value: 1, label: "1 blok" },
-    { value: 2, label: "2 bloki" },
-    { value: 3, label: "3 bloki" },
-  ];
-  return (
-    <>
-      <h1 className="mb-6 text-2xl font-extrabold leading-tight" style={{ animation: "cascadeIn 0.5s ease-out 0.05s both" }}>
-        Ile bloków głębokiej pracy?
-      </h1>
-      <div className="flex flex-col gap-3">
-        {options.map((o, i) => (
-          <OptionButton key={o.value} active={value === o.value} label={o.label} onClick={() => onChange(o.value)} delay={0.1 + i * 0.06} />
-        ))}
-      </div>
-    </>
-  );
-}
-
-function SurveyGoals({
-  value,
-  onChange,
+function QuestionAreas({
+  answers,
+  setAnswers,
   onNext,
 }: {
-  value: Goal[];
-  onChange: (v: Goal[]) => void;
+  answers: SurveyAnswers;
+  setAnswers: React.Dispatch<React.SetStateAction<SurveyAnswers>>;
   onNext: () => void;
 }) {
-  const toggleGoal = (g: Goal) => {
-    if (value.includes(g)) {
-      onChange(value.filter((v) => v !== g));
-    } else if (value.length < 2) {
-      onChange([...value, g]);
-    }
+  const toggle = (area: GrowthArea) => {
+    setAnswers((a) => {
+      if (a.areas.includes(area)) {
+        const areas = a.areas.filter((x) => x !== area);
+        const levels = { ...a.levels };
+        const anchors = { ...a.anchors };
+        delete levels[area];
+        delete anchors[area];
+        return { ...a, areas, levels, anchors };
+      }
+      if (a.areas.length >= MAX_AREAS) {
+        toast("Dwa wystarczą. Zacznij od nich.");
+        return a;
+      }
+      return { ...a, areas: [...a.areas, area] };
+    });
   };
 
   return (
     <>
-      <h1 className="mb-2 text-2xl font-extrabold leading-tight" style={{ animation: "cascadeIn 0.5s ease-out 0.05s both" }}>
-        Co jeszcze chcesz ogarnąć?
+      <h1
+        className="mb-2 text-2xl font-extrabold leading-tight"
+        style={{ animation: "cascadeIn 0.5s ease-out 0.05s both" }}
+      >
+        Nad czym pracujesz najpierw?
       </h1>
-      <p className="mb-6 text-sm text-muted-foreground" style={{ animation: "cascadeIn 0.5s ease-out 0.1s both" }}>
-        Wybierz maks. 2 — albo pomiń.
+      <p
+        className="mb-6 text-sm leading-relaxed text-muted-foreground"
+        style={{ animation: "cascadeIn 0.5s ease-out 0.1s both" }}
+      >
+        Wybierz maksymalnie dwa. Mniej na start znaczy więcej po miesiącu. Resztę
+        dołożysz, jak te wejdą w krew.
       </p>
       <div className="flex flex-col gap-3">
-        {GOAL_OPTIONS.map((o, i) => (
+        {AREA_OPTIONS.map((o, i) => (
           <OptionButton
             key={o.value}
-            active={value.includes(o.value)}
+            active={answers.areas.includes(o.value)}
             label={o.label}
-            onClick={() => toggleGoal(o.value)}
+            hint={o.hint}
+            onClick={() => toggle(o.value)}
             delay={0.15 + i * 0.06}
           />
         ))}
       </div>
-      <button
-        onClick={onNext}
-        className="accent-gradient mt-6 flex h-14 w-full items-center justify-center rounded-full text-base font-bold text-primary-foreground transition-transform active:scale-[0.98]"
-        style={{ animation: "cascadeIn 0.5s ease-out 0.4s both" }}
-      >
-        Gotowe
+      <PrimaryButton onClick={onNext} disabled={answers.areas.length === 0} delay={0.4}>
+        Dalej
         <ChevronRight className="ml-2 h-5 w-5" />
+      </PrimaryButton>
+    </>
+  );
+}
+
+function QuestionLevel({
+  area,
+  value,
+  onPick,
+}: {
+  area: GrowthArea;
+  value: Level | undefined;
+  onPick: (level: Level) => void;
+}) {
+  return (
+    <>
+      <h1
+        className="mb-2 text-2xl font-extrabold leading-tight"
+        style={{ animation: "cascadeIn 0.5s ease-out 0.05s both" }}
+      >
+        {LEVEL_QUESTION[area]}
+      </h1>
+      <p
+        className="mb-6 text-sm text-muted-foreground"
+        style={{ animation: "cascadeIn 0.5s ease-out 0.1s both" }}
+      >
+        Powiedz jak jest, nie jak chciałbyś, żeby było. Od tego zależy, od czego zaczniesz.
+      </p>
+      <div className="flex flex-col gap-3">
+        {LEVEL_OPTIONS[area].map((o, i) => (
+          <OptionButton
+            key={o.value}
+            active={value === o.value}
+            label={o.label}
+            hint={STARTER_HABITS[area][o.value].title}
+            onClick={() => onPick(o.value)}
+            delay={0.15 + i * 0.06}
+          />
+        ))}
+      </div>
+    </>
+  );
+}
+
+function QuestionTiles({
+  answers,
+  setAnswers,
+  onNext,
+}: {
+  answers: SurveyAnswers;
+  setAnswers: React.Dispatch<React.SetStateAction<SurveyAnswers>>;
+  onNext: () => void;
+}) {
+  const [customTitle, setCustomTitle] = useState("");
+
+  const toggle = (key: string) => {
+    setAnswers((a) => ({
+      ...a,
+      maintenance_tiles: a.maintenance_tiles.includes(key)
+        ? a.maintenance_tiles.filter((k) => k !== key)
+        : [...a.maintenance_tiles, key],
+    }));
+  };
+
+  const addCustom = () => {
+    const title = customTitle.trim();
+    if (!title) return;
+    setAnswers((a) => ({
+      ...a,
+      custom_tiles: [...a.custom_tiles, { title, weekdays: [1, 2, 3, 4, 5, 6, 7] }],
+    }));
+    setCustomTitle("");
+  };
+
+  return (
+    <>
+      <h1
+        className="mb-2 text-2xl font-extrabold leading-tight"
+        style={{ animation: "cascadeIn 0.5s ease-out 0.05s both" }}
+      >
+        Co ogarniasz na co dzień i nie chcesz zapominać?
+      </h1>
+      <p
+        className="mb-6 text-sm text-muted-foreground"
+        style={{ animation: "cascadeIn 0.5s ease-out 0.1s both" }}
+      >
+        To trafi do Rutyn. Drobiazgi, ale trzymają dzień w ryzach.
+      </p>
+
+      <div className="flex flex-wrap gap-2">
+        {MAINTENANCE_TILES.map((tile, i) => {
+          const active = answers.maintenance_tiles.includes(tile.key);
+          return (
+            <button
+              key={tile.key}
+              type="button"
+              onClick={() => toggle(tile.key)}
+              className="rounded-full glass px-4 py-2.5 text-[14px] font-medium transition-colors"
+              style={{
+                animation: `cascadeIn 0.5s ease-out ${0.15 + i * 0.03}s both`,
+                border: active
+                  ? "1.5px solid var(--primary)"
+                  : "1.5px solid transparent",
+                color: active ? "var(--primary)" : undefined,
+              }}
+            >
+              {tile.title}
+            </button>
+          );
+        })}
+      </div>
+
+      {answers.custom_tiles.length > 0 && (
+        <div className="mt-3 flex flex-wrap gap-2">
+          {answers.custom_tiles.map((tile, i) => (
+            <button
+              key={`${tile.title}-${i}`}
+              type="button"
+              onClick={() =>
+                setAnswers((a) => ({
+                  ...a,
+                  custom_tiles: a.custom_tiles.filter((_, idx) => idx !== i),
+                }))
+              }
+              className="rounded-full glass px-4 py-2.5 text-[14px] font-medium text-primary"
+              style={{ border: "1.5px solid var(--primary)" }}
+            >
+              {tile.title}
+            </button>
+          ))}
+        </div>
+      )}
+
+      <div className="mt-4 flex items-center gap-2">
+        <div className="beam-wrap min-w-0 flex-1" style={{ borderRadius: "0.75rem" }}>
+          <input
+            value={customTitle}
+            onChange={(e) => setCustomTitle(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") addCustom();
+            }}
+            placeholder="+ własne"
+            maxLength={60}
+            className="h-11 w-full rounded-xl border border-foreground/[0.08] bg-foreground/[0.06] px-[14px] text-[15px] outline-none focus:border-primary/40"
+          />
+        </div>
+        <button
+          type="button"
+          onClick={addCustom}
+          disabled={!customTitle.trim()}
+          aria-label="Dodaj własną rutynę"
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-foreground/10 disabled:opacity-40"
+        >
+          <Plus className="h-5 w-5" />
+        </button>
+      </div>
+
+      <PrimaryButton onClick={onNext} delay={0.4}>
+        Dalej
+        <ChevronRight className="ml-2 h-5 w-5" />
+      </PrimaryButton>
+    </>
+  );
+}
+
+function QuestionAnchor({
+  area,
+  answers,
+  onPick,
+  onSkip,
+}: {
+  area: GrowthArea;
+  answers: SurveyAnswers;
+  onPick: (ref: string) => void;
+  onSkip: () => void;
+}) {
+  const level = answers.levels[area];
+  const habit = level ? STARTER_HABITS[area][level] : null;
+  const tiles = selectedTiles(answers);
+  const current = answers.anchors[area];
+
+  const options = [
+    ...tiles.map((t) => ({ ref: tileAnchorRef(t.key), label: t.title })),
+    { ref: ANCHOR_REF_WAKE_UP, label: "Rano, zaraz po wstaniu" },
+    { ref: ANCHOR_REF_AFTER_WORK, label: "Po powrocie z pracy" },
+  ];
+
+  return (
+    <>
+      <h1
+        className="mb-2 text-2xl font-extrabold leading-tight"
+        style={{ animation: "cascadeIn 0.5s ease-out 0.05s both" }}
+      >
+        Po czym zrobisz „{habit?.title ?? ""}"?
+      </h1>
+      <p
+        className="mb-6 text-sm text-muted-foreground"
+        style={{ animation: "cascadeIn 0.5s ease-out 0.1s both" }}
+      >
+        Nawyk doczepiony do czegoś, co już robisz, ma dużo większą szansę przetrwać.
+      </p>
+      <div className="flex flex-col gap-3">
+        {options.map((o, i) => (
+          <OptionButton
+            key={o.ref}
+            active={current === o.ref}
+            label={o.label}
+            onClick={() => onPick(o.ref)}
+            delay={0.15 + i * 0.05}
+          />
+        ))}
+      </div>
+      <button
+        type="button"
+        onClick={onSkip}
+        className="mt-6 h-10 w-full text-sm font-medium text-muted-foreground"
+      >
+        Bez kotwicy
       </button>
     </>
   );
 }
 
-function StepBlockApps({ onNext, onSkip }: { onNext: () => void; onSkip: () => void }) {
+function PreviewPlan({
+  answers,
+  onDone,
+}: {
+  answers: SurveyAnswers;
+  onDone: () => void;
+}) {
+  const [excluded, setExcluded] = useState<Set<string>>(new Set());
+  const [saving, setSaving] = useState(false);
+  const createPlan = useCreateStarterPlan();
+
+  const tiles = selectedTiles(answers);
+  const habits = growthHabitsFor(answers);
+
+  const toggle = (key: string) =>
+    setExcluded((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+
+  const save = async () => {
+    const plan = buildStarterPlan(answers);
+    const filtered = {
+      maintenance: plan.maintenance.filter((m) => !excluded.has(`tile:${m.key}`)),
+      growth: plan.growth.filter((g) => !excluded.has(`growth:${g.area}`)),
+    };
+    if (filtered.maintenance.length === 0 && filtered.growth.length === 0) {
+      onDone();
+      return;
+    }
+    setSaving(true);
+    try {
+      await createPlan.mutateAsync(filtered);
+      onDone();
+    } catch {
+      toast.error("Nie udało się zapisać planu.");
+      setSaving(false);
+    }
+  };
+
+  const rows = [
+    ...habits.map(({ area, habit }) => {
+      const anchor = anchorTitleFor(answers, area);
+      return {
+        key: `growth:${area}`,
+        title: anchor ? `${anchor}: ${habit.title}` : habit.title,
+        badge: "Rozwój",
+      };
+    }),
+    ...tiles.map((t) => ({ key: `tile:${t.key}`, title: t.title, badge: "Rutyna" })),
+  ];
+
+  return (
+    <>
+      <h1
+        className="mb-2 text-2xl font-extrabold leading-tight"
+        style={{ animation: "cascadeIn 0.5s ease-out both" }}
+      >
+        Tak wygląda Twój start
+      </h1>
+      <p
+        className="mb-6 text-sm text-muted-foreground"
+        style={{ animation: "cascadeIn 0.5s ease-out 0.1s both" }}
+      >
+        Odznacz, czego nie chcesz. Zawsze możesz to zmienić później.
+      </p>
+
+      <div className="flex flex-col gap-2">
+        {rows.map((row, i) => {
+          const active = !excluded.has(row.key);
+          return (
+            <button
+              key={row.key}
+              type="button"
+              onClick={() => toggle(row.key)}
+              className="flex items-center gap-4 rounded-3xl glass px-4 py-3 text-left transition-colors"
+              style={{
+                animation: `cascadeIn 0.5s ease-out ${0.15 + i * 0.04}s both`,
+                border: active
+                  ? "1.5px solid var(--primary)"
+                  : "1.5px solid transparent",
+              }}
+            >
+              <div className="min-w-0 flex-1">
+                <p className="text-[15px] font-semibold">{row.title}</p>
+                <p className="mt-0.5 text-[12px] font-medium uppercase tracking-wide text-muted-foreground">
+                  {row.badge}
+                </p>
+              </div>
+              <div
+                className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full transition-colors"
+                style={{
+                  backgroundColor: active ? "var(--primary)" : "transparent",
+                  border: active
+                    ? "none"
+                    : "1.5px solid color-mix(in oklab, var(--foreground) 20%, transparent)",
+                }}
+              >
+                {active && (
+                  <Check className="h-3.5 w-3.5 text-primary-foreground" strokeWidth={3} />
+                )}
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      <PrimaryButton onClick={save} disabled={saving} delay={0.4}>
+        {saving ? "Zapisywanie…" : "Zatwierdź"}
+      </PrimaryButton>
+    </>
+  );
+}
+
+function StepBlockApps({
+  answers,
+  setAnswers,
+  onNext,
+}: {
+  answers: SurveyAnswers;
+  setAnswers: React.Dispatch<React.SetStateAction<SurveyAnswers>>;
+  onNext: () => void;
+}) {
   const [apps, setApps] = useState<InstalledApp[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [loaded, setLoaded] = useState(false);
@@ -590,19 +748,39 @@ function StepBlockApps({ onNext, onSkip }: { onNext: () => void; onSkip: () => v
     Blocker.getInstalledApps({ includeIcons: false })
       .then(({ apps: all }) => {
         if (cancelled) return;
-        const popular = all.filter((a) => POPULAR_APPS.includes(a.packageName));
-        const sorted = popular.length > 0 ? popular : all.slice(0, 12);
-        sorted.sort((a, b) => a.appLabel.localeCompare(b.appLabel));
-        setApps(sorted);
+        setApps([...all].sort((a, b) => a.appLabel.localeCompare(b.appLabel, "pl")));
         setLoaded(true);
       })
       .catch(() => {
         if (!cancelled) setLoaded(true);
       });
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  const toggle = (pkg: string) => {
+  // What the user says pulls them in decides which installed apps get pre-ticked.
+  const suggested = useMemo(() => {
+    const wanted = packagesForDistractions(answers.distractions);
+    return apps.filter((a) => wanted.has(a.packageName));
+  }, [apps, answers.distractions]);
+
+  const visible = suggested.length > 0 ? suggested : apps.slice(0, 12);
+
+  useEffect(() => {
+    setSelected(new Set(suggested.map((a) => a.packageName)));
+  }, [suggested]);
+
+  const toggleDistraction = (d: Distraction) => {
+    setAnswers((a) => ({
+      ...a,
+      distractions: a.distractions.includes(d)
+        ? a.distractions.filter((x) => x !== d)
+        : [...a.distractions, d],
+    }));
+  };
+
+  const toggleApp = (pkg: string) => {
     setSelected((prev) => {
       const next = new Set(prev);
       if (next.has(pkg)) next.delete(pkg);
@@ -611,15 +789,14 @@ function StepBlockApps({ onNext, onSkip }: { onNext: () => void; onSkip: () => v
     });
   };
 
-  const handleSave = async () => {
+  const save = async () => {
     if (selected.size === 0) {
-      onSkip();
+      onNext();
       return;
     }
     setSaving(true);
     try {
-      const entries = apps.filter((a) => selected.has(a.packageName));
-      for (const app of entries) {
+      for (const app of apps.filter((a) => selected.has(a.packageName))) {
         await setAppBlocked.mutateAsync({
           packageName: app.packageName,
           appLabel: app.appLabel,
@@ -639,41 +816,63 @@ function StepBlockApps({ onNext, onSkip }: { onNext: () => void; onSkip: () => v
         className="mb-2 text-2xl font-extrabold leading-tight"
         style={{ animation: "cascadeIn 0.5s ease-out both" }}
       >
-        Zablokuj rozpraszacze
+        Co Cię najbardziej wciąga?
       </h1>
       <p
-        className="mb-6 text-sm text-muted-foreground"
+        className="mb-4 text-sm text-muted-foreground"
         style={{ animation: "cascadeIn 0.5s ease-out 0.1s both" }}
       >
-        Te aplikacje zostaną zablokowane, gdy rozpoczniesz dzień. Możesz to zmienić później.
+        Zaznacz, a podpowiemy, co zablokować. Blokada rusza po starcie dnia.
       </p>
+
+      <div className="mb-6 flex flex-wrap gap-2">
+        {DISTRACTION_OPTIONS.map((o, i) => {
+          const active = answers.distractions.includes(o.value);
+          return (
+            <button
+              key={o.value}
+              type="button"
+              onClick={() => toggleDistraction(o.value)}
+              className="rounded-full glass px-4 py-2.5 text-[14px] font-medium transition-colors"
+              style={{
+                animation: `cascadeIn 0.5s ease-out ${0.15 + i * 0.04}s both`,
+                border: active
+                  ? "1.5px solid var(--primary)"
+                  : "1.5px solid transparent",
+                color: active ? "var(--primary)" : undefined,
+              }}
+            >
+              {o.label}
+            </button>
+          );
+        })}
+      </div>
 
       {!loaded ? (
         <div className="flex flex-1 items-center justify-center">
           <p className="text-sm text-muted-foreground">Ładowanie aplikacji…</p>
         </div>
-      ) : apps.length === 0 ? (
-        <div
-          className="rounded-3xl glass px-5 py-8 text-center"
-          style={{ animation: "cascadeIn 0.5s ease-out 0.15s both" }}
-        >
+      ) : visible.length === 0 ? (
+        <div className="rounded-3xl glass px-5 py-8 text-center">
           <p className="text-sm text-muted-foreground">
-            Nie znaleziono popularnych aplikacji. Możesz je dodać później w ustawieniach.
+            Nie znaleziono aplikacji. Dodasz je później w Ustawieniach.
           </p>
         </div>
       ) : (
         <div className="flex flex-col gap-2">
-          {apps.map((app, i) => {
+          {visible.map((app, i) => {
             const active = selected.has(app.packageName);
             return (
               <button
                 key={app.packageName}
                 type="button"
-                onClick={() => toggle(app.packageName)}
+                onClick={() => toggleApp(app.packageName)}
                 className="flex items-center gap-4 rounded-3xl glass px-4 py-3 text-left transition-colors"
                 style={{
                   animation: `cascadeIn 0.5s ease-out ${0.15 + i * 0.04}s both`,
-                  border: active ? "1.5px solid var(--primary)" : "1.5px solid transparent",
+                  border: active
+                    ? "1.5px solid var(--primary)"
+                    : "1.5px solid transparent",
                 }}
               >
                 <span className="flex-1 text-[15px] font-medium">{app.appLabel}</span>
@@ -681,10 +880,14 @@ function StepBlockApps({ onNext, onSkip }: { onNext: () => void; onSkip: () => v
                   className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full transition-colors"
                   style={{
                     backgroundColor: active ? "var(--primary)" : "transparent",
-                    border: active ? "none" : "1.5px solid color-mix(in oklab, var(--foreground) 20%, transparent)",
+                    border: active
+                      ? "none"
+                      : "1.5px solid color-mix(in oklab, var(--foreground) 20%, transparent)",
                   }}
                 >
-                  {active && <Check className="h-3.5 w-3.5 text-primary-foreground" strokeWidth={3} />}
+                  {active && (
+                    <Check className="h-3.5 w-3.5 text-primary-foreground" strokeWidth={3} />
+                  )}
                 </div>
               </button>
             );
@@ -694,14 +897,14 @@ function StepBlockApps({ onNext, onSkip }: { onNext: () => void; onSkip: () => v
 
       <div className="mt-auto flex flex-col gap-3 pb-4 pt-8">
         <button
-          onClick={handleSave}
+          onClick={save}
           disabled={saving}
           className="accent-gradient flex h-14 w-full items-center justify-center rounded-full text-base font-bold text-primary-foreground transition-transform active:scale-[0.98] disabled:opacity-50"
         >
-          {saving ? "Zapisywanie…" : selected.size > 0 ? "Zablokuj wybrane" : "Kontynuuj"}
+          {saving ? "Zapisywanie…" : selected.size > 0 ? "Zablokuj wybrane" : "Dalej"}
         </button>
         <button
-          onClick={onSkip}
+          onClick={onNext}
           className="h-10 text-sm font-medium text-muted-foreground"
           type="button"
         >
@@ -732,13 +935,13 @@ function StepDone({ onFinish }: { onFinish: () => void }) {
         className="mb-3 text-[26px] font-extrabold leading-tight"
         style={{ animation: "cascadeIn 0.5s ease-out 0.1s both" }}
       >
-        Wszystko gotowe!
+        Ustawione.
       </h1>
       <p
         className="mb-10 max-w-[280px] text-[15px] leading-relaxed text-muted-foreground"
         style={{ animation: "cascadeIn 0.5s ease-out 0.2s both" }}
       >
-        Twoje rutyny czekają. Kliknij &quot;Rozpocznij dzień&quot; na ekranie głównym, żeby zacząć.
+        Rozpocznij dzień i odhacz to jedno, co robisz dla siebie. Reszta jest dodatkiem.
       </p>
       <button
         onClick={handleFinish}

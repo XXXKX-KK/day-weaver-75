@@ -1,152 +1,274 @@
-import type { NewRoutineInput } from "@/lib/routines";
+import type { StarterPlan } from "@/lib/routines";
+import type { AnchorLabel, GrowthArea, Priority } from "@/lib/store";
 
-export type WakeUp = "early" | "mid" | "late";
-export type WorkType = "fixed" | "flexible" | "free";
-export type FocusCount = 1 | 2 | 3;
-export type Goal = "fitness" | "learning" | "home" | "calm";
+/**
+ * The starter survey. It asks what the user wants to become, not how their
+ * calendar looks — the answers turn straight into one or two growth habits plus
+ * the upkeep they already do, instead of generic "deep work" blocks nobody ran.
+ *
+ * The answers are persisted to profiles.survey so later suggestion rules can
+ * read what the user picked. `version` guards that shape.
+ */
 
+export const SURVEY_VERSION = 2;
+
+/** How far along the user already is in an area. Labels differ per area, the
+ *  scale doesn't. */
+export type Level = "none" | "irregular" | "regular";
+
+export type Distraction = "social" | "video" | "games" | "other";
+
+export type CustomTile = { title: string; weekdays: number[] };
+
+/** Shape stored in profiles.survey. Snake_case because it's data at rest. */
 export type SurveyAnswers = {
-  wakeUp: WakeUp;
-  workType: WorkType;
-  workStart: string;
-  workEnd: string;
-  focusCount: FocusCount;
-  goals: Goal[];
+  version: number;
+  /** At most two — the whole point of the first question. */
+  areas: GrowthArea[];
+  levels: Partial<Record<GrowthArea, Level>>;
+  maintenance_tiles: string[];
+  custom_tiles: CustomTile[];
+  /** Area → anchor ref: "tile:<key>" | "label:wake_up" | "label:after_work". */
+  anchors: Partial<Record<GrowthArea, string>>;
+  distractions: Distraction[];
 };
+
+export const MAX_AREAS = 2;
 
 export const DEFAULT_ANSWERS: SurveyAnswers = {
-  wakeUp: "mid",
-  workType: "fixed",
-  workStart: "09:00",
-  workEnd: "17:00",
-  focusCount: 2,
-  goals: [],
+  version: SURVEY_VERSION,
+  areas: [],
+  levels: {},
+  maintenance_tiles: [],
+  custom_tiles: [],
+  anchors: {},
+  distractions: [],
 };
 
-export const WAKE_OPTIONS: { value: WakeUp; label: string; time: string }[] = [
-  { value: "early", label: "Przed 7:00", time: "06:00" },
-  { value: "mid", label: "7:00 – 9:00", time: "07:30" },
-  { value: "late", label: "Po 9:00", time: "09:30" },
+const ALL_DAYS = [1, 2, 3, 4, 5, 6, 7];
+const MON_WED_FRI = [1, 3, 5];
+const WORKDAYS = [1, 2, 3, 4, 5];
+
+export const AREA_OPTIONS: { value: GrowthArea; label: string; hint: string }[] = [
+  { value: "body", label: "Ciało", hint: "trening, forma" },
+  { value: "mind", label: "Głowa", hint: "czytanie, nauka" },
+  { value: "money", label: "Pieniądze", hint: "nowa umiejętność, dodatkowy zarobek" },
+  { value: "discipline", label: "Dyscyplina", hint: "sen, poranek, telefon" },
 ];
 
-export const WORK_OPTIONS: { value: WorkType; label: string }[] = [
-  { value: "fixed", label: "Tak, stałe godziny" },
-  { value: "flexible", label: "Elastycznie" },
-  { value: "free", label: "Mam wolne" },
+export const LEVEL_QUESTION: Record<GrowthArea, string> = {
+  body: "Jak jest teraz z treningiem?",
+  mind: "Jak jest teraz z czytaniem?",
+  money: "Jak jest teraz z zarabianiem i umiejętnościami?",
+  discipline: "Jak jest teraz z dyscypliną?",
+};
+
+export const LEVEL_OPTIONS: Record<GrowthArea, { value: Level; label: string }[]> = {
+  body: [
+    { value: "none", label: "Nie trenuję" },
+    { value: "irregular", label: "Nieregularnie" },
+    { value: "regular", label: "Regularnie" },
+  ],
+  mind: [
+    { value: "none", label: "Nie czytam" },
+    { value: "irregular", label: "Czasem" },
+    { value: "regular", label: "Regularnie" },
+  ],
+  money: [
+    { value: "none", label: "Nic nie robię w tym kierunku" },
+    { value: "irregular", label: "Coś zaczynam" },
+    { value: "regular", label: "Mam projekt" },
+  ],
+  discipline: [
+    { value: "none", label: "Telefon rządzi" },
+    { value: "irregular", label: "Bywa różnie" },
+    { value: "regular", label: "Ogarniam" },
+  ],
+};
+
+export type StarterHabit = { title: string; weekdays: number[] };
+
+/** The one growth habit each answer opens with. Deliberately small — the level
+ *  sets the size, not the ambition. */
+export const STARTER_HABITS: Record<GrowthArea, Record<Level, StarterHabit>> = {
+  body: {
+    none: { title: "10 pompek", weekdays: ALL_DAYS },
+    irregular: { title: "Trening 20 min", weekdays: MON_WED_FRI },
+    regular: { title: "Rozciąganie 10 min po treningu", weekdays: MON_WED_FRI },
+  },
+  mind: {
+    none: { title: "Przeczytaj 5 stron", weekdays: ALL_DAYS },
+    irregular: { title: "Przeczytaj 15 stron", weekdays: ALL_DAYS },
+    regular: { title: "20 min nauki konkretnej rzeczy", weekdays: ALL_DAYS },
+  },
+  money: {
+    none: { title: "15 min nauki umiejętności", weekdays: ALL_DAYS },
+    irregular: { title: "30 min nauki umiejętności", weekdays: ALL_DAYS },
+    regular: { title: "1 blok pracy nad projektem", weekdays: WORKDAYS },
+  },
+  discipline: {
+    none: { title: "Telefon odłożony 30 min przed snem", weekdays: ALL_DAYS },
+    irregular: { title: "Pobudka o stałej porze", weekdays: ALL_DAYS },
+    regular: { title: "Plan jutra wieczorem", weekdays: ALL_DAYS },
+  },
+};
+
+export type MaintenanceTile = { key: string; title: string; weekdays: number[] };
+
+export const MAINTENANCE_TILES: MaintenanceTile[] = [
+  { key: "teeth", title: "Umyć zęby", weekdays: ALL_DAYS },
+  { key: "shower", title: "Prysznic", weekdays: ALL_DAYS },
+  { key: "supplements", title: "Suplementy", weekdays: ALL_DAYS },
+  { key: "protein", title: "Białko", weekdays: ALL_DAYS },
+  { key: "water", title: "Wypić 2 l wody", weekdays: ALL_DAYS },
+  { key: "charger", title: "Podłączyć telefon do ładowarki", weekdays: ALL_DAYS },
+  { key: "prep", title: "Przygotować rzeczy na jutro", weekdays: ALL_DAYS },
+  { key: "bed", title: "Posłać łóżko", weekdays: ALL_DAYS },
+  { key: "shave", title: "Ogolić się", weekdays: [3, 7] },
+  { key: "laundry", title: "Pranie", weekdays: [6] },
+  { key: "cleaning", title: "Sprzątanie", weekdays: [6] },
+  { key: "groceries", title: "Zakupy", weekdays: [7] },
 ];
 
-export const GOAL_OPTIONS: { value: Goal; label: string }[] = [
-  { value: "fitness", label: "Ruch / trening" },
-  { value: "learning", label: "Nauka / czytanie" },
-  { value: "home", label: "Porządki w domu" },
-  { value: "calm", label: "Spokój / oddech" },
+/** Package prefixes per distraction bucket, used to pre-tick installed apps on
+ *  the block screen instead of showing one hardcoded list to everyone. */
+export const DISTRACTION_OPTIONS: {
+  value: Distraction;
+  label: string;
+  packages: string[];
+}[] = [
+  {
+    value: "social",
+    label: "Social media",
+    packages: [
+      "com.instagram.android",
+      "com.facebook.katana",
+      "com.facebook.orca",
+      "com.zhiliaoapp.musically",
+      "com.twitter.android",
+      "com.x.android",
+      "com.reddit.frontpage",
+      "com.snapchat.android",
+      "com.linkedin.android",
+      "com.pinterest",
+      "com.discord",
+      "org.telegram.messenger",
+    ],
+  },
+  {
+    value: "video",
+    label: "YouTube, seriale",
+    packages: [
+      "com.google.android.youtube",
+      "com.netflix.mediaclient",
+      "com.disney.disneyplus",
+      "com.hbo.hbonow",
+      "com.wbd.stream",
+      "tv.twitch.android.app",
+      "com.amazon.avod.thirdpartyclient",
+      "pl.redlabs.redcdn.portal",
+    ],
+  },
+  {
+    value: "games",
+    label: "Gry",
+    packages: [
+      "com.king.candycrushsaga",
+      "com.supercell.clashofclans",
+      "com.supercell.brawlstars",
+      "com.mojang.minecraftpe",
+      "com.roblox.client",
+      "com.dts.freefireth",
+      "com.activision.callofduty.shooter",
+    ],
+  },
+  { value: "other", label: "Inne", packages: [] },
 ];
 
-function morningTime(w: WakeUp): string {
-  const map: Record<WakeUp, string> = { early: "06:00", mid: "07:30", late: "09:30" };
-  return map[w];
+/** Package names to pre-tick for the picked buckets. */
+export function packagesForDistractions(picked: Distraction[]): Set<string> {
+  const out = new Set<string>();
+  for (const option of DISTRACTION_OPTIONS) {
+    if (!picked.includes(option.value)) continue;
+    for (const pkg of option.packages) out.add(pkg);
+  }
+  return out;
 }
 
-function addMinutes(time: string, minutes: number): string {
-  const [h, m] = time.split(":").map(Number);
-  const total = h * 60 + m + minutes;
-  const hh = Math.floor(total / 60) % 24;
-  const mm = total % 60;
-  return `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
+export const ANCHOR_REF_WAKE_UP = "label:wake_up";
+export const ANCHOR_REF_AFTER_WORK = "label:after_work";
+
+export function tileAnchorRef(tileKey: string): string {
+  return `tile:${tileKey}`;
 }
 
-export function generateRoutines(answers: SurveyAnswers): NewRoutineInput[] {
-  const routines: NewRoutineInput[] = [];
-  const allDays: number[] = [1, 2, 3, 4, 5, 6, 7];
-  const weekdays: number[] = [1, 2, 3, 4, 5];
+function parseAnchor(ref: string | undefined): {
+  anchorKey?: string;
+  anchor_label?: AnchorLabel;
+} {
+  if (!ref) return {};
+  if (ref.startsWith("tile:")) return { anchorKey: ref.slice("tile:".length) };
+  if (ref === ANCHOR_REF_WAKE_UP) return { anchor_label: "wake_up" };
+  if (ref === ANCHOR_REF_AFTER_WORK) return { anchor_label: "after_work" };
+  return {};
+}
 
-  const mTime = morningTime(answers.wakeUp);
+/** Every tile the user ends up with, preset or hand-written, in one list. */
+export function selectedTiles(answers: SurveyAnswers): MaintenanceTile[] {
+  const preset = MAINTENANCE_TILES.filter((t) => answers.maintenance_tiles.includes(t.key));
+  const custom = answers.custom_tiles.map((t, i) => ({
+    key: `custom:${i}`,
+    title: t.title,
+    weekdays: t.weekdays,
+  }));
+  return [...preset, ...custom];
+}
 
-  routines.push({
-    title: "Poranny reset",
-    priority: "normal",
-    weekdays: allDays,
-    scheduled_time: mTime,
-    subtasks: ["Szklanka wody", "Przejrzyj plan dnia", "Rozciąganie 5 min"],
+/** Human-readable anchor for the preview screen ("Po prysznicu: 10 pompek"). */
+export function anchorTitleFor(
+  answers: SurveyAnswers,
+  area: GrowthArea,
+): string | null {
+  const ref = answers.anchors[area];
+  if (!ref) return null;
+  if (ref === ANCHOR_REF_WAKE_UP) return "Rano, zaraz po wstaniu";
+  if (ref === ANCHOR_REF_AFTER_WORK) return "Po powrocie z pracy";
+  const key = ref.startsWith("tile:") ? ref.slice("tile:".length) : null;
+  if (!key) return null;
+  return selectedTiles(answers).find((t) => t.key === key)?.title ?? null;
+}
+
+/** The growth habit the answers add up to, per picked area. */
+export function growthHabitsFor(
+  answers: SurveyAnswers,
+): { area: GrowthArea; habit: StarterHabit }[] {
+  return answers.areas.flatMap((area) => {
+    const level = answers.levels[area];
+    if (!level) return [];
+    return [{ area, habit: STARTER_HABITS[area][level] }];
   });
+}
 
-  let effectiveFocus = answers.focusCount;
-  if (answers.goals.includes("calm") && effectiveFocus > 1) {
-    effectiveFocus = (effectiveFocus - 1) as FocusCount;
-  }
+/** Turn the answers into the rows onboarding will insert. */
+export function buildStarterPlan(answers: SurveyAnswers): StarterPlan {
+  const normal: Priority = "normal";
 
-  const hasFixedHours = answers.workType === "fixed";
-  const focusDays = answers.workType === "free" ? allDays : weekdays;
+  const maintenance = selectedTiles(answers).map((tile) => ({
+    key: tile.key,
+    title: tile.title,
+    priority: normal,
+    weekdays: tile.weekdays,
+    subtasks: [],
+  }));
 
-  for (let i = 0; i < effectiveFocus; i++) {
-    let time: string;
-    if (hasFixedHours) {
-      const startMinutes =
-        parseInt(answers.workStart.split(":")[0]) * 60 +
-        parseInt(answers.workStart.split(":")[1]);
-      const endMinutes =
-        parseInt(answers.workEnd.split(":")[0]) * 60 +
-        parseInt(answers.workEnd.split(":")[1]);
-      const span = endMinutes - startMinutes;
-      const slot = Math.floor(span / (effectiveFocus + 1));
-      time = addMinutes(answers.workStart, slot * (i + 1));
-    } else {
-      const base = addMinutes(mTime, 90);
-      time = addMinutes(base, i * 120);
-    }
+  const growth = growthHabitsFor(answers).map(({ area, habit }) => ({
+    title: habit.title,
+    priority: normal,
+    weekdays: habit.weekdays,
+    subtasks: [],
+    area,
+    ...parseAnchor(answers.anchors[area]),
+  }));
 
-    const label = effectiveFocus === 1 ? "Głęboka praca" : `Głęboka praca ${i + 1}`;
-    routines.push({
-      title: label,
-      priority: "high",
-      weekdays: focusDays,
-      scheduled_time: time,
-      subtasks: ["Wycisz powiadomienia", "Włącz Skupienie", "Blok pracy bez telefonu"],
-    });
-  }
-
-  for (const goal of answers.goals) {
-    if (goal === "fitness") {
-      routines.push({
-        title: "Trening",
-        priority: "normal",
-        weekdays: weekdays,
-        subtasks: ["Rozgrzewka", "Ćwiczenia 30 min", "Rozciąganie"],
-      });
-    }
-    if (goal === "learning") {
-      routines.push({
-        title: "Nauka / czytanie",
-        priority: "normal",
-        weekdays: allDays,
-        subtasks: ["Wybierz materiał", "Czytaj / ucz się 25 min"],
-      });
-    }
-    if (goal === "home") {
-      routines.push({
-        title: "Porządki",
-        priority: "low",
-        weekdays: allDays,
-        subtasks: ["Szybkie sprzątanie 15 min"],
-      });
-    }
-    if (goal === "calm") {
-      routines.push({
-        title: "Reset / oddech",
-        priority: "low",
-        weekdays: allDays,
-        subtasks: ["Oddychanie 5 min", "Spacer lub cisza"],
-      });
-    }
-  }
-
-  routines.push({
-    title: "Wieczorne domknięcie",
-    priority: "normal",
-    weekdays: allDays,
-    scheduled_time: "21:00",
-    subtasks: ["Odhacz dzień", "Zaplanuj jutro"],
-  });
-
-  return routines;
+  return { maintenance, growth };
 }

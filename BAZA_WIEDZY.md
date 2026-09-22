@@ -459,3 +459,55 @@ Szacowany wolumen danych: ~30 pozycji dnia × 365 dni ≈ 11 tys. wierszy roczni
 3. **Każda funkcja ma uzasadnienie** — kolumna „Uzasadnienie” w rozdz. 4. ✔
 4. **Lista „Po MVP” wyraźnie oddzielona** — rozdz. 5 oraz rozdz. 15. ✔
 5. **Dokument jako jedyne źródło wiedzy** — zawiera cel, użytkownika, problem, zakres, ekrany, model danych, przepływy, mechanizmy, decyzje techniczne, koszty, wykluczenia i otwarte pytania. ✔
+
+---
+
+## 18. Sekcja Rozwój (Etap 1)
+
+Dane autora z 30 dni pokazały, że rzeczy „do pamiętania" (zęby, perfumy,
+suplementy) robione są w ~100%, a rzeczy rozwojowe (trening) leżą. Poprzedni
+system XP i passy nagradzał jedno i drugie tak samo, więc apka potrafiła
+pokazać świetny wynik za dzień, w którym nic się nie posunęło do przodu.
+
+**Podział.** `routines.kind` rozdziela powtarzalne pozycje na `maintenance`
+(utrzymanie) i `growth` (Rozwój: trening, czytanie, nauka, umiejętności).
+Pozycje Rozwoju mają `area` (`body` / `mind` / `money` / `discipline`).
+Zadania (`tasks`) zostają jednorazowe i zawsze utrzymaniowe.
+
+**Kotwice.** Pozycja Rozwoju może wisieć na `anchor_routine_id` (konkretna
+rutyna) albo `anchor_label` (`wake_up` / `after_work`). `start_day()` układa ją
+bezpośrednio po kotwicy, a UI pokazuje podpis „Po: [nazwa kotwicy]".
+
+**XP.** Rozwój `10 + priorytet` (bez zmian). Utrzymanie i zadania: stałe `2`.
+
+**Passa.** Dzień zaliczony = wszystkie pozycje Rozwoju zaplanowane na ten dzień
+zrobione. Dzień bez żadnej pozycji Rozwoju jest neutralny — nie przerywa passy
+i jej nie podbija. Liczy to `recompute_streak()` w bazie, bo reguła sięga wstecz
+przez dni neutralne. Istniejąca historia nie jest przeliczana: stan passy z dnia
+migracji zamrażają `profiles.streak_base` i `streak_base_date`.
+
+**Ankieta.** `profiles.survey` (jsonb, `version: 2`) trzyma wybrane obszary,
+poziomy, kafelki utrzymania, kotwice i rozpraszacze. Opcja „Powtórz ankietę
+startową" siedzi w Ustawieniach.
+
+---
+
+## 19. Ukryte / planowane funkcje
+
+### Wioska (gra)
+
+Trasa `src/routes/wioska.tsx` działa, ale wejście do niej jest ukryte za flagą
+`VILLAGE_ENABLED` w `src/lib/features.ts` (obecnie `false`). Link w
+`src/components/xp-bar.tsx` renderuje się tylko przy fladze `true`; wpisanie
+`/wioska` ręcznie nadal otwiera ekran.
+
+Plan: wioska/zamek w stylu Heroes of Might & Magic V, odblokowywana zdobytym XP
+i passą — budynki i poziomy mają odpowiadać postępowi w Rozwoju. Włączenie
+sprowadza się do przestawienia flagi.
+
+### Sugestie
+
+Silnik reguł w `src/lib/suggestions/` jest czysty (bez I/O), żeby dało się go
+testować jednostkowo. Karta sugestii pojawia się wyłącznie w apce, na zakładce
+Dziś — nigdy w nakładce blokady ani w powiadomieniach. Kolejne reguły dopisuje
+się jako osobne moduły.

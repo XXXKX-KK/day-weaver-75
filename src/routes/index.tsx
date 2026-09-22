@@ -418,7 +418,7 @@ function DayItemPill({
         <button
           onClick={() => {
             setItemStatus.mutate(
-              { item, day, items },
+              { item },
               { onError: () => toast.error("Nie udało się zapisać zmiany.") },
             );
           }}
@@ -494,7 +494,7 @@ function DayItemPill({
               <button
                 onClick={() =>
                   toggleSubtask.mutate(
-                    { item, subtask: s, day, items },
+                    { item, subtask: s },
                     { onError: () => toast.error("Nie udało się zapisać zmiany.") },
                   )
                 }

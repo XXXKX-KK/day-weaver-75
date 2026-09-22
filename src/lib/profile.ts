@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth";
+import type { SurveyAnswers } from "@/lib/day-survey";
 
 /** profiles row (one per user, created by a trigger on sign-up). */
 export type ProfileRow = {
@@ -19,6 +20,9 @@ export type ProfileRow = {
   focus_notes_enabled: boolean;
   onboarding_done: boolean;
   coachmark_done: boolean;
+  /** Starter survey answers — what the user said they want to work on. Null for
+   *  accounts created before the survey existed. */
+  survey: SurveyAnswers | null;
 };
 
 /** Fields the settings screen may write (room left for break_* etc.). */
@@ -34,13 +38,14 @@ export type ProfileUpdate = Partial<
     | "focus_notes_enabled"
     | "onboarding_done"
     | "coachmark_done"
+    | "survey"
   >
 >;
 
 const PROFILE_KEY = ["profile"] as const;
 
 const PROFILE_COLUMNS =
-  "id, display_name, timezone, day_start_time, day_end_time, autostart_day, break_daily_limit, break_delay_seconds, total_xp, streak_count, last_completed_date, focus_notes_enabled, onboarding_done, coachmark_done";
+  "id, display_name, timezone, day_start_time, day_end_time, autostart_day, break_daily_limit, break_delay_seconds, total_xp, streak_count, last_completed_date, focus_notes_enabled, onboarding_done, coachmark_done, survey";
 
 export function useProfile() {
   const { user } = useAuth();

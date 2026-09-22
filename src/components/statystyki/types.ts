@@ -7,10 +7,15 @@ export interface DayProgress {
   planned: number;
   /** Liczba ukończonych zadań danego dnia. */
   completed: number;
-  /** Czy dzień liczy się do passy (>= 60% ukończenia). */
+  /** Czy dzień liczy się do passy (wszystkie pozycje Rozwoju zrobione). */
   streak_counted: boolean;
   /** Zdobyte XP tego dnia. */
   xp: number;
+  /** Pozycje Rozwoju zaplanowane tego dnia. Zero = dzień neutralny: nie
+   *  przerywa passy i jej nie podbija. */
+  growth_planned: number;
+  /** Pozycje Rozwoju zrobione tego dnia. */
+  growth_done: number;
 }
 
 export interface StatsSummary {
