@@ -15,4 +15,6 @@
     <string name="block_overlay_break">Przerwa (%1$d/%2$d)</string>
     <string name="block_overlay_break_countdown">Odblokowanie za %1$ds</string>
     <string name="block_overlay_break_exhausted">Przerwy wyczerpane</string>
+    <string name="block_overlay_growth_eyebrow">Najpierw jedna rzecz dla siebie.</string>
+    <string name="block_overlay_growth_motivation">Zrób to, a przerwy wrócą. Tyle dzieli Cię od telefonu.</string>
 </resources>

@@ -33,6 +33,17 @@ export interface BlockerPlugin {
    */
   setDayTasks(options: { titles: string[] }): Promise<void>;
   /**
+   * Today's Rozwój state. While `planned` is true and `done` is false the
+   * overlay withholds the break entirely and shows `titles` instead of the full
+   * plan — "najpierw jedna rzecz dla siebie". The native side stamps dates, so a
+   * value left over from yesterday stops applying on its own.
+   */
+  setGrowthState(options: {
+    planned: boolean;
+    done: boolean;
+    titles: string[];
+  }): Promise<void>;
+  /**
    * Mirror the chosen accent (key + sRGB hex) into native prefs so the block
    * overlay can pick it up in a later brief. UI does not read this back.
    */

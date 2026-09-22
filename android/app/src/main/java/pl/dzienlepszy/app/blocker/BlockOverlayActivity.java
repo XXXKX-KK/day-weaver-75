@@ -40,6 +40,8 @@ public class BlockOverlayActivity extends Activity {
 
     private String blockedPackage = "";
     private CountDownTimer breakTimer;
+    /** True while today has Rozwój planned and none of it is done — no breaks. */
+    private boolean growthGate = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -50,7 +52,10 @@ public class BlockOverlayActivity extends Activity {
         blockedPackage = getIntent().getStringExtra(EXTRA_BLOCKED_PACKAGE);
         if (blockedPackage == null) blockedPackage = "";
 
-        dayTasks = BlockerPrefs.getDayTasks(this);
+        // Until one Rozwój item is done, the overlay shows those instead of the
+        // full plan and withholds the break entirely.
+        growthGate = BlockerPrefs.requiresGrowthFirst(this);
+        dayTasks = growthGate ? BlockerPrefs.getGrowthTasks(this) : BlockerPrefs.getDayTasks(this);
         taskIndex = 0;
 
         applyAccent(resolveAccent());
@@ -130,6 +135,10 @@ public class BlockOverlayActivity extends Activity {
         if (!dayTasks.isEmpty()) {
             if (taskIndex < 0 || taskIndex >= dayTasks.size()) taskIndex = 0;
             eyebrow.setVisibility(View.VISIBLE);
+            if (growthGate) {
+                eyebrow.setText(R.string.block_overlay_growth_eyebrow);
+                motivation.setText(R.string.block_overlay_growth_motivation);
+            }
             title.setText(dayTasks.get(taskIndex));
             skip.setVisibility(dayTasks.size() > 1 ? View.VISIBLE : View.GONE);
             return;
@@ -157,6 +166,14 @@ public class BlockOverlayActivity extends Activity {
 
     private void bindBreakButton() {
         Button breakBtn = findViewById(R.id.block_break_button);
+
+        // No break on offer until one Rozwój item is done. The PIN and the
+        // global blocking switch stay untouched — those remain the escape hatch.
+        if (growthGate) {
+            breakBtn.setVisibility(View.GONE);
+            return;
+        }
+
         int used = BlockerPrefs.getBreakUsedToday(this);
         int limit = BlockerPrefs.getBreakDailyLimit(this);
 

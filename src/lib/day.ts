@@ -540,6 +540,20 @@ export function useCurrentTaskNativeSync() {
     return [];
   }, [undoneTitles, profile?.focus_notes_enabled, focusNotes]);
 
+  // Drives the overlay's "najpierw jedna rzecz dla siebie" gate. A day that
+  // isn't running, or has nothing from Rozwój in it, leaves the gate open.
+  const growthState = useMemo(() => {
+    if (!data || data.status !== "in_progress") {
+      return { planned: false, done: false, titles: [] as string[] };
+    }
+    const growth = data.items.filter((i) => i.kind === "growth");
+    return {
+      planned: growth.length > 0,
+      done: growth.some((i) => i.status === "done"),
+      titles: growth.filter((i) => i.status !== "done").map((i) => i.title),
+    };
+  }, [data]);
+
   useEffect(() => {
     if (!native || data === undefined) return;
     Blocker.setDayTasks({ titles: titlesToSync }).catch((e) =>
@@ -548,5 +562,8 @@ export function useCurrentTaskNativeSync() {
     Blocker.setCurrentTask({ title: titlesToSync[0] ?? "" }).catch((e) =>
       console.error("sync current task -> prefs failed", e),
     );
-  }, [native, data, titlesToSync]);
+    Blocker.setGrowthState(growthState).catch((e) =>
+      console.error("sync growth state -> prefs failed", e),
+    );
+  }, [native, data, titlesToSync, growthState]);
 }
