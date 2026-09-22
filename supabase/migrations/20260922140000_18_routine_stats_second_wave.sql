@@ -5,6 +5,11 @@
 -- w pn/sr/pt ma siedem wystapien dopiero po ponad dwoch tygodniach, wiec liczenie
 -- po dniach kalendarzowych dawaloby tu zla odpowiedz.
 
+-- Drop przed create: dochodza cztery kolumny (okno 14-dniowe i licznik ostatnich
+-- wystapien), a Postgres nie pozwala zmienic typu zwracanego przez
+-- CREATE OR REPLACE.
+drop function if exists public.routine_stats();
+
 create or replace function public.routine_stats()
 returns table(
   routine_id uuid,

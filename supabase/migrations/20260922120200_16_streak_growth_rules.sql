@@ -125,6 +125,11 @@ grant execute on function public.recompute_streak(date) to authenticated;
 
 -- Statystyki musza odrozniac dzien neutralny (zero Rozwoju) od przerwanego,
 -- inaczej najdluzsza passa zerwie sie na kazdym dniu bez Rozwoju.
+--
+-- Drop przed create: dochodza kolumny growth_planned/growth_done, a Postgres nie
+-- pozwala zmienic typu zwracanego przez CREATE OR REPLACE.
+drop function if exists public.daily_progress();
+
 create or replace function public.daily_progress()
 returns table(
   date date,
