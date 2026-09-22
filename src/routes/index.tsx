@@ -19,6 +19,7 @@ import {
 } from "@/lib/day";
 import { XpBar } from "@/components/xp-bar";
 import { SortableList } from "@/components/sortable-list";
+import { SuggestionCard } from "@/components/suggestion-card";
 import { useRoutines } from "@/lib/routines";
 import { useTasks } from "@/lib/tasks";
 import { useProfile } from "@/lib/profile";
@@ -315,6 +316,8 @@ function Today() {
           />
         </div>
       </div>
+
+      <SuggestionCard dayId={today?.day?.id ?? null} />
 
       {total === 0 ? (
         <EmptyState
