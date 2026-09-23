@@ -516,9 +516,27 @@ select:focus {
     -webkit-backdrop-filter: blur(16px) saturate(1.3);
     box-shadow: 0 0 0 2px color-mix(in oklab, var(--primary) 30%, transparent);
   }
+  /*
+   * A wrapped field keeps its ring — it just stops spinning. The ring still
+   * follows the corner radius, which is the whole reason it exists.
+   *
+   * The rule above would also give the field its own solid border and a 2px
+   * shadow; stacked with the ring that reads as three outlines, so wrapped
+   * fields opt out of both and let the ring be the only focus marker. This has
+   * to sit after that rule — same specificity, so source order decides.
+   */
+  :where([data-auth], .beam-wrap) input:where(
+    [type="text"], [type="email"], [type="password"], [type="search"],
+    [type="tel"], [type="url"], [type="number"], [type="time"],
+    :not([type])
+  ):focus {
+    border-color: transparent !important;
+    box-shadow: none;
+  }
   .beam-wrap:focus-within::after {
     animation: none;
-    opacity: 0;
+    opacity: 1;
+    background: var(--primary);
   }
   .beam-wrap:focus-within {
     filter: none;
