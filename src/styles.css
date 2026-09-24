@@ -362,7 +362,7 @@
  * unless we push it down ourselves. Everything full-screen uses this.
  */
 @utility safe-top {
-  padding-top: calc(env(safe-area-inset-top, 0px) + 3rem);
+  padding-top: calc(env(safe-area-inset-top, 0px) + 2.5rem);
 }
 
 @utility screen-shell {
@@ -370,7 +370,7 @@
   width: 100%;
   max-width: 30rem;
   padding-inline: 1.25rem;
-  padding-top: calc(env(safe-area-inset-top, 0px) + 3rem);
+  padding-top: calc(env(safe-area-inset-top, 0px) + 2.5rem);
   /* Room for the floating nav pill + its bottom offset + safe area. */
   padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 7rem);
 }
