@@ -40,7 +40,11 @@ function targetFor(stage: SplashStage): number {
  * magenta and look broken.
  */
 function fillColor(pct: number): string {
-  return `color-mix(in oklab, var(--success) ${pct}%, var(--primary))`;
+  // Biased late on purpose. A linear mix is already half green at half way,
+  // which spends the payoff long before the bar gets there; cubed, it holds the
+  // accent through the middle and swings to green over the last stretch.
+  const green = Math.round((pct / 100) ** 3 * 100);
+  return `color-mix(in oklab, var(--success) ${green}%, var(--primary))`;
 }
 
 export function SplashScreen({
