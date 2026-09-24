@@ -18,6 +18,9 @@ import { applyTheme, readTheme } from "@/lib/theme";
 import { AuthProvider, useAuth } from "@/lib/auth";
 import { AuthScreen } from "@/components/auth-screen";
 import { TenaxShield } from "@/components/tenax-shield";
+import { SplashScreen } from "@/components/splash-screen";
+import { describeStartupError } from "@/lib/startup-error";
+import { useToday } from "@/lib/day";
 import { BlockedAppsSync } from "@/components/blocked-apps-sync";
 import { CurrentTaskSync } from "@/components/current-task-sync";
 import { NotificationsSync } from "@/components/notifications-sync";
@@ -219,11 +222,16 @@ function RootComponent() {
  *  and the app (with its nav) once a user is present. */
 function AuthGate({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
-  const { data: profile, isLoading: profileLoading } = useProfile();
+  const profileQ = useProfile();
+  const { data: profile, isLoading: profileLoading } = profileQ;
+  const todayQ = useToday();
   const updateProfile = useUpdateProfile();
   const navigate = useNavigate();
   const [wizardDismissed, setWizardDismissed] = useState(false);
   const [coachmarkDismissed, setCoachmarkDismissed] = useState(false);
+  const [splashDone, setSplashDone] = useState(false);
+
+  const startupError = profileQ.error ?? todayQ.error;
 
   const restartCoachmark = useCallback(() => {
     setCoachmarkDismissed(false);
@@ -236,11 +244,26 @@ function AuthGate({ children }: { children: ReactNode }) {
     updateProfile.mutate({ onboarding_done: false });
   }, [updateProfile]);
 
-  if (loading || (user && profileLoading)) {
+  // The splash owns the wait: it stays up until the session is restored and the
+  // first screen's data has landed, then hands over. On failure it says what
+  // actually went wrong rather than looping on "try again".
+  // Kept mounted until it says it's done, so a fast start still gets its floor
+  // instead of the splash blinking out mid-draw.
+  if (!splashDone) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <p className="text-sm text-muted-foreground">Ładowanie…</p>
-      </div>
+      <SplashScreen
+        stage={{
+          session: !loading,
+          profile: !user || !profileLoading,
+          today: !user || !todayQ.isLoading,
+        }}
+        error={startupError ? describeStartupError(startupError) : null}
+        onRetry={() => {
+          void profileQ.refetch();
+          void todayQ.refetch();
+        }}
+        onDone={() => setSplashDone(true)}
+      />
     );
   }
 
