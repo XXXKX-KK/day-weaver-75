@@ -125,7 +125,16 @@ export function SplashScreen({
           </div>
         ) : (
           <div className="mt-8 w-full">
-            <div className="relative h-2 w-full overflow-hidden rounded-full bg-foreground/[0.08]">
+            {/* Depth is the same trick the nav pill uses — a recessed groove and
+                a lit top edge — rather than a bevelled game bar, which would be
+                the only skeuomorphic thing in an otherwise flat app. */}
+            <div
+              className="relative h-2.5 w-full overflow-hidden rounded-full bg-foreground/[0.07]"
+              style={{
+                boxShadow:
+                  "inset 0 1px 2px rgba(0,0,0,0.55), inset 0 -1px 0 rgba(255,255,255,0.05)",
+              }}
+            >
               <div
                 className="absolute inset-y-0 left-0 rounded-full"
                 style={{
@@ -133,15 +142,27 @@ export function SplashScreen({
                   // No CSS transition: pct already changes every frame, and a
                   // transition on top would lag a frame behind the width.
                   background: fillColor(pct),
+                  boxShadow: `inset 0 1px 0 rgba(255,255,255,0.30), 0 0 10px -3px ${fillColor(pct)}`,
                 }}
-              />
+              >
+                {/* Neutral sheen, so it reads as lit from above whatever hue
+                    the fill has reached. */}
+                <div
+                  className="absolute inset-0 rounded-full"
+                  style={{
+                    background:
+                      "linear-gradient(180deg, rgba(255,255,255,0.22), rgba(255,255,255,0) 45%, rgba(0,0,0,0.18))",
+                  }}
+                />
+              </div>
               {/* The leading edge, pushed along like water under pressure. */}
               <div
                 className="splash-crest absolute inset-y-0"
                 style={{
                   left: `calc(${Math.max(pct, 2)}% - 10px)`,
                   width: "20px",
-                  background: `linear-gradient(90deg, transparent, ${"color-mix(in oklab, white 55%, transparent)"})`,
+                  background:
+                    "linear-gradient(90deg, transparent, color-mix(in oklab, white 55%, transparent))",
                 }}
               />
             </div>
