@@ -51,10 +51,13 @@ function ceilingPct(stage: SplashStage): number {
 /**
  * Blue → teal → green as it fills, biased late: a linear mix is already half
  * green at half way, which spends the payoff before the bar gets there.
+ *
+ * Starts from the logo blue rather than --primary, so the run is the same every
+ * time — under the theme accent it would open purple or pink for some users.
  */
 function fillColor(pct: number): string {
   const green = Math.round((pct / 100) ** 3 * 100);
-  return `color-mix(in oklab, var(--success) ${green}%, var(--primary))`;
+  return `color-mix(in oklab, var(--success) ${green}%, ${LOGO_BLUE})`;
 }
 
 export function SplashScreen({
