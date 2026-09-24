@@ -185,6 +185,43 @@ export function useStartDay() {
   });
 }
 
+/** What happened when we tried to fold a new row into today's plan. */
+export type PlanSync = "added" | "day-not-running" | "failed";
+
+/**
+ * Slot something just created into the day that's already running.
+ *
+ * start_day is idempotent, but it also *creates* the day when none exists — so
+ * calling it blind would silently start the user's day the moment they added a
+ * task. Hence the status check first: no running day means there is nothing to
+ * fold into, and the row will be picked up when they start the day themselves.
+ *
+ * Never throws. The row this is called for is already saved; failing to slot it
+ * into today is a smaller problem than a failed save, and the caller says so.
+ */
+export async function syncIntoRunningDay(): Promise<PlanSync> {
+  const today = todayLocalISO();
+  const { data: day, error: dayError } = await supabase
+    .from("days")
+    .select("status")
+    .eq("date", today)
+    .maybeSingle();
+  if (dayError) {
+    console.error("plan sync: reading today's day failed", dayError);
+    return "failed";
+  }
+  if (!day || day.status !== "in_progress") return "day-not-running";
+
+  // NOTE: no .catch() here — PostgrestBuilder is only PromiseLike, so calling
+  // .catch on it throws a TypeError before the request is ever sent.
+  const { error } = await supabase.rpc("start_day", { target_date: today });
+  if (error) {
+    console.error("plan sync: start_day failed", error);
+    return "failed";
+  }
+  return "added";
+}
+
 export function useResetDay() {
   const queryClient = useQueryClient();
   return useMutation({

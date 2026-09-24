@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth";
 import { reorderByIds } from "@/lib/reorder";
+import { syncIntoRunningDay, type PlanSync } from "@/lib/day";
 import type { AnchorLabel, GrowthArea, Priority, RoutineKind } from "@/lib/store";
 
 /** A routine's subtask template (routine_subtasks). No done-state — routines
@@ -148,10 +149,17 @@ async function insertRoutine(input: NewRoutineInput, position: number): Promise<
 export function useAddRoutine() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (input: NewRoutineInput) => {
+    mutationFn: async (input: NewRoutineInput): Promise<PlanSync> => {
       await insertRoutine(input, await nextRoutinePosition());
+      // A routine created mid-day should show up today, same as a task does.
+      // start_day only picks up routines whose weekdays match, so there's no
+      // need to check the calendar here.
+      return syncIntoRunningDay();
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ROUTINES_KEY }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ROUTINES_KEY });
+      queryClient.invalidateQueries({ queryKey: ["today"] });
+    },
   });
 }
 

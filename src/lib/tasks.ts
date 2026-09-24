@@ -4,7 +4,7 @@ import { useAuth } from "@/lib/auth";
 import { reorderByIds } from "@/lib/reorder";
 import type { Priority } from "@/lib/store";
 import type { ContactActionType } from "@/lib/contact-action";
-import { todayLocalISO } from "@/lib/day";
+import { todayLocalISO, syncIntoRunningDay, type PlanSync } from "@/lib/day";
 
 /** A task row (tasks table) with its subtasks (task_subtasks). */
 export type TaskSubtaskRow = {
@@ -87,10 +87,13 @@ async function nextTaskPosition(): Promise<number> {
   return ((data?.position as number | null) ?? -1) + 1;
 }
 
+/** The task is saved either way; `plan` says whether it also reached today. */
+export type AddTaskResult = { id: string; plan: PlanSync };
+
 export function useAddTask() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (input: NewTaskInput) => {
+    mutationFn: async (input: NewTaskInput): Promise<AddTaskResult> => {
       // user_id is filled by the DB (DEFAULT auth.uid()).
       const { data: task, error } = await supabase
         .from("tasks")
@@ -124,11 +127,13 @@ export function useAddTask() {
 
       const today = todayLocalISO();
       const taskDate = input.scheduled_date ?? today;
-      if (taskDate <= today) {
-        await supabase.rpc("start_day", { target_date: today }).catch(() => {});
-      }
+      // The task is saved at this point. Whether it also lands in today's plan
+      // is a separate outcome — it must never turn a successful save into an
+      // error the user sees.
+      const plan: PlanSync =
+        taskDate <= today ? await syncIntoRunningDay() : "day-not-running";
 
-      return task.id as string;
+      return { id: task.id as string, plan };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: TASKS_KEY });

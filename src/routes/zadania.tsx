@@ -380,12 +380,17 @@ function TasksScreen() {
           onClose={() => setFormOpen(false)}
           onSave={(task) =>
             addTask.mutate(task, {
-              onSuccess: (taskId) => {
+              onSuccess: ({ id, plan }) => {
                 setFormOpen(false);
                 toast.success("Zadanie dodane");
-                if (task.scheduled_time && taskId) {
+                // Saved, just not folded into today's plan — a much smaller
+                // problem than a failed save, and worded like one.
+                if (plan === "failed") {
+                  toast("Zadanie zapisane. W dzisiejszym planie pojawi się po odświeżeniu.");
+                }
+                if (task.scheduled_time && id) {
                   void scheduleTaskReminder({
-                    id: taskId,
+                    id,
                     title: task.title,
                     scheduled_date: task.scheduled_date ?? todayLocalISO(),
                     scheduled_time: task.scheduled_time,
@@ -406,9 +411,12 @@ function TasksScreen() {
           onClose={() => setRoutineFormOpen(false)}
           onSave={(routine) =>
             addRoutine.mutate(routine, {
-              onSuccess: () => {
+              onSuccess: (plan) => {
                 setRoutineFormOpen(false);
-                toast.success("Rutyna dodana");
+                toast.success(formKind === "growth" ? "Nawyk dodany" : "Rutyna dodana");
+                if (plan === "failed") {
+                  toast("Zapisane. W dzisiejszym planie pojawi się po odświeżeniu.");
+                }
               },
               onError: () => toast.error("Nie udało się zapisać rutyny."),
             })

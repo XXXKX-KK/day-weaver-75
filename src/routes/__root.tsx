@@ -17,6 +17,7 @@ import { applyAccent, readAccent } from "@/lib/accent";
 import { applyTheme, readTheme } from "@/lib/theme";
 import { AuthProvider, useAuth } from "@/lib/auth";
 import { AuthScreen } from "@/components/auth-screen";
+import { TenaxShield } from "@/components/tenax-shield";
 import { BlockedAppsSync } from "@/components/blocked-apps-sync";
 import { CurrentTaskSync } from "@/components/current-task-sync";
 import { NotificationsSync } from "@/components/notifications-sync";
@@ -58,40 +59,56 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
 
   useEffect(() => {
     reportLovableError(error, { boundary: "tanstack_root_error_component" });
-    if (!retried.current) {
-      retried.current = true;
-      const t = setTimeout(() => {
-        router.invalidate();
-        reset();
-      }, 1500);
-      return () => clearTimeout(t);
-    }
+    if (retried.current) return undefined;
+    retried.current = true;
+    const t = setTimeout(() => {
+      router.invalidate();
+      reset();
+    }, 1500);
+    return () => clearTimeout(t);
   }, [error, router, reset]);
 
+  // Shown on screen, not just logged: on a phone this is the only way to read
+  // what actually broke without plugging into chrome://inspect.
+  const details = [error.message, error.stack?.split("\n").slice(1, 5).join("\n")]
+    .filter(Boolean)
+    .join("\n");
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="max-w-md text-center">
-        <h1 className="text-xl font-semibold tracking-tight text-foreground">
+    <div className="flex min-h-screen items-center justify-center bg-background px-5">
+      <div className="w-full max-w-md rounded-3xl glass px-6 py-7">
+        <div className="mb-5 flex justify-center">
+          <TenaxShield size={56} color="var(--primary)" />
+        </div>
+        <h1 className="text-center text-xl font-bold tracking-tight text-foreground">
           Nie udało się załadować
         </h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Coś poszło nie tak. Spróbuj odświeżyć lub wróć do ekranu głównego.
+        <p className="mt-2 text-center text-sm leading-relaxed text-muted-foreground">
+          Spróbuję jeszcze raz za chwilę. Jeśli to się powtarza, prześlij poniższy
+          tekst — to on mówi, co poszło nie tak.
         </p>
-        <div className="mt-6 flex flex-wrap justify-center gap-2">
+
+        {details && (
+          <pre className="mt-4 max-h-40 overflow-auto rounded-2xl bg-foreground/[0.06] px-3 py-2.5 text-left text-[11px] leading-relaxed text-muted-foreground">
+            {details}
+          </pre>
+        )}
+
+        <div className="mt-6 flex flex-col gap-2.5">
           <button
             onClick={() => {
               router.invalidate();
               reset();
             }}
-            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            className="accent-gradient h-12 w-full rounded-full text-sm font-bold text-primary-foreground transition-transform active:scale-[0.98]"
           >
             Spróbuj ponownie
           </button>
           <a
             href="/"
-            className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
+            className="flex h-12 w-full items-center justify-center rounded-full bg-foreground/5 text-sm font-semibold text-muted-foreground"
           >
-            Strona główna
+            Ekran główny
           </a>
         </div>
       </div>
@@ -172,7 +189,13 @@ function RootComponent() {
       } else {
         CapApp.exitApp();
       }
-    }).then((h) => { handle = h; });
+    })
+      .then((h) => {
+        handle = h;
+      })
+      // On a cold start the plugin can still be registering; an unhandled
+      // rejection here would surface as a startup error for a back button.
+      .catch((e) => console.error("backButton listener failed", e));
     return () => handle?.remove();
   }, [router]);
 

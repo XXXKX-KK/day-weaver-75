@@ -467,7 +467,18 @@ select:focus {
     drop-shadow(0 0 3px color-mix(in oklab, var(--primary) 16%, transparent));
 }
 
-.beam-wrap::after {
+/*
+ * Ring for surfaces that never take focus — toasts. It shares the ::after
+ * definition below with .beam-wrap so there is one beam in this app, not two
+ * that drift apart. It deliberately does NOT set `position`: a toast is already
+ * placed by Sonner's own stack, and forcing `relative` would break it.
+ */
+.beam-ring {
+  border-radius: 1rem;
+}
+
+.beam-wrap::after,
+.beam-ring::after {
   content: "";
   position: absolute;
   inset: 0;
@@ -496,9 +507,24 @@ select:focus {
   mask-composite: exclude;
 }
 
-.beam-wrap:focus-within::after {
+.beam-wrap:focus-within::after,
+.beam-ring::after {
   opacity: 1;
   animation: borderBeamSpin 2.4s linear infinite;
+}
+
+/* Error toasts: the sweep picks up the destructive hue. */
+.beam-ring-danger::after {
+  background: conic-gradient(
+    from var(--beam-angle),
+    transparent 0%,
+    transparent 30%,
+    var(--destructive) 47%,
+    color-mix(in oklab, var(--destructive) 60%, var(--primary) 40%) 50%,
+    var(--destructive) 53%,
+    transparent 70%,
+    transparent 100%
+  );
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -533,10 +559,14 @@ select:focus {
     border-color: transparent !important;
     box-shadow: none;
   }
-  .beam-wrap:focus-within::after {
+  .beam-wrap:focus-within::after,
+  .beam-ring::after {
     animation: none;
     opacity: 1;
     background: var(--primary);
+  }
+  .beam-ring-danger::after {
+    background: var(--destructive);
   }
   .beam-wrap:focus-within {
     filter: none;
