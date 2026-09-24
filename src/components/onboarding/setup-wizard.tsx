@@ -141,10 +141,10 @@ function StepPromise({ onNext }: { onNext: () => void }) {
   return (
     <div className="flex flex-1 flex-col items-center justify-center text-center">
       <div
-        className="mb-8 flex h-20 w-20 items-center justify-center rounded-full bg-primary/10"
+        className="mb-8 flex items-center justify-center"
         style={{ animation: entrance }}
       >
-        <TenaxShield size={40} color="var(--primary)" />
+        <TenaxShield size={64} color="var(--primary)" />
       </div>
       <h1
         className="mb-4 max-w-[300px] text-[26px] font-extrabold leading-tight"
