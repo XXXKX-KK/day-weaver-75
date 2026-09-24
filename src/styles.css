@@ -356,11 +356,21 @@
   padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 0.5rem);
 }
 
+/*
+ * The viewport is `viewport-fit=cover`, so the page runs edge to edge and the
+ * status bar — or a notch, or a Dynamic Island — sits on top of our content
+ * unless we push it down ourselves. Everything full-screen uses this.
+ */
+@utility safe-top {
+  padding-top: calc(env(safe-area-inset-top, 0px) + 3rem);
+}
+
 @utility screen-shell {
   margin-inline: auto;
   width: 100%;
   max-width: 30rem;
   padding-inline: 1.25rem;
+  padding-top: calc(env(safe-area-inset-top, 0px) + 3rem);
   /* Room for the floating nav pill + its bottom offset + safe area. */
   padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 7rem);
 }

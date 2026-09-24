@@ -281,7 +281,7 @@ export default function StatystykiScreen({
   const anim = (cls: string) => (prefersReduced ? '' : cls);
 
   return (
-    <div className="px-5 pt-[22px]" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 7rem)' }}>
+    <div className="safe-top px-5" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 7rem)' }}>
         {/* Nagłówek */}
         <div className="mb-[18px]">
           <div className="text-[26px] font-extrabold tracking-tight text-foreground">Statystyki</div>

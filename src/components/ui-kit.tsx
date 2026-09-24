@@ -2,7 +2,8 @@ import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 export function Screen({ children }: { children: ReactNode }) {
-  return <main className="screen-shell pt-8">{children}</main>;
+  // No pt-* here: screen-shell already clears the status bar and a notch.
+  return <main className="screen-shell">{children}</main>;
 }
 
 export function ScreenHeader({
@@ -43,7 +44,11 @@ export function Card({
   return (
     <div
       onClick={onClick}
-      className={cn("card-surface p-5", onClick && "cursor-pointer active:scale-[0.99] transition-transform", className)}
+      className={cn(
+        "card-surface p-5",
+        onClick && "cursor-pointer active:scale-[0.99] transition-transform",
+        className,
+      )}
     >
       {children}
     </div>

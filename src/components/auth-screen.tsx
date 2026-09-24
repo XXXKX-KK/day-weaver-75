@@ -88,7 +88,7 @@ export function AuthScreen() {
       }
     >
     <main
-      className="relative z-10 mx-auto flex min-h-screen w-full max-w-[26rem] flex-col justify-center px-5 py-10"
+      className="safe-top relative z-10 mx-auto flex min-h-screen w-full max-w-[26rem] flex-col justify-center px-5 pb-10"
     >
       {/* Shield logo with 3D flip on mode switch */}
       <div
