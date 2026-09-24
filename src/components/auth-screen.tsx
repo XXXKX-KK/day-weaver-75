@@ -102,7 +102,7 @@ export function AuthScreen() {
           style={{ transformStyle: "preserve-3d" }}
           className="mb-4"
         >
-          <TenaxShield size={64} color={AUTH_BLUE} />
+          <TenaxShield size={88} color={AUTH_BLUE} />
         </motion.div>
 
         <h1 className="text-2xl font-bold leading-tight tracking-wide">
