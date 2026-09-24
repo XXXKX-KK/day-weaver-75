@@ -9,6 +9,8 @@ const MIN_VISIBLE_MS = 800;
 /** Beat at 100% before handing over, so the green actually registers. */
 const HOLD_AT_FULL_MS = 260;
 const FADE_MS = 280;
+/** A splash must never be able to trap the user, whatever goes wrong upstream. */
+const FAILSAFE_MS = 10000;
 
 /**
  * What the bar is actually waiting for. Session and theme come off the device
@@ -21,28 +23,36 @@ export type SplashStage = {
   today: boolean;
 };
 
+const STAGE_ORDER: (keyof SplashStage)[] = ["session", "profile", "today"];
 const WEIGHTS: Record<keyof SplashStage, number> = {
   session: 25,
   profile: 40,
   today: 35,
 };
 
-function targetFor(stage: SplashStage): number {
-  return (Object.keys(WEIGHTS) as (keyof SplashStage)[]).reduce(
-    (sum, key) => sum + (stage[key] ? WEIGHTS[key] : 0),
-    0,
-  );
+/** How much has genuinely finished. */
+function settledPct(stage: SplashStage): number {
+  return STAGE_ORDER.reduce((sum, key) => sum + (stage[key] ? WEIGHTS[key] : 0), 0);
+}
+
+/** The milestone currently being worked towards — the bar creeps at it, never past. */
+function ceilingPct(stage: SplashStage): number {
+  let done = 0;
+  for (const key of STAGE_ORDER) {
+    if (stage[key]) {
+      done += WEIGHTS[key];
+      continue;
+    }
+    return done + WEIGHTS[key];
+  }
+  return 100;
 }
 
 /**
- * Blue → teal → green as it fills. Interpolating in oklab takes the short way
- * round the wheel, which passes through teal; the long way would run through
- * magenta and look broken.
+ * Blue → teal → green as it fills, biased late: a linear mix is already half
+ * green at half way, which spends the payoff before the bar gets there.
  */
 function fillColor(pct: number): string {
-  // Biased late on purpose. A linear mix is already half green at half way,
-  // which spends the payoff long before the bar gets there; cubed, it holds the
-  // accent through the middle and swings to green over the last stretch.
   const green = Math.round((pct / 100) ** 3 * 100);
   return `color-mix(in oklab, var(--success) ${green}%, var(--primary))`;
 }
@@ -63,8 +73,17 @@ export function SplashScreen({
   const [leaving, setLeaving] = useState(false);
   const startedAt = useRef(Date.now());
   const finished = useRef(false);
+  const armed = useRef(false);
+  const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
 
-  const target = targetFor(stage);
+  // Held in a ref so the finishing effect never depends on the caller passing a
+  // stable function — an unstable one used to cancel the hand-over timer.
+  const onDoneRef = useRef(onDone);
+  onDoneRef.current = onDone;
+
+  const settled = settledPct(stage);
+  const ceiling = ceilingPct(stage);
+  const complete = settled >= 100;
 
   // Drop the native splash only once this one has painted, so the handover has
   // no blank frame between them. Harmless no-op on web.
@@ -72,36 +91,61 @@ export function SplashScreen({
     void NativeSplash.hide({ fadeOutDuration: 0 }).catch(() => {});
   }, []);
 
-  // Ease the displayed number toward the real one so it glides instead of
-  // snapping between stages — the progress stays honest, the motion doesn't.
+  useEffect(() => {
+    const pending = timers.current;
+    return () => {
+      for (const t of pending) clearTimeout(t);
+    };
+  }, []);
+
+  /**
+   * Between milestones the bar creeps towards the next one without reaching it.
+   * That isn't invented progress — it's time spent on the stage that really is
+   * running — and it keeps a slow network looking like waiting rather than a
+   * freeze. Once everything has landed it sprints to 100.
+   */
   useEffect(() => {
     let raf = 0;
     const tick = () => {
       setShown((current) => {
-        const gap = target - current;
-        if (Math.abs(gap) < 0.4) return target;
-        return current + gap * 0.08;
+        if (complete) {
+          const gap = 100 - current;
+          return gap < 0.4 ? 100 : current + gap * 0.1;
+        }
+        const gap = ceiling - current;
+        return gap <= 0 ? current : current + gap * 0.018;
       });
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [target]);
+  }, [ceiling, complete]);
 
-  // Hand over once everything is in and the floor has elapsed.
-  useEffect(() => {
-    if (error || finished.current) return undefined;
-    if (target < 100 || shown < 99.5) return undefined;
-
+  const handOver = useRef(() => {
+    if (finished.current) return;
     finished.current = true;
+    setLeaving(true);
+    timers.current.push(setTimeout(() => onDoneRef.current(), FADE_MS));
+  });
+
+  // Hand over once everything is in and the floor has elapsed. The timer lives
+  // in a ref and is cleared only on unmount, so a re-render can't cancel it —
+  // that is exactly what used to leave the splash stuck at 100%.
+  useEffect(() => {
+    if (error || armed.current || !complete || shown < 99.5) return;
+    armed.current = true;
     const waited = Date.now() - startedAt.current;
     const delay = Math.max(0, MIN_VISIBLE_MS - waited) + HOLD_AT_FULL_MS;
-    const t = setTimeout(() => {
-      setLeaving(true);
-      setTimeout(onDone, FADE_MS);
-    }, delay);
+    timers.current.push(setTimeout(() => handOver.current(), delay));
+  }, [complete, shown, error]);
+
+  // Last resort. Whatever happened upstream, the app is more useful than a
+  // stuck splash — its own screens can show their own retry states.
+  useEffect(() => {
+    const t = setTimeout(() => handOver.current(), FAILSAFE_MS);
+    timers.current.push(t);
     return () => clearTimeout(t);
-  }, [target, shown, error, onDone]);
+  }, []);
 
   const pct = Math.round(shown);
 
@@ -129,46 +173,26 @@ export function SplashScreen({
           </div>
         ) : (
           <div className="mt-8 w-full">
-            {/* Depth is the same trick the nav pill uses — a recessed groove and
-                a lit top edge — rather than a bevelled game bar, which would be
-                the only skeuomorphic thing in an otherwise flat app. */}
             <div
               className="relative h-2.5 w-full overflow-hidden rounded-full bg-foreground/[0.07]"
               style={{
-                boxShadow:
-                  "inset 0 1px 2px rgba(0,0,0,0.55), inset 0 -1px 0 rgba(255,255,255,0.05)",
+                boxShadow: "inset 0 1px 2px rgba(0,0,0,0.5), inset 0 -1px 0 rgba(255,255,255,0.04)",
               }}
             >
               <div
-                className="absolute inset-y-0 left-0 rounded-full"
+                className="absolute inset-y-0 left-0 overflow-hidden rounded-full"
                 style={{
                   width: `${Math.max(pct, 2)}%`,
                   // No CSS transition: pct already changes every frame, and a
                   // transition on top would lag a frame behind the width.
                   background: fillColor(pct),
-                  boxShadow: `inset 0 1px 0 rgba(255,255,255,0.30), 0 0 10px -3px ${fillColor(pct)}`,
+                  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.18)",
                 }}
               >
-                {/* Neutral sheen, so it reads as lit from above whatever hue
-                    the fill has reached. */}
-                <div
-                  className="absolute inset-0 rounded-full"
-                  style={{
-                    background:
-                      "linear-gradient(180deg, rgba(255,255,255,0.22), rgba(255,255,255,0) 45%, rgba(0,0,0,0.18))",
-                  }}
-                />
+                {/* A gleam travelling the length of the fill, over and over —
+                    flow rather than the single pulsing chunk a game bar uses. */}
+                <div className="splash-flow absolute inset-y-0 w-1/2" />
               </div>
-              {/* The leading edge, pushed along like water under pressure. */}
-              <div
-                className="splash-crest absolute inset-y-0"
-                style={{
-                  left: `calc(${Math.max(pct, 2)}% - 10px)`,
-                  width: "20px",
-                  background:
-                    "linear-gradient(90deg, transparent, color-mix(in oklab, white 55%, transparent))",
-                }}
-              />
             </div>
             <p className="mt-3 text-center text-[13px] font-semibold tabular-nums text-muted-foreground">
               {pct}%
