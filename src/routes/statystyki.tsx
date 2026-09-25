@@ -95,6 +95,7 @@ function StatsRoute() {
         summary={summary}
         viewState="loaded"
         onOpenDay={(iso, anchor) => setOpenDay({ iso, anchor })}
+        selectedDay={openDay?.iso ?? null}
       />
       {/* The day picked off the heatmap opens as a card pinned to its square —
           keyed by date so switching squares re-measures and re-animates. */}

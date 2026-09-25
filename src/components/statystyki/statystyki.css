@@ -38,6 +38,18 @@
   50%      { transform: scale(1.24); }
 }
 
+/* Szkło karty dnia. Gęstsze niż `glass` w styles.css, bo karta leży na innej
+   szklanej karcie i pod spodem ma kolorową siatkę — przy 5% bieli tekst
+   przestawałby być czytelny. Dzieli je dzióbek, żeby był z tej samej tafli.
+
+   Samo rozmycie jest ustawiane inline w komponencie, a nie tutaj: minifikator
+   CSS zostawia w buildzie wyłącznie -webkit-backdrop-filter, którego Chromium
+   (czyli WebView na telefonie) nie rozumie, więc reguła z pliku nic by nie
+   dawała. Tło jest na tyle gęste, że karta jest czytelna także bez rozmycia. */
+.day-peek-glass {
+  background: color-mix(in oklab, var(--card) 88%, transparent);
+}
+
 /* Pasek przewijania siatki zabrałby szerokość i rozjechałby kolumny względem
    nagłówka miesięcy, który leży poza obszarem przewijania. */
 .stats-grid-scroll {

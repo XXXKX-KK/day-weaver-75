@@ -11,7 +11,10 @@ import "./statystyki.css";
  *
  * Placement is measured, never assumed — the card goes below the square when
  * there is room and above it otherwise, and is clamped to the viewport so a
- * square at the edge of the grid can never push it half off-screen.
+ * square at the edge of the grid can never push it half off-screen. The arrow
+ * always points at the square it was opened from: the card is pinned to that
+ * edge and its height capped to whatever room is left, rather than being moved
+ * somewhere the arrow would lie.
  */
 
 /** Breathing room from the viewport edges. */
@@ -19,16 +22,30 @@ const SIDE_MARGIN = 12;
 const TOP_MARGIN = 16;
 /** The floating nav pill lives down there; don't slide under it. */
 const BOTTOM_MARGIN = 104;
-/** Distance between the square and the card. */
+/** Distance between the square and the card — the arrow lives in this gap. */
 const GAP = 10;
+const ARROW_H = 7;
+const ARROW_W = 14;
 const WIDTH = 300;
+/** Inline, not in the stylesheet: the CSS minifier keeps only the -webkit
+ *  spelling of backdrop-filter, which Chromium ignores, so a rule in the file
+ *  would never actually frost anything on the phone. */
+const FROST = {
+  backdropFilter: "blur(22px) saturate(1.4)",
+  WebkitBackdropFilter: "blur(22px) saturate(1.4)",
+} as const;
+/** Tall enough to stay a summary and not a sliver. */
+const MAX_HEIGHT = 420;
 
 interface Placement {
-  top: number;
+  /** Distance from the top of the viewport to the card's pinned edge. For
+   *  `above` this is the card's BOTTOM edge, so the card grows upwards and its
+   *  arrow stays glued to the square whatever the content does. */
+  offset: number;
   left: number;
-  /** Arrow tip offset inside the card, or null when the card had to be moved
-   *  somewhere the arrow would point at nothing. */
-  arrowX: number | null;
+  maxHeight: number;
+  /** Arrow tip offset inside the card. */
+  arrowX: number;
   side: "below" | "above";
 }
 
@@ -75,26 +92,19 @@ export function DayPeekCard({
     const w = el.offsetWidth;
     const h = el.offsetHeight;
 
-    let side: Placement["side"] = "below";
-    let fits = true;
-    let top = anchor.bottom + GAP;
-    if (top + h > vh - BOTTOM_MARGIN) {
-      const above = anchor.top - GAP - h;
-      if (above >= TOP_MARGIN) {
-        side = "above";
-        top = above;
-      } else {
-        // Neither side fits — park it where it is fully visible and drop the
-        // arrow, which would otherwise point at the wrong square.
-        fits = false;
-        top = clamp(top, TOP_MARGIN, vh - BOTTOM_MARGIN - h);
-      }
-    }
+    const roomBelow = vh - BOTTOM_MARGIN - (anchor.bottom + GAP);
+    const roomAbove = anchor.top - GAP - TOP_MARGIN;
+    // Below unless it genuinely has less room — and whichever side wins, the
+    // card is capped to that room instead of hanging off the screen. The list
+    // inside scrolls, so a squeezed card is still a whole card.
+    const side: Placement["side"] = h <= roomBelow || roomBelow >= roomAbove ? "below" : "above";
+    const maxHeight = Math.max(120, Math.min(MAX_HEIGHT, side === "below" ? roomBelow : roomAbove));
+    const offset = side === "below" ? anchor.bottom + GAP : vh - (anchor.top - GAP);
 
     const left = clamp(anchor.left + anchor.width / 2 - w / 2, SIDE_MARGIN, vw - SIDE_MARGIN - w);
-    const arrowX = fits ? clamp(anchor.left + anchor.width / 2 - left, 16, w - 16) : null;
+    const arrowX = clamp(anchor.left + anchor.width / 2 - left, 14, w - 14);
 
-    setPlace({ top, left, arrowX, side });
+    setPlace({ offset, left, maxHeight, arrowX, side });
   }, [anchor, isLoading, items.length]);
 
   // Anything that moves the anchor — scrolling the grid or the page, rotating
@@ -128,128 +138,144 @@ export function DayPeekCard({
   }, [onClose]);
 
   return (
-    <div
-      ref={cardRef}
-      role="dialog"
-      aria-label={`Podsumowanie dnia: ${dateLabel(date)}`}
-      className="fixed z-[70] rounded-[18px] border border-border bg-popover animate-[popIn_.18s_ease_both]"
-      style={{
-        top: place?.top ?? 0,
-        left: place?.left ?? 0,
-        width: `min(${WIDTH}px, calc(100vw - ${SIDE_MARGIN * 2}px))`,
-        visibility: place ? "visible" : "hidden",
-        boxShadow: "0 18px 44px rgba(0,0,0,.45)",
-      }}
-    >
-      {place?.arrowX != null && (
+    <>
+      {/* The arrow is a sibling, not a child: it sits in the gap between the
+          square and the card, so it can share the card's frosted backdrop
+          without stacking two translucent layers on top of each other. */}
+      {place && (
         <span
           aria-hidden
-          className="absolute h-[10px] w-[10px] rotate-45 bg-popover"
+          className="day-peek-glass fixed z-[70] animate-[popIn_.18s_ease_both]"
           style={{
-            left: place.arrowX - 5,
-            top: place.side === "below" ? -6 : undefined,
-            bottom: place.side === "above" ? -6 : undefined,
-            borderTop: place.side === "below" ? "1px solid var(--border)" : undefined,
-            borderLeft: place.side === "below" ? "1px solid var(--border)" : undefined,
-            borderBottom: place.side === "above" ? "1px solid var(--border)" : undefined,
-            borderRight: place.side === "above" ? "1px solid var(--border)" : undefined,
+            left: place.left + place.arrowX - ARROW_W / 2,
+            top: place.side === "below" ? anchor.bottom + GAP - ARROW_H : anchor.top - GAP,
+            width: ARROW_W,
+            height: ARROW_H,
+            ...FROST,
+            clipPath:
+              place.side === "below"
+                ? "polygon(50% 0, 100% 100%, 0 100%)"
+                : "polygon(0 0, 100% 0, 50% 100%)",
           }}
         />
       )}
 
-      <div className="px-[15px] pt-[13px] text-[13px] font-bold text-foreground first-letter:uppercase">
-        {dateLabel(date)}
-      </div>
+      <div
+        ref={cardRef}
+        role="dialog"
+        aria-label={`Podsumowanie dnia: ${dateLabel(date)}`}
+        className="day-peek-glass fixed z-[70] flex flex-col overflow-hidden rounded-[18px] animate-[popIn_.18s_ease_both]"
+        style={{
+          top: place?.side === "above" ? undefined : (place?.offset ?? 0),
+          bottom: place?.side === "above" ? place.offset : undefined,
+          left: place?.left ?? 0,
+          width: `min(${WIDTH}px, calc(100vw - ${SIDE_MARGIN * 2}px))`,
+          maxHeight: place?.maxHeight ?? MAX_HEIGHT,
+          visibility: place ? "visible" : "hidden",
+          border: "1px solid color-mix(in oklab, var(--foreground) 12%, transparent)",
+          boxShadow: "0 18px 44px rgba(0,0,0,.45)",
+          ...FROST,
+        }}
+      >
+        <div className="shrink-0 px-[15px] pt-[13px] text-[13px] font-bold text-foreground first-letter:uppercase">
+          {dateLabel(date)}
+        </div>
 
-      <div className="flex items-start justify-between gap-3 px-[15px] pb-[12px] pt-[9px]">
-        <div>
-          <div className="text-[10px] font-bold uppercase tracking-[.08em] text-muted-foreground">
-            Zrobione
+        <div className="flex shrink-0 items-start justify-between gap-3 px-[15px] pb-[12px] pt-[9px]">
+          <div>
+            <div className="text-[10px] font-bold uppercase tracking-[.08em] text-muted-foreground">
+              Zrobione
+            </div>
+            <div
+              className="mt-[3px] text-[24px] font-extrabold leading-none tabular-nums"
+              style={{ color: "var(--success)" }}
+            >
+              {pct}%
+            </div>
           </div>
-          <div
-            className="mt-[3px] text-[24px] font-extrabold leading-none tabular-nums"
-            style={{ color: "var(--success)" }}
-          >
-            {pct}%
+          <div className="text-right">
+            <div className="text-[10px] font-bold uppercase tracking-[.08em] text-muted-foreground">
+              XP
+            </div>
+            <div className="mt-[3px] text-[24px] font-extrabold leading-none tabular-nums text-primary">
+              +{progress?.xp ?? 0}
+            </div>
           </div>
         </div>
-        <div className="text-right">
-          <div className="text-[10px] font-bold uppercase tracking-[.08em] text-muted-foreground">
-            XP
-          </div>
-          <div className="mt-[3px] text-[24px] font-extrabold leading-none tabular-nums text-primary">
-            +{progress?.xp ?? 0}
-          </div>
-        </div>
-      </div>
 
-      <div className="mx-[15px] border-t border-border" />
+        <div
+          className="mx-[15px] shrink-0"
+          style={{ borderTop: "1px solid color-mix(in oklab, var(--foreground) 10%, transparent)" }}
+        />
 
-      <div className="max-h-[38vh] overflow-y-auto px-[15px] pb-[13px] pt-[11px]">
-        {isLoading && <p className="py-1 text-[12px] text-muted-foreground">Wczytywanie…</p>}
+        {/* The only part that gives: a capped card squeezes the list, not the
+            header, so the date and the score never get cut off. */}
+        <div className="min-h-0 flex-1 overflow-y-auto px-[15px] pb-[13px] pt-[11px]">
+          {isLoading && <p className="py-1 text-[12px] text-muted-foreground">Wczytywanie…</p>}
 
-        {noPlan && (
-          <p className="py-1 text-[12px] leading-relaxed text-muted-foreground">
-            Tego dnia nie było planu — nie ma czego podsumować.
-          </p>
-        )}
+          {noPlan && (
+            <p className="py-1 text-[12px] leading-relaxed text-muted-foreground">
+              Tego dnia nie było planu — nie ma czego podsumować.
+            </p>
+          )}
 
-        {!isLoading && !noPlan && items.length === 0 && (
-          <p className="py-1 text-[12px] text-muted-foreground">
-            Ten dzień nie miał żadnych pozycji.
-          </p>
-        )}
+          {!isLoading && !noPlan && items.length === 0 && (
+            <p className="py-1 text-[12px] text-muted-foreground">
+              Ten dzień nie miał żadnych pozycji.
+            </p>
+          )}
 
-        {done.length > 0 && (
-          <>
-            <SectionLabel dot="var(--success)">Zrobione ({done.length})</SectionLabel>
-            {done.map((it) => (
-              <div key={it.id} className="mb-[5px] flex items-center gap-[7px]">
-                <span
-                  className="flex h-[15px] w-[15px] shrink-0 items-center justify-center rounded-full"
-                  style={{ background: "var(--success)" }}
-                >
-                  <svg
-                    width="9"
-                    height="9"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="#fff"
-                    strokeWidth="3.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
+          {done.length > 0 && (
+            <>
+              <SectionLabel dot="var(--success)">Zrobione ({done.length})</SectionLabel>
+              {done.map((it) => (
+                <div key={it.id} className="mb-[5px] flex items-center gap-[7px]">
+                  <span
+                    className="flex h-[15px] w-[15px] shrink-0 items-center justify-center rounded-full"
+                    style={{ background: "var(--success)" }}
                   >
-                    <polyline points="20 6 9 17 4 12" />
-                  </svg>
-                </span>
-                <span className="truncate text-[12px] font-medium text-muted-foreground line-through">
-                  {it.title}
-                </span>
-              </div>
-            ))}
-          </>
-        )}
+                    <svg
+                      width="9"
+                      height="9"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="#fff"
+                      strokeWidth="3.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  </span>
+                  <span className="truncate text-[12px] font-medium text-muted-foreground line-through">
+                    {it.title}
+                  </span>
+                </div>
+              ))}
+            </>
+          )}
 
-        {notDone.length > 0 && (
-          <>
-            <SectionLabel dot="var(--muted-foreground)" spaced={done.length > 0}>
-              Niezrobione ({notDone.length})
-            </SectionLabel>
-            {notDone.map((it) => (
-              <div key={it.id} className="mb-[5px] flex items-center gap-[7px]">
-                <span
-                  className="h-[5px] w-[5px] shrink-0 rounded-full"
-                  style={{ background: "var(--muted-foreground)" }}
-                />
-                <span className="truncate text-[12px] font-medium text-muted-foreground">
-                  {it.title}
-                </span>
-              </div>
-            ))}
-          </>
-        )}
+          {notDone.length > 0 && (
+            <>
+              <SectionLabel dot="var(--muted-foreground)" spaced={done.length > 0}>
+                Niezrobione ({notDone.length})
+              </SectionLabel>
+              {notDone.map((it) => (
+                <div key={it.id} className="mb-[5px] flex items-center gap-[7px]">
+                  <span
+                    className="h-[5px] w-[5px] shrink-0 rounded-full"
+                    style={{ background: "var(--muted-foreground)" }}
+                  />
+                  <span className="truncate text-[12px] font-medium text-muted-foreground">
+                    {it.title}
+                  </span>
+                </div>
+              ))}
+            </>
+          )}
+        </div>
       </div>
-    </div>
+    </>
   );
 }
 

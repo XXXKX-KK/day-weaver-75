@@ -16,6 +16,8 @@ export interface StatystykiScreenProps {
   /** Tapping a day in the grid asks the route to open that day's summary,
    *  anchored to the square that was tapped. */
   onOpenDay?: (iso: string, anchor: DOMRect) => void;
+  /** ISO date whose summary is open — that square lights up in the accent. */
+  selectedDay?: string | null;
 }
 
 const LEVEL_COLORS = ['#181b21', '#0e4429', '#196c3a', '#26a641', '#39d353'];
@@ -58,6 +60,7 @@ export default function StatystykiScreen({
   viewState = 'loaded',
   defaultView = 'postep',
   onOpenDay,
+  selectedDay = null,
 }: StatystykiScreenProps) {
   const prefersReduced =
     typeof window !== 'undefined' &&
@@ -472,8 +475,9 @@ export default function StatystykiScreen({
                 <div className="grid items-center gap-[3px]" style={{ gridTemplateColumns: GRID_COLS }}>
                   {calRows.map((row, ri) => (
                     <RowFragment key={row.day} day={row.day}>
-                      {row.cells.map((cell, ci) =>
-                        cell.empty ? (
+                      {row.cells.map((cell, ci) => {
+                        const picked = !!cell.cd && cell.cd.iso === selectedDay;
+                        return cell.empty ? (
                           <div key={ci} className="aspect-square w-full" />
                         ) : (
                           <button
@@ -502,15 +506,20 @@ export default function StatystykiScreen({
                               background: cell.bg,
                               border: cell.border,
                               cursor: cell.clickable ? 'pointer' : 'default',
-                              position: cell.today ? 'relative' : undefined,
-                              zIndex: cell.today ? 1 : undefined,
-                              boxShadow: cell.today ? '0 0 0 1.5px var(--card), 0 0 0 3px var(--primary)' : undefined,
+                              position: cell.today || picked ? 'relative' : undefined,
+                              // Nad sąsiadami, żeby poświata otwartego dnia nie
+                              // chowała się pod kolejnym kwadratem.
+                              zIndex: picked ? 3 : cell.today ? 1 : undefined,
+                              boxShadow: picked
+                                ? '0 0 0 1.5px var(--card), 0 0 0 3px var(--primary), 0 0 12px 2px color-mix(in oklab, var(--primary) 55%, transparent)'
+                                : cell.today
+                                  ? '0 0 0 1.5px var(--card), 0 0 0 3px var(--primary)'
+                                  : undefined,
                               animationDelay: prefersReduced ? '0ms' : `${Math.min(650, ri * 20 + ci * 6)}ms`,
                             }}
                           />
-                        ),
-
-                      )}
+                        );
+                      })}
                     </RowFragment>
                   ))}
                 </div>
