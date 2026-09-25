@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { Blocker, isNativeBlocker, type InstalledApp } from "@/lib/blocker";
 import { enabledPackagesOf, useBlockedApps, useSetAppBlocked } from "@/lib/blocked-apps";
 import { useAuth } from "@/lib/auth";
+import { Input } from "@/components/ui/input";
 
 export const Route = createFileRoute("/skupienie/aplikacje")({
   head: () => ({
@@ -160,13 +161,13 @@ function AppPickerScreen() {
         <h1 className="text-2xl font-bold leading-tight">Blokowane aplikacje</h1>
       </div>
 
-      <div className="beam-wrap relative mb-5" style={{ animation: "cascadeIn 0.5s ease-out 0.1s both" }}>
-        <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <input
+      <div className="relative mb-5" style={{ animation: "cascadeIn 0.5s ease-out 0.1s both" }}>
+        <Search className="pointer-events-none absolute left-4 top-1/2 z-[2] h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Szukaj aplikacji"
-          className="h-12 w-full rounded-2xl border border-foreground/10 bg-foreground/5 pl-11 pr-4 text-sm outline-none focus:border-primary/40"
+          className="h-12 w-full rounded-2xl border border-foreground/10 bg-foreground/5 pl-11 pr-4 text-sm outline-none"
         />
       </div>
 

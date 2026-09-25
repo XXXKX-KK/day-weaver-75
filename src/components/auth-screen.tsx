@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
 import { TenaxShield } from "@/components/tenax-shield";
+import { Input } from "@/components/ui/input";
 
 type Mode = "signin" | "signup";
 
@@ -170,8 +171,8 @@ export function AuthScreen() {
 
         {/* Form */}
         <form onSubmit={submit} className="flex flex-col gap-3">
-          <div className="beam-wrap">
-            <input
+          <div>
+            <Input
               type="email"
               inputMode="email"
               autoComplete="email"
@@ -182,8 +183,8 @@ export function AuthScreen() {
             />
           </div>
 
-          <div className="beam-wrap relative">
-            <input
+          <div className="relative">
+            <Input
               type={showPassword ? "text" : "password"}
               autoComplete={
                 mode === "signin" ? "current-password" : "new-password"
@@ -198,7 +199,7 @@ export function AuthScreen() {
               onClick={() => setShowPassword((v) => !v)}
               aria-label={showPassword ? "Ukryj hasło" : "Pokaż hasło"}
               aria-pressed={showPassword}
-              className="absolute right-1 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-xl text-muted-foreground transition-colors active:text-foreground"
+              className="absolute right-1 top-1/2 z-[2] flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-xl text-muted-foreground transition-colors active:text-foreground"
             >
               {showPassword ? (
                 <EyeOff className="h-5 w-5" />
@@ -217,8 +218,8 @@ export function AuthScreen() {
                 transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
                 className="overflow-hidden"
               >
-                <div className="beam-wrap relative">
-                <input
+                <div className="relative">
+                <Input
                   type={showPassword ? "text" : "password"}
                   autoComplete="new-password"
                   value={confirmPassword}
@@ -231,7 +232,7 @@ export function AuthScreen() {
                   onClick={() => setShowPassword((v) => !v)}
                   aria-label={showPassword ? "Ukryj hasło" : "Pokaż hasło"}
                   aria-pressed={showPassword}
-                  className="absolute right-1 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-xl text-muted-foreground transition-colors active:text-foreground"
+                  className="absolute right-1 top-1/2 z-[2] flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-xl text-muted-foreground transition-colors active:text-foreground"
                 >
                   {showPassword ? (
                     <EyeOff className="h-5 w-5" />

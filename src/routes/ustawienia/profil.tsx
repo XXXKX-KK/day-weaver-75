@@ -15,6 +15,7 @@ import { Screen, SettingsGroup, SettingsTile, SubScreenHeader } from "@/componen
 import { useAuth } from "@/lib/auth";
 import { useProfile, useUpdateProfile } from "@/lib/profile";
 import { toast } from "sonner";
+import { Input } from "@/components/ui/input";
 
 export const Route = createFileRoute("/ustawienia/profil")({
   head: () => ({
@@ -81,7 +82,7 @@ function ProfileScreen() {
             style={{ animation: "cascadeIn 0.5s ease-out 0.16s both" }}
           >
             <p className="text-[13px] text-muted-foreground">Imię</p>
-            <input
+            <Input
               autoFocus
               value={name}
               onChange={(e) => setName(e.target.value)}

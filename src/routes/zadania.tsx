@@ -55,6 +55,7 @@ import {
 } from "@/lib/notifications";
 import { todayLocalISO } from "@/lib/day";
 import { useNavReady } from "@/lib/nav-ready";
+import { Input } from "@/components/ui/input";
 
 /** ISO weekday order 1=Mon .. 7=Sun, with short PL labels. */
 const WEEKDAYS: { n: number; short: string }[] = [
@@ -790,15 +791,14 @@ function SubtaskEditor({
           ))}
         </ul>
       ) : null}
-      <div className="beam-wrap mb-2">
-        <input
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && addSubtask()}
-          placeholder={placeholder}
-          className="h-12 w-full rounded-2xl border border-input bg-foreground/5 px-4 text-sm outline-none focus:border-primary"
-        />
-      </div>
+      <Input
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onKeyDown={(e) => e.key === "Enter" && addSubtask()}
+        placeholder={placeholder}
+        wrapperClassName="mb-2"
+        className="h-12 w-full rounded-2xl border border-input bg-foreground/5 px-4 text-sm outline-none"
+      />
       <button
         onClick={addSubtask}
         className="accent-gradient mb-4 flex h-12 w-full items-center justify-center gap-2 rounded-full text-sm font-bold text-primary-foreground"
@@ -871,14 +871,13 @@ function TaskForm({
   return (
     <Sheet title="Nowe zadanie" onClose={onClose}>
       <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">Tytuł</label>
-      <div className="beam-wrap mb-4">
-        <input
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="np. Dokończ aplikację"
-          className="h-13 w-full rounded-2xl border border-input bg-foreground/5 px-4 py-3.5 text-sm outline-none focus:border-primary"
-        />
-      </div>
+      <Input
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        placeholder="np. Dokończ aplikację"
+        wrapperClassName="mb-4"
+        className="h-13 w-full rounded-2xl border border-input bg-foreground/5 px-4 py-3.5 text-sm outline-none"
+      />
 
       <PriorityPicker value={priority} onChange={setPriority} />
       <SubtaskEditor subtasks={subtasks} setSubtasks={setSubtasks} placeholder="np. Popraw logo" />
@@ -990,14 +989,13 @@ function RoutineForm({
   return (
     <Sheet title={sheetTitle} onClose={onClose}>
       <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">Tytuł</label>
-      <div className="beam-wrap mb-4">
-        <input
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder={isGrowth ? "np. 10 pompek" : "np. Poranna medytacja"}
-          className="h-13 w-full rounded-2xl border border-input bg-foreground/5 px-4 py-3.5 text-sm outline-none focus:border-primary"
-        />
-      </div>
+      <Input
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        placeholder={isGrowth ? "np. 10 pompek" : "np. Poranna medytacja"}
+        wrapperClassName="mb-4"
+        className="h-13 w-full rounded-2xl border border-input bg-foreground/5 px-4 py-3.5 text-sm outline-none"
+      />
 
       {isGrowth && (
         <>

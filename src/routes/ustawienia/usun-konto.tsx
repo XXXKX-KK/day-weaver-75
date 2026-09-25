@@ -5,6 +5,7 @@ import { Screen, SubScreenHeader } from "@/components/ui-kit";
 import { useAuth } from "@/lib/auth";
 import { useDeleteAccount } from "@/lib/account";
 import { toast } from "sonner";
+import { Input } from "@/components/ui/input";
 
 export const Route = createFileRoute("/ustawienia/usun-konto")({
   head: () => ({
@@ -89,7 +90,7 @@ function DeleteAccountScreen() {
           Wpisz <span className="font-semibold text-foreground">{CONFIRM_WORD}</span>, żeby
           potwierdzić
         </label>
-        <input
+        <Input
           id="confirm-word"
           value={word}
           onChange={(e) => setWord(e.target.value)}
@@ -97,7 +98,8 @@ function DeleteAccountScreen() {
           autoCorrect="off"
           spellCheck={false}
           placeholder={CONFIRM_WORD}
-          className="mt-2 w-full rounded-2xl border border-foreground/[0.08] bg-foreground/[0.04] px-4 py-3 text-[16px] font-semibold tracking-[0.08em] outline-none placeholder:font-normal placeholder:tracking-normal placeholder:text-muted-foreground/50 focus:border-destructive/50"
+          wrapperClassName="mt-2"
+          className="w-full rounded-2xl border border-foreground/[0.08] bg-foreground/[0.04] px-4 py-3 text-[16px] font-semibold tracking-[0.08em] outline-none placeholder:font-normal placeholder:tracking-normal placeholder:text-muted-foreground/50"
         />
       </div>
 

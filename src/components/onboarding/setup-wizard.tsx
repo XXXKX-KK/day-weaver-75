@@ -9,6 +9,7 @@ import { useSetAppBlocked } from "@/lib/blocked-apps";
 import { useUpdateProfile } from "@/lib/profile";
 import { toast } from "sonner";
 import type { GrowthArea } from "@/lib/store";
+import { Input } from "@/components/ui/input";
 import {
   type SurveyAnswers,
   type Distraction,
@@ -523,8 +524,8 @@ function QuestionTiles({
       )}
 
       <div className="mt-4 flex items-center gap-2">
-        <div className="beam-wrap min-w-0 flex-1" style={{ borderRadius: "0.75rem" }}>
-          <input
+        <div className="min-w-0 flex-1">
+          <Input
             value={customTitle}
             onChange={(e) => setCustomTitle(e.target.value)}
             onKeyDown={(e) => {
@@ -532,7 +533,7 @@ function QuestionTiles({
             }}
             placeholder="+ własne"
             maxLength={60}
-            className="h-11 w-full rounded-xl border border-foreground/[0.08] bg-foreground/[0.06] px-[14px] text-[15px] outline-none focus:border-primary/40"
+            className="h-11 w-full rounded-xl border border-foreground/[0.08] bg-foreground/[0.06] px-[14px] text-[15px] outline-none"
           />
         </div>
         <button

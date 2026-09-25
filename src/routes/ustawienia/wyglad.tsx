@@ -12,6 +12,7 @@ import {
   type AccentKey,
 } from "@/lib/accent";
 import { applyTheme, readTheme, type ThemeMode } from "@/lib/theme";
+import { Input } from "@/components/ui/input";
 
 export const Route = createFileRoute("/ustawienia/wyglad")({
   head: () => ({
@@ -382,8 +383,8 @@ function CustomAccentPicker({
               className="h-11 w-11 shrink-0 rounded-xl border border-foreground/[0.08]"
               style={{ backgroundColor: preview }}
             />
-            <div className="beam-wrap min-w-0 flex-1" style={{ borderRadius: '0.75rem' }}>
-              <input
+            <div className="min-w-0 flex-1">
+              <Input
                 value={hexInput}
                 onChange={(e) => {
                   const v = e.target.value;
@@ -395,7 +396,7 @@ function CustomAccentPicker({
                     setVal(hsv.v);
                   }
                 }}
-                className="h-11 w-full rounded-xl border border-foreground/[0.08] bg-foreground/[0.06] px-[14px] font-mono text-[15px] uppercase outline-none focus:border-primary/40"
+                className="h-11 w-full rounded-xl border border-foreground/[0.08] bg-foreground/[0.06] px-[14px] font-mono text-[15px] uppercase outline-none"
                 maxLength={7}
               />
             </div>

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Mail, X } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { Blocker } from "@/lib/blocker";
+import { Input } from "@/components/ui/input";
 
 interface PinResetProps {
   email: string;
@@ -90,8 +91,8 @@ export function PinReset({ email, onComplete, onCancel }: PinResetProps) {
             Wysłaliśmy 6-cyfrowy kod na {email}
           </p>
 
-          <div className="beam-wrap mb-4 w-48">
-            <input
+          <div className="mb-4 w-48">
+            <Input
               type="text"
               inputMode="numeric"
               autoComplete="one-time-code"
@@ -100,7 +101,7 @@ export function PinReset({ email, onComplete, onCancel }: PinResetProps) {
               onChange={(e) => handleCodeChange(e.target.value)}
               disabled={phase === "verifying"}
               placeholder="000000"
-              className="h-14 w-full rounded-2xl border border-input bg-elevated text-center text-2xl font-bold tracking-[0.3em] outline-none focus:border-primary disabled:opacity-50"
+              className="h-14 w-full rounded-2xl border border-input bg-elevated text-center text-2xl font-bold tracking-[0.3em] outline-none disabled:opacity-50"
             />
           </div>
 

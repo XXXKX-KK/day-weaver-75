@@ -13,6 +13,7 @@ import {
 } from "@/lib/focus-notes";
 import { Blocker, isNativeBlocker } from "@/lib/blocker";
 import { toast } from "sonner";
+import { Input } from "@/components/ui/input";
 
 export const Route = createFileRoute("/skupienie/nakladka")({
   head: () => ({
@@ -97,15 +98,14 @@ function CurrentTaskCard() {
         Na czym się teraz skupiasz?
       </p>
       <div className="flex items-center gap-[10px]">
-        <div className="beam-wrap min-w-0 flex-1" style={{ borderRadius: '0.75rem' }}>
-          <input
-            value={taskInput}
-            onChange={(e) => setTaskInput(e.target.value)}
-            placeholder="Wpisz cel..."
-            maxLength={80}
-            className="h-11 w-full rounded-xl border border-foreground/[0.08] bg-foreground/[0.06] px-[14px] text-[15px] outline-none focus:border-primary/40"
-          />
-        </div>
+        <Input
+          value={taskInput}
+          onChange={(e) => setTaskInput(e.target.value)}
+          placeholder="Wpisz cel..."
+          maxLength={80}
+          wrapperClassName="min-w-0 flex-1"
+          className="h-11 w-full rounded-xl border border-foreground/[0.08] bg-foreground/[0.06] px-[14px] text-[15px] outline-none"
+        />
         <button
           onClick={saveTask}
           disabled={saving || taskInput.trim() === currentTask}
@@ -179,8 +179,8 @@ function FocusNotesSection() {
 
         <div className="flex items-center gap-[10px] px-4 py-[11px]">
           <span className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full border-2 border-foreground/[0.12]" />
-          <div className="beam-wrap min-w-0 flex-1">
-            <input
+          <div className="min-w-0 flex-1">
+            <Input
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
               onKeyDown={(e) => {
