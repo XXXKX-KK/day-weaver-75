@@ -27,8 +27,8 @@ function PublicDeletionPage() {
     <Screen>
       <h1 className="text-3xl font-bold leading-tight">Usunięcie konta TENAX</h1>
       <p className="mt-3 text-[15px] leading-relaxed text-muted-foreground">
-        Konto możesz usunąć sam z aplikacji albo zgłosić to e-mailem, jeśli nie masz już do niej
-        dostępu.
+        Konto możesz usunąć sam z aplikacji — dzieje się to od razu i bez odwrotu. Jeśli nie masz
+        już do niej dostępu, zgłoś to e-mailem.
       </p>
 
       <h2 className="mt-8 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
@@ -57,7 +57,7 @@ function PublicDeletionPage() {
         >
           {CONTACT_EMAIL}
         </a>{" "}
-        z tematem „Usunięcie konta". Zgłoszenie obsługujemy w ciągu 30 dni.
+        z tematem „Usunięcie konta". Zgłoszenie obsługujemy w ciągu 30 dni od otrzymania.
       </p>
 
       <h2 className="mt-8 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
@@ -79,9 +79,9 @@ function PublicDeletionPage() {
         Ile to trwa
       </h2>
       <p className="mt-2 text-[15px] leading-relaxed text-muted-foreground">
-        Po zgłoszeniu konto czeka 30 dni — przez ten czas wystarczy się zalogować, żeby je
-        przywrócić razem z całą historią. Po 30 dniach dane są kasowane bezpowrotnie i nie da się
-        ich odtworzyć.
+        Usunięcie z poziomu aplikacji dzieje się natychmiast — konto i dane znikają w momencie
+        potwierdzenia i nie da się ich odtworzyć. Zgłoszenia e-mailem obsługujemy ręcznie, więc tu
+        potrzebujemy do 30 dni od otrzymania wiadomości.
       </p>
     </Screen>
   );

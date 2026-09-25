@@ -23,10 +23,6 @@ export type ProfileRow = {
   /** Starter survey answers — what the user said they want to work on. Null for
    *  accounts created before the survey existed. */
   survey: SurveyAnswers | null;
-  /** Kiedy użytkownik zgłosił usunięcie konta. Null = konto normalne. Konto
-   *  znika dopiero 30 dni po tej dacie, więc do tego czasu wystarczy wyzerować
-   *  pole, żeby wszystko wróciło. */
-  deletion_requested_at: string | null;
 };
 
 /** Fields the settings screen may write (room left for break_* etc.). */
@@ -43,14 +39,13 @@ export type ProfileUpdate = Partial<
     | "onboarding_done"
     | "coachmark_done"
     | "survey"
-    | "deletion_requested_at"
   >
 >;
 
 const PROFILE_KEY = ["profile"] as const;
 
 const PROFILE_COLUMNS =
-  "id, display_name, timezone, day_start_time, day_end_time, autostart_day, break_daily_limit, break_delay_seconds, total_xp, streak_count, last_completed_date, focus_notes_enabled, onboarding_done, coachmark_done, survey, deletion_requested_at";
+  "id, display_name, timezone, day_start_time, day_end_time, autostart_day, break_daily_limit, break_delay_seconds, total_xp, streak_count, last_completed_date, focus_notes_enabled, onboarding_done, coachmark_done, survey";
 
 export function useProfile() {
   const { user } = useAuth();

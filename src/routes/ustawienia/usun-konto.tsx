@@ -1,9 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { TriangleAlert } from "lucide-react";
 import { Screen, SubScreenHeader } from "@/components/ui-kit";
 import { useAuth } from "@/lib/auth";
-import { useRequestAccountDeletion } from "@/lib/account";
+import { useDeleteAccount } from "@/lib/account";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/ustawienia/usun-konto")({
@@ -23,24 +23,34 @@ const WHAT_GOES = [
 ];
 
 /**
- * Zgłoszenie usunięcia konta. Nic nie znika od razu: konto czeka 30 dni, więc
- * przypadkowe albo emocjonalne kliknięcie da się cofnąć samym zalogowaniem.
+ * Usunięcie konta. Działa od razu i bez odwrotu, więc jedyne zabezpieczenie to
+ * świadome przepisanie słowa — przypadkowe kliknięcie nic nie zrobi.
  */
 function DeleteAccountScreen() {
   const { signOut } = useAuth();
-  const request = useRequestAccountDeletion();
+  const remove = useDeleteAccount();
   const [word, setWord] = useState("");
+  const [error, setError] = useState("");
 
-  const confirmed = word.trim().toUpperCase() === CONFIRM_WORD;
+  // Wejście na ekran zawsze zaczyna od pustego pola — potwierdzenie sprzed
+  // chwili nie może zostać na ekranie i wpuścić kogoś jednym tapnięciem.
+  useEffect(() => {
+    setWord("");
+    setError("");
+  }, []);
+
+  const confirmed = word.trim().toLocaleUpperCase("pl-PL") === CONFIRM_WORD;
 
   const submit = () => {
-    if (!confirmed || request.isPending) return;
-    request.mutate(undefined, {
+    if (!confirmed || remove.isPending) return;
+    setError("");
+    remove.mutate(undefined, {
       onSuccess: async () => {
-        toast.success("Konto zostanie usunięte za 30 dni.");
+        toast.success("Konto usunięte");
         await signOut();
       },
-      onError: () => toast.error("Nie udało się zgłosić usunięcia konta."),
+      onError: (e) =>
+        setError(e instanceof Error ? e.message : "Nie udało się usunąć konta. Spróbuj ponownie."),
     });
   };
 
@@ -66,22 +76,14 @@ function DeleteAccountScreen() {
             </li>
           ))}
         </ul>
-      </div>
-
-      <div
-        className="mt-3 rounded-3xl glass px-4 py-4"
-        style={{ animation: "cascadeIn 0.5s ease-out 0.16s both" }}
-      >
-        <p className="text-[16px] font-semibold">Masz 30 dni na zmianę zdania</p>
-        <p className="mt-1 text-[14px] leading-relaxed text-muted-foreground">
-          Po zgłoszeniu wylogujemy Cię z aplikacji. Przez 30 dni wystarczy się zalogować, żeby
-          przywrócić konto razem z całą historią. Po tym czasie dane znikają bezpowrotnie.
+        <p className="mt-3 text-[14px] font-semibold text-destructive">
+          Tej operacji nie można cofnąć.
         </p>
       </div>
 
       <div
         className="mt-3 rounded-3xl glass px-4 py-4"
-        style={{ animation: "cascadeIn 0.5s ease-out 0.22s both" }}
+        style={{ animation: "cascadeIn 0.5s ease-out 0.16s both" }}
       >
         <label htmlFor="confirm-word" className="text-[14px] text-muted-foreground">
           Wpisz <span className="font-semibold text-foreground">{CONFIRM_WORD}</span>, żeby
@@ -99,15 +101,27 @@ function DeleteAccountScreen() {
         />
       </div>
 
-      <button
-        type="button"
-        onClick={submit}
-        disabled={!confirmed || request.isPending}
-        className="mt-5 w-full rounded-3xl bg-destructive px-4 py-4 text-[16px] font-semibold text-destructive-foreground transition-opacity disabled:opacity-40"
-        style={{ animation: "cascadeIn 0.5s ease-out 0.28s both" }}
-      >
-        {request.isPending ? "Zgłaszam…" : "Usuń konto"}
-      </button>
+      {/* Animacja wejścia siedzi na opakowaniu, nie na przycisku: `cascadeIn`
+          kończy się na `opacity: 1` i z `both` trzyma tę wartość na zawsze, a
+          animacja bije zwykłe deklaracje — więc `disabled:opacity-40` na samym
+          przycisku nigdy by się nie pokazało i zablokowany przycisk wyglądałby
+          na aktywny. */}
+      <div style={{ animation: "cascadeIn 0.5s ease-out 0.22s both" }}>
+        <button
+          type="button"
+          onClick={submit}
+          disabled={!confirmed || remove.isPending}
+          className="mt-5 w-full rounded-3xl bg-destructive px-4 py-4 text-[16px] font-semibold text-destructive-foreground transition-opacity disabled:opacity-40"
+        >
+          {remove.isPending ? "Usuwanie…" : "Usuń konto"}
+        </button>
+      </div>
+
+      {error && (
+        <p className="mt-3 text-center text-[13px] text-destructive" role="alert">
+          {error}
+        </p>
+      )}
     </Screen>
   );
 }

@@ -1,25 +1,15 @@
--- Usuwanie konta z 30-dniowym oknem na zmianę zdania.
+-- Usuwanie konta: natychmiastowe, na żądanie użytkownika.
 --
--- Zgłoszenie z apki tylko stempluje datę w profilu — nic nie znika od razu.
--- Faktycznie kasuje codzienne zadanie pg_cron, po 30 dniach. Dzięki temu
--- pomyłka albo chwila złości kosztuje jedno zalogowanie, a nie całą historię.
+-- Samo kasowanie robi Edge Function `delete-account` — usuwa rekord
+-- z auth.users, a wszystko w public znika kaskadą. Ta migracja odpowiada
+-- wyłącznie za to, żeby ta kaskada faktycznie istniała na każdej tabeli.
 --
--- Wymagane przez Google Play (usuwanie konta z poziomu apki i spoza niej).
+-- Wymagane przez Google Play (usuwanie konta z poziomu aplikacji i spoza niej).
 
--- 1. Data zgłoszenia. Null = konto normalne.
-alter table public.profiles
-  add column if not exists deletion_requested_at timestamptz;
-
-comment on column public.profiles.deletion_requested_at is
-  'Kiedy użytkownik zgłosił usunięcie konta. Konto znika 30 dni później; wyzerowanie pola przywraca konto.';
-
--- RLS na profiles jest wierszowe (id = auth.uid()), więc nowa kolumna jest
--- objęta automatycznie: użytkownik może zgłosić i cofnąć usunięcie wyłącznie
--- własnego konta.
-
--- 2. Kasowanie ma iść kaskadą z auth.users. Wszystkie dzisiejsze tabele mają
---    `on delete cascade`, ale zamiast temu ufać — sprawdzamy i naprawiamy.
---    Blok jest idempotentny: przy poprawnym schemacie nie robi nic.
+-- Wszystkie dzisiejsze tabele mają `on delete cascade`, ale zamiast temu ufać —
+-- sprawdzamy i naprawiamy. Blok jest idempotentny: przy poprawnym schemacie
+-- nie robi nic, a przy tabeli dołożonej kiedyś bez kaskady naprawia klucz obcy,
+-- zanim zostawi po usuniętym użytkowniku osierocone wiersze.
 do $$
 declare
   r record;
@@ -54,51 +44,3 @@ begin
     );
   end loop;
 end $$;
-
--- 3. Funkcja kasująca. Usuwa użytkownika z auth.users; wszystko w public
---    znika kaskadą (profiles, days, day_items, routines, tasks, focus_notes,
---    blocked_apps, block_schedules, block_unlocks, suggestion_events,
---    client_errors oraz ich podtabele).
-create or replace function public.delete_expired_accounts()
-returns integer
-language plpgsql
-security definer
-set search_path = public, auth
-as $$
-declare
-  removed integer;
-begin
-  with expired as (
-    select id
-    from public.profiles
-    where deletion_requested_at is not null
-      and deletion_requested_at < now() - interval '30 days'
-  ), gone as (
-    delete from auth.users u
-    using expired e
-    where u.id = e.id
-    returning u.id
-  )
-  select count(*) into removed from gone;
-
-  return removed;
-end $$;
-
-comment on function public.delete_expired_accounts() is
-  'Kasuje konta zgłoszone do usunięcia ponad 30 dni temu. Uruchamiane codziennie przez pg_cron.';
-
--- Tylko dla zadania cron — żaden klient nie ma prawa tego wywołać.
-revoke all on function public.delete_expired_accounts() from public;
-revoke all on function public.delete_expired_accounts() from anon;
-revoke all on function public.delete_expired_accounts() from authenticated;
-
--- 4. Codzienne uruchomienie (pg_cron jest już włączony migracją 11).
---    unschedule najpierw, żeby migracja dała się puścić drugi raz.
-select cron.unschedule('delete-expired-accounts')
-where exists (select 1 from cron.job where jobname = 'delete-expired-accounts');
-
-select cron.schedule(
-  'delete-expired-accounts',
-  '30 3 * * *',  -- codziennie o 3:30, pół godziny po sprzątaniu zadań
-  $job$ select public.delete_expired_accounts(); $job$
-);
