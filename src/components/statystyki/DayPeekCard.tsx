@@ -27,13 +27,12 @@ const GAP = 10;
 const ARROW_H = 7;
 const ARROW_W = 14;
 const WIDTH = 300;
-/** Inline, not in the stylesheet: the CSS minifier keeps only the -webkit
- *  spelling of backdrop-filter, which Chromium ignores, so a rule in the file
- *  would never actually frost anything on the phone. */
-const FROST = {
-  backdropFilter: "blur(22px) saturate(1.4)",
-  WebkitBackdropFilter: "blur(22px) saturate(1.4)",
-} as const;
+/** The same pane as the old day tooltip, and as the rest of the app: a 5% veil
+ *  of the foreground over a heavy backdrop blur. Written as Tailwind utilities
+ *  on purpose — the hand-written backdrop-filter in our CSS files survives
+ *  minification only in its -webkit form, which Chromium ignores, so a rule in
+ *  a stylesheet would frost nothing on the phone. */
+const GLASS = "bg-foreground/5 backdrop-blur-xl";
 /** Tall enough to stay a summary and not a sliver. */
 const MAX_HEIGHT = 420;
 
@@ -145,13 +144,12 @@ export function DayPeekCard({
       {place && (
         <span
           aria-hidden
-          className="day-peek-glass fixed z-[70] animate-[popIn_.18s_ease_both]"
+          className={`${GLASS} fixed z-[70] animate-[popIn_.18s_ease_both]`}
           style={{
             left: place.left + place.arrowX - ARROW_W / 2,
             top: place.side === "below" ? anchor.bottom + GAP - ARROW_H : anchor.top - GAP,
             width: ARROW_W,
             height: ARROW_H,
-            ...FROST,
             clipPath:
               place.side === "below"
                 ? "polygon(50% 0, 100% 100%, 0 100%)"
@@ -164,7 +162,7 @@ export function DayPeekCard({
         ref={cardRef}
         role="dialog"
         aria-label={`Podsumowanie dnia: ${dateLabel(date)}`}
-        className="day-peek-glass fixed z-[70] flex flex-col overflow-hidden rounded-[18px] animate-[popIn_.18s_ease_both]"
+        className={`${GLASS} fixed z-[70] flex flex-col overflow-hidden rounded-[18px] shadow-[0_16px_40px_rgba(0,0,0,.6)] animate-[popIn_.18s_ease_both]`}
         style={{
           top: place?.side === "above" ? undefined : (place?.offset ?? 0),
           bottom: place?.side === "above" ? place.offset : undefined,
@@ -172,9 +170,6 @@ export function DayPeekCard({
           width: `min(${WIDTH}px, calc(100vw - ${SIDE_MARGIN * 2}px))`,
           maxHeight: place?.maxHeight ?? MAX_HEIGHT,
           visibility: place ? "visible" : "hidden",
-          border: "1px solid color-mix(in oklab, var(--foreground) 12%, transparent)",
-          boxShadow: "0 18px 44px rgba(0,0,0,.45)",
-          ...FROST,
         }}
       >
         <div className="shrink-0 px-[15px] pt-[13px] text-[13px] font-bold text-foreground first-letter:uppercase">
@@ -203,10 +198,7 @@ export function DayPeekCard({
           </div>
         </div>
 
-        <div
-          className="mx-[15px] shrink-0"
-          style={{ borderTop: "1px solid color-mix(in oklab, var(--foreground) 10%, transparent)" }}
-        />
+        <div className="mx-[15px] shrink-0 border-t border-foreground/10" />
 
         {/* The only part that gives: a capped card squeezes the list, not the
             header, so the date and the score never get cut off. */}
