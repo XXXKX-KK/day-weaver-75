@@ -23,9 +23,9 @@ const TOP_MARGIN = 16;
 /** The floating nav pill lives down there; don't slide under it. */
 const BOTTOM_MARGIN = 104;
 /** Distance between the square and the card — the arrow lives in this gap. */
-const GAP = 10;
-const ARROW_H = 7;
-const ARROW_W = 14;
+const GAP = 12;
+const ARROW_H = 10;
+const ARROW_W = 20;
 const WIDTH = 300;
 /** The same pane as the old day tooltip, and as the rest of the app: a 5% veil
  *  of the foreground over a heavy backdrop blur. Written as Tailwind utilities
@@ -33,6 +33,10 @@ const WIDTH = 300;
  *  minification only in its -webkit form, which Chromium ignores, so a rule in
  *  a stylesheet would frost nothing on the phone. */
 const GLASS = "bg-foreground/5 backdrop-blur-xl";
+/** The same pane, but the tip catches the light. At the card's own 5% a shape
+ *  this small simply disappears against the grid — it is the one place where
+ *  the glass needs an edge to be seen at all. */
+const GLASS_TIP = "bg-foreground/15 backdrop-blur-xl";
 /** Tall enough to stay a summary and not a sliver. */
 const MAX_HEIGHT = 420;
 
@@ -144,12 +148,13 @@ export function DayPeekCard({
       {place && (
         <span
           aria-hidden
-          className={`${GLASS} fixed z-[70] animate-[popIn_.18s_ease_both]`}
+          className={`${GLASS_TIP} fixed z-[70] animate-[popIn_.18s_ease_both]`}
           style={{
             left: place.left + place.arrowX - ARROW_W / 2,
             top: place.side === "below" ? anchor.bottom + GAP - ARROW_H : anchor.top - GAP,
             width: ARROW_W,
             height: ARROW_H,
+            filter: "drop-shadow(0 1px 2px rgba(0,0,0,.5))",
             clipPath:
               place.side === "below"
                 ? "polygon(50% 0, 100% 100%, 0 100%)"
