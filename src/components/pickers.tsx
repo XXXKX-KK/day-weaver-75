@@ -96,7 +96,7 @@ export function CalendarPicker({
 
   return (
     <div className="overlay-bg fixed inset-0 z-[60] sheet-slide-up">
-      <div className="safe-bottom relative z-10 flex h-full flex-col px-5 pt-5">
+      <div className="safe-top safe-bottom relative z-10 flex h-full flex-col px-5">
         <div className="mb-6 flex items-center gap-3">
           <button
             onClick={onClose}
@@ -107,65 +107,70 @@ export function CalendarPicker({
           <h2 className="text-[22px] font-extrabold tracking-tight">Wybierz datę</h2>
         </div>
 
-        <div className="mb-5 flex items-center justify-between px-2">
-          <button onClick={prev} className="flex h-10 w-10 items-center justify-center rounded-full glass">
-            <ChevronLeft className="h-5 w-5" />
-          </button>
-          <span className="text-[17px] font-bold">
-            {PL_MONTHS[viewMonth]} {viewYear}
-          </span>
-          <button onClick={next} className="flex h-10 w-10 items-center justify-center rounded-full glass">
-            <ChevronRight className="h-[18px] w-[18px]" />
-          </button>
-        </div>
+        {/* Cały blok kalendarza siada na środku wolnej wysokości, tak jak koło
+            godzin w TimePicker — inaczej wisiał tuż pod nagłówkiem, a dolne
+            dwie trzecie ekranu zostawały puste. */}
+        <div className="flex flex-1 flex-col justify-center pb-6">
+          <div className="mb-5 flex items-center justify-between px-2">
+            <button onClick={prev} className="flex h-10 w-10 items-center justify-center rounded-full glass">
+              <ChevronLeft className="h-5 w-5" />
+            </button>
+            <span className="text-[17px] font-bold">
+              {PL_MONTHS[viewMonth]} {viewYear}
+            </span>
+            <button onClick={next} className="flex h-10 w-10 items-center justify-center rounded-full glass">
+              <ChevronRight className="h-[18px] w-[18px]" />
+            </button>
+          </div>
 
-        <div className="mb-1 grid grid-cols-7">
-          {PL_DAYS_SHORT.map((d, i) => (
+          <div className="mb-1 grid grid-cols-7">
+            {PL_DAYS_SHORT.map((d, i) => (
+              <div
+                key={d}
+                className={cn(
+                  "py-1.5 text-center text-xs font-semibold",
+                  i === 6 ? "text-destructive/60" : "text-muted-foreground",
+                )}
+              >
+                {d}
+              </div>
+            ))}
+          </div>
+
+          <div
+            className="overflow-hidden"
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
+          >
             <div
-              key={d}
+              key={slideKey}
               className={cn(
-                "py-1.5 text-center text-xs font-semibold",
-                i === 6 ? "text-destructive/60" : "text-muted-foreground",
+                "grid grid-cols-7 gap-[3px]",
+                slideDir === "left" && "cal-slide-left",
+                slideDir === "right" && "cal-slide-right",
               )}
             >
-              {d}
+              {cells.map((c, i) => {
+                const sel = c.iso === value;
+                const today = c.iso === logical;
+                const isSunday = i % 7 === 6;
+                return (
+                  <button
+                    key={i}
+                    onClick={() => { onChange(c.iso); onClose(); }}
+                    className={cn(
+                      "flex aspect-square items-center justify-center rounded-full text-sm transition-transform duration-150 active:scale-[0.82] active:opacity-70",
+                      !c.current && "text-muted-foreground/30",
+                      c.current && !sel && (isSunday ? "text-destructive/70" : "text-foreground"),
+                      today && !sel && "ring-2 ring-primary/30 font-bold",
+                      sel && "accent-gradient font-bold text-primary-foreground",
+                    )}
+                  >
+                    {c.day}
+                  </button>
+                );
+              })}
             </div>
-          ))}
-        </div>
-
-        <div
-          className="overflow-hidden"
-          onTouchStart={handleTouchStart}
-          onTouchEnd={handleTouchEnd}
-        >
-          <div
-            key={slideKey}
-            className={cn(
-              "grid grid-cols-7 gap-[3px]",
-              slideDir === "left" && "cal-slide-left",
-              slideDir === "right" && "cal-slide-right",
-            )}
-          >
-            {cells.map((c, i) => {
-              const sel = c.iso === value;
-              const today = c.iso === logical;
-              const isSunday = i % 7 === 6;
-              return (
-                <button
-                  key={i}
-                  onClick={() => { onChange(c.iso); onClose(); }}
-                  className={cn(
-                    "flex aspect-square items-center justify-center rounded-full text-sm transition-transform duration-150 active:scale-[0.82] active:opacity-70",
-                    !c.current && "text-muted-foreground/30",
-                    c.current && !sel && (isSunday ? "text-destructive/70" : "text-foreground"),
-                    today && !sel && "ring-2 ring-primary/30 font-bold",
-                    sel && "accent-gradient font-bold text-primary-foreground",
-                  )}
-                >
-                  {c.day}
-                </button>
-              );
-            })}
           </div>
         </div>
       </div>
@@ -317,7 +322,7 @@ export function TimePicker({
   return (
     <div className="overlay-bg fixed inset-0 z-[60] sheet-slide-up">
       <div
-        className="safe-bottom relative z-10 flex h-full flex-col px-5 pt-5"
+        className="safe-top safe-bottom relative z-10 flex h-full flex-col px-5"
         style={{ overscrollBehavior: "none" }}
       >
         <div className="mb-6 flex items-center gap-3">
