@@ -821,7 +821,7 @@ function Sheet({
 }) {
   return (
     <div className="overlay-bg fixed inset-0 z-50 sheet-slide-up">
-      <div className="safe-bottom relative z-10 flex h-full flex-col overflow-y-auto px-5 pt-5">
+      <div className="safe-top safe-bottom relative z-10 flex h-full flex-col overflow-y-auto px-5">
         <div className="mb-5 flex items-center gap-3">
           <button
             onClick={onClose}
