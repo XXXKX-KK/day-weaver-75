@@ -16,6 +16,8 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.Locale;
 import java.util.Set;
 
@@ -30,9 +32,17 @@ public class BlockerForegroundService extends Service {
     private static final long POLL_INTERVAL_MS = 900L;
 
     private final Handler handler = new Handler(Looper.getMainLooper());
+    /** The package we have already judged — guards against re-launching the
+     *  overlay on every poll while the user sits in the same app. */
     private String lastForegroundPkg = "";
+    /** Best guess at what is on screen right now. UsageStats only reports app
+     *  switches, so once the user settles in an app the query goes quiet; we have
+     *  to remember the last answer to know what to judge when a break expires. */
+    private String currentForegroundPkg = "";
     private boolean screenOn = true;
     private boolean breakNotificationActive = false;
+    /** The unlock end time we already have a one-shot check posted for. */
+    private long scheduledExpiryAt = 0L;
 
     private final BroadcastReceiver screenReceiver = new BroadcastReceiver() {
         @Override
@@ -43,6 +53,10 @@ public class BlockerForegroundService extends Service {
             } else if (Intent.ACTION_SCREEN_OFF.equals(intent.getAction())) {
                 screenOn = false;
                 handler.removeCallbacks(pollRunnable);
+                // No point launching the overlay behind a dark screen; the
+                // expiry is picked up by the first poll after it wakes.
+                handler.removeCallbacks(expiryRunnable);
+                scheduledExpiryAt = 0L;
             }
         }
     };
@@ -55,6 +69,19 @@ public class BlockerForegroundService extends Service {
             if (screenOn) {
                 handler.postDelayed(this, POLL_INTERVAL_MS);
             }
+        }
+    };
+
+    /**
+     * One-shot check fired at the exact moment a break runs out, so the block
+     * comes back to the second instead of waiting for the next poll.
+     */
+    private final Runnable expiryRunnable = new Runnable() {
+        @Override
+        public void run() {
+            scheduledExpiryAt = 0L;
+            updateNotificationForBreak();
+            pollForeground();
         }
     };
 
@@ -76,6 +103,7 @@ public class BlockerForegroundService extends Service {
     public int onStartCommand(Intent intent, int flags, int startId) {
         startForeground(NOTIFICATION_ID, buildNotification());
         lastForegroundPkg = "";
+        currentForegroundPkg = "";
         handler.removeCallbacks(pollRunnable);
         handler.post(pollRunnable);
         return START_STICKY;
@@ -84,6 +112,7 @@ public class BlockerForegroundService extends Service {
     @Override
     public void onDestroy() {
         handler.removeCallbacks(pollRunnable);
+        handler.removeCallbacks(expiryRunnable);
         try {
             unregisterReceiver(screenReceiver);
         } catch (IllegalArgumentException ignored) {}
@@ -98,9 +127,24 @@ public class BlockerForegroundService extends Service {
     private void pollForeground() {
         if (!BlockerPrefs.isBlockingEnabled(this)) return;
 
-        String pkg = getForegroundPackage();
-        if (pkg == null) return;
-        if (pkg.equals(getPackageName())) return;
+        // The break is settled before the "same app as last time" guard below.
+        // Staying in the unlocked app produces no new foreground event, so with
+        // the expiry check further down the guard used to swallow it and the
+        // block never came back until the user switched apps.
+        endExpiredBreak();
+
+        String seen = getForegroundPackage();
+        if (seen != null) currentForegroundPkg = seen;
+
+        String pkg = currentForegroundPkg;
+        if (pkg.isEmpty()) return;
+        if (pkg.equals(getPackageName())) {
+            // Our own overlay (or the app) is in front, so whatever was blocked
+            // is no longer on screen — forget it and judge it again if the user
+            // goes back to it.
+            lastForegroundPkg = "";
+            return;
+        }
         if (pkg.equals(lastForegroundPkg)) return;
 
         lastForegroundPkg = pkg;
@@ -110,13 +154,31 @@ public class BlockerForegroundService extends Service {
 
         if (BlockerPrefs.isUnlocked(this, pkg)) return;
 
-        long until = BlockerPrefs.getUnlockUntil(this);
-        if (until != 0 && until <= System.currentTimeMillis()) {
-            BlockerPrefs.clearUnlock(this);
-        }
-
         launchOverlay(pkg);
+    }
+
+    /**
+     * Drops an unlock whose break has run out and clears the dedupe marker, so
+     * the app on screen gets judged again even though it never changed.
+     */
+    private void endExpiredBreak() {
+        long until = BlockerPrefs.getUnlockUntil(this);
+        if (until == 0 || until > System.currentTimeMillis()) return;
+        BlockerPrefs.clearUnlock(this);
         lastForegroundPkg = "";
+    }
+
+    /** Posts the one-shot check for this break, replacing any earlier one. */
+    private void scheduleBreakExpiryCheck(long unlockUntil) {
+        if (unlockUntil == scheduledExpiryAt) return;
+        handler.removeCallbacks(expiryRunnable);
+        scheduledExpiryAt = 0L;
+        long delay = unlockUntil - System.currentTimeMillis();
+        if (delay <= 0) return;
+        scheduledExpiryAt = unlockUntil;
+        // A little past the mark: at exactly unlockUntil the stored deadline is
+        // only just reached, and clock granularity could leave it unexpired.
+        handler.postDelayed(expiryRunnable, delay + 250L);
     }
 
     private void launchOverlay(String blockedPackage) {
@@ -173,12 +235,15 @@ public class BlockerForegroundService extends Service {
 
         if (until > now) {
             breakNotificationActive = true;
+            scheduleBreakExpiryCheck(until);
             NotificationManager nm = getSystemService(NotificationManager.class);
             if (nm != null) {
                 nm.notify(NOTIFICATION_ID, buildBreakNotification(until));
             }
         } else if (breakNotificationActive) {
             breakNotificationActive = false;
+            handler.removeCallbacks(expiryRunnable);
+            scheduledExpiryAt = 0L;
             NotificationManager nm = getSystemService(NotificationManager.class);
             if (nm != null) {
                 nm.notify(NOTIFICATION_ID, buildNotification());
@@ -198,8 +263,12 @@ public class BlockerForegroundService extends Service {
         int progressCurrent = (int) (remaining * progressMax / BlockerPrefs.BREAK_DURATION_MS);
         if (progressCurrent > progressMax) progressCurrent = progressMax;
 
-        long remainSec = remaining / 1000;
-        String remainText = String.format(Locale.US, "%d:%02d", remainSec / 60, remainSec % 60);
+        // The chronometer below is the only countdown. A second one ticked by
+        // hand here drifts against it — the system updates its own every second,
+        // this one only when the poll happens to run — so the text states the
+        // wall-clock time the block comes back and nothing else.
+        String backAt = new SimpleDateFormat("HH:mm", Locale.getDefault()).format(
+                new Date(unlockUntil));
 
         NotificationCompat.ProgressStyle progressStyle = new NotificationCompat.ProgressStyle();
         progressStyle.addProgressSegment(
@@ -209,7 +278,7 @@ public class BlockerForegroundService extends Service {
         return new NotificationCompat.Builder(this, CHANNEL_ID)
                 .setSmallIcon(android.R.drawable.ic_lock_idle_lock)
                 .setContentTitle("Przerwa")
-                .setContentText("Wracasz za " + remainText)
+                .setContentText("Blokada wraca o " + backAt)
                 .setContentIntent(pi)
                 .setOngoing(true)
                 .setOnlyAlertOnce(true)
@@ -217,7 +286,8 @@ public class BlockerForegroundService extends Service {
                 .setChronometerCountDown(true)
                 .setWhen(unlockUntil)
                 .setRequestPromotedOngoing(true)
-                .setShortCriticalText(remainText)
+                // No short critical text: the status-bar chip then shows the
+                // chronometer itself instead of a stale string we'd have to tick.
                 .setStyle(progressStyle)
                 .build();
     }
