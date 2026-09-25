@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { SplashScreen as NativeSplash } from "@capacitor/splash-screen";
-
 /** The logo blue, fixed. A mark shouldn't change colour with the theme accent. */
-const LOGO_BLUE = "#3B82F6";
+import { LOGO_BLUE } from "@/lib/accent";
 
 /** Never flash by: even an instant load holds the splash this long. */
 const MIN_VISIBLE_MS = 800;

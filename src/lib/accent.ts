@@ -9,10 +9,17 @@ export type Accent = {
   swatch: string;
 };
 
+/**
+ * Niebieski z logo TENAX. Jedno źródło prawdy dla miejsc, które mają zostać
+ * w kolorze marki niezależnie od wybranego akcentu — ekran startowy i karty
+ * wydarzeń z kalendarza. Fiolet i reszta akcentów należą do planu dnia.
+ */
+export const LOGO_BLUE = "#3B82F6";
+
 export const ACCENTS: Accent[] = [
   { key: "orange", label: "Pomarańczowy", swatch: "#F5933B" },
   { key: "pink", label: "Różowy", swatch: "#EE4261" },
-  { key: "blue", label: "Niebieski", swatch: "#3B82F6" },
+  { key: "blue", label: "Niebieski", swatch: LOGO_BLUE },
   { key: "green", label: "Zielony", swatch: "#22C55E" },
 ];
 
@@ -33,7 +40,7 @@ function isAccentKey(value: string | null): value is AccentKey {
 
 export function swatchOf(key: AccentKey): string {
   if (key === "custom") return readCustomHex();
-  return ACCENTS.find((a) => a.key === key)?.swatch ?? "#3B82F6";
+  return ACCENTS.find((a) => a.key === key)?.swatch ?? LOGO_BLUE;
 }
 
 /** Read the persisted accent (SSR-safe; falls back to the default). */
@@ -48,12 +55,12 @@ export function readAccent(): AccentKey {
 }
 
 export function readCustomHex(): string {
-  if (typeof localStorage === "undefined") return "#3B82F6";
+  if (typeof localStorage === "undefined") return LOGO_BLUE;
   try {
     const hex = localStorage.getItem(CUSTOM_HEX_KEY);
-    return hex && /^#[0-9a-f]{6}$/i.test(hex) ? hex : "#3B82F6";
+    return hex && /^#[0-9a-f]{6}$/i.test(hex) ? hex : LOGO_BLUE;
   } catch {
-    return "#3B82F6";
+    return LOGO_BLUE;
   }
 }
 
