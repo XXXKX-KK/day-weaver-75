@@ -69,6 +69,14 @@
 :root {
   --radius: 1.125rem;
 
+  /*
+   * Ile trzeba zejść od górnej krawędzi ekranu, żeby wyjść spod statusbara,
+   * notcha albo dynamicznej wyspy. Jedna wartość dla całej apki: używają jej
+   * `safe-top`, `screen-shell` i `top-safe` (dla elementów pozycjonowanych
+   * absolutnie, jak krzyżyk zamykający pełnoekranowe nakładki).
+   */
+  --safe-top: calc(env(safe-area-inset-top, 0px) + 2.5rem);
+
   /* Powierzchnie */
   --background: oklch(0.16 0.012 300);
   --foreground: oklch(0.97 0.004 300);
@@ -362,7 +370,12 @@
  * unless we push it down ourselves. Everything full-screen uses this.
  */
 @utility safe-top {
-  padding-top: calc(env(safe-area-inset-top, 0px) + 2.5rem);
+  padding-top: var(--safe-top);
+}
+
+/* To samo, ale dla elementów pozycjonowanych absolutnie — padding im nic nie da. */
+@utility top-safe {
+  top: var(--safe-top);
 }
 
 @utility screen-shell {
@@ -370,7 +383,7 @@
   width: 100%;
   max-width: 30rem;
   padding-inline: 1.25rem;
-  padding-top: calc(env(safe-area-inset-top, 0px) + 2.5rem);
+  padding-top: var(--safe-top);
   /* Room for the floating nav pill + its bottom offset + safe area. */
   padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 7rem);
 }

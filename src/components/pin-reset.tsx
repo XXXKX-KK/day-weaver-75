@@ -71,7 +71,7 @@ export function PinReset({ email, onComplete, onCancel }: PinResetProps) {
     <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-background/95 px-6 backdrop-blur-sm">
       <button
         onClick={onCancel}
-        className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground"
+        className="absolute right-4 top-safe flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground"
         aria-label="Zamknij"
       >
         <X className="h-5 w-5" />
