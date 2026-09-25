@@ -160,7 +160,11 @@ export const PodsumowanieScreen: React.FC<Props> = ({ tasks, onClose, date, noPl
           minHeight: 0,
           overflowY: "auto",
           overflowX: "hidden",
-          padding: "24px 20px 16px",
+          // Ten ekran zakrywa cały viewport (viewport-fit=cover), więc notch
+          // albo dynamiczna wyspa siadają na nagłówku. Ten sam odstęp co
+          // `safe-top` / `screen-shell` w styles.css — zakładki i podsumowanie
+          // mają zaczynać się na tej samej wysokości.
+          padding: "calc(env(safe-area-inset-top, 0px) + 2.5rem) 20px 16px",
         }}
       >
         {/* Header */}
@@ -437,7 +441,14 @@ export const PodsumowanieScreen: React.FC<Props> = ({ tasks, onClose, date, noPl
       </div>
 
       {/* Bottom button */}
-      <div style={{ position: "relative", zIndex: 10, flexShrink: 0, padding: "0 20px 20px" }}>
+      <div
+        style={{
+          position: "relative",
+          zIndex: 10,
+          flexShrink: 0,
+          padding: "0 20px calc(env(safe-area-inset-bottom, 0px) + 20px)",
+        }}
+      >
         <div
           onClick={onClose}
           style={{

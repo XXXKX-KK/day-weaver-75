@@ -13,11 +13,15 @@ export interface StatystykiScreenProps {
   summary?: StatsSummary;
   viewState?: ViewState;
   defaultView?: TabView;
-  /** Tapping a day in the grid asks the route to open that day's summary. */
-  onOpenDay?: (iso: string) => void;
+  /** Tapping a day in the grid asks the route to open that day's summary,
+   *  anchored to the square that was tapped. */
+  onOpenDay?: (iso: string, anchor: DOMRect) => void;
 }
 
 const LEVEL_COLORS = ['#181b21', '#0e4429', '#196c3a', '#26a641', '#39d353'];
+/** Dzielone przez nagłówek miesięcy i przewijaną siatkę — kolumny muszą się
+ *  zgadzać co do piksela, bo to już dwa osobne gridy. */
+const GRID_COLS = '16px repeat(12, 1fr)';
 const MONTHS_SHORT = ['Sty', 'Lut', 'Mar', 'Kwi', 'Maj', 'Cze', 'Lip', 'Sie', 'Wrz', 'Paź', 'Lis', 'Gru'];
 const WEEKDAYS = ['nd', 'pon', 'wt', 'śr', 'czw', 'pt', 'sob'];
 const MONTHS_FULL = ['sty', 'lut', 'mar', 'kwi', 'maj', 'cze', 'lip', 'sie', 'wrz', 'paź', 'lis', 'gru'];
@@ -438,22 +442,34 @@ export default function StatystykiScreen({
                 <span className="text-[12px] font-bold tabular-nums text-muted-foreground">{new Date(summary.days[summary.days.length - 1].date).getFullYear()}</span>
               </div>
 
-              <div ref={scrollRef} className="-mx-1 max-h-[290px] overflow-y-auto overflow-x-hidden px-1">
-                <div className="grid items-center gap-[3px]" style={{ gridTemplateColumns: '16px repeat(12, 1fr)' }}>
-                  <div className="sticky top-0 z-[2] h-[22px]" style={{ background: 'transparent' }} />
-                  {months.map((m, i) => (
-                    <div
-                      key={i}
-                      className="sticky top-0 z-[2] h-[22px] text-center text-[9.5px] font-bold leading-[22px]"
-                      style={{
-                        background: m.cur ? 'var(--primary-soft)' : 'transparent',
-                        color: m.cur ? 'var(--primary)' : 'var(--muted-foreground)',
-                        borderRadius: m.cur ? '6px 6px 0 0' : 0,
-                      }}
-                    >
-                      {m.label}
-                    </div>
-                  ))}
+              {/* Miesiące siedzą poza obszarem przewijania. Jako sticky w środku
+                  miały tło „transparent", więc przewijane kwadraty przejeżdżały
+                  pod etykietami i przez nie prześwitywały. */}
+              <div
+                className="-mx-1 mb-[3px] grid items-center gap-[3px] px-1"
+                style={{ gridTemplateColumns: GRID_COLS }}
+              >
+                <div className="h-[22px]" />
+                {months.map((m, i) => (
+                  <div
+                    key={i}
+                    className="h-[22px] text-center text-[9.5px] font-bold leading-[22px]"
+                    style={{
+                      background: m.cur ? 'var(--primary-soft)' : 'transparent',
+                      color: m.cur ? 'var(--primary)' : 'var(--muted-foreground)',
+                      borderRadius: m.cur ? '6px 6px 0 0' : 0,
+                    }}
+                  >
+                    {m.label}
+                  </div>
+                ))}
+              </div>
+
+              <div
+                ref={scrollRef}
+                className="stats-grid-scroll -mx-1 max-h-[290px] overflow-y-auto overflow-x-hidden px-1"
+              >
+                <div className="grid items-center gap-[3px]" style={{ gridTemplateColumns: GRID_COLS }}>
                   {calRows.map((row, ri) => (
                     <RowFragment key={row.day} day={row.day}>
                       {row.cells.map((cell, ci) =>
@@ -470,7 +486,15 @@ export default function StatystykiScreen({
                                 ? `${cell.cd.label}, ukończono ${cell.cd.pctInt}%, ${cell.cd.xp} XP`
                                 : undefined
                             }
-                            onClick={cell.cd ? () => onOpenDay?.(cell.cd!.iso) : undefined}
+                            onClick={
+                              cell.cd
+                                ? (e) =>
+                                    onOpenDay?.(
+                                      cell.cd!.iso,
+                                      e.currentTarget.getBoundingClientRect(),
+                                    )
+                                : undefined
+                            }
                             className={`aspect-square w-full rounded-[3px] transition-transform ${
                               cell.clickable ? 'active:scale-[0.82]' : ''
                             } ${anim('animate-[cellIn_.35s_ease_both]')}`}
