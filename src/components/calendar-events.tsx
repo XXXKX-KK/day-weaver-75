@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import { CalendarDays, ChevronDown, Clock } from "lucide-react";
 import { useTodayEvents, formatEventTime, type CalendarEvent } from "@/lib/calendar";
 import { todayLocalISO } from "@/lib/day";
-import { LOGO_BLUE } from "@/lib/accent";
 import { cn } from "@/lib/utils";
 
 /**
@@ -10,8 +9,8 @@ import { cn } from "@/lib/utils";
  * items right below them — same glass, same radius, same title and caption.
  * They are read-only on purpose: no XP, no progress, no streak. What tells them
  * apart from a task is the slot where a task has its tick-off circle: a
- * calendar icon in the logo blue, so nothing here looks checkable. Purple stays
- * the plan's colour.
+ * calendar icon instead, so nothing here looks checkable. The colour is the
+ * user's own accent, like everything else in the app.
  *
  * Renders nothing on web, or when the feature is off, permission was refused,
  * or the day is simply empty.
@@ -129,7 +128,7 @@ function EventCard({
         ...(past
           ? {}
           : {
-              borderColor: `color-mix(in oklab, ${LOGO_BLUE} 26%, transparent)`,
+              borderColor: "color-mix(in oklab, var(--primary) 26%, transparent)",
               animationDelay: `${0.15 + index * 0.06}s`,
             }),
       }}
@@ -143,12 +142,12 @@ function EventCard({
           style={
             past
               ? { background: "color-mix(in oklab, var(--foreground) 8%, transparent)" }
-              : { background: `color-mix(in oklab, ${LOGO_BLUE} 16%, transparent)` }
+              : { background: "color-mix(in oklab, var(--primary) 16%, transparent)" }
           }
         >
           <CalendarDays
             className="h-3.5 w-3.5"
-            style={{ color: past ? "var(--muted-foreground)" : LOGO_BLUE }}
+            style={{ color: past ? "var(--muted-foreground)" : "var(--primary)" }}
           />
         </span>
 
@@ -164,8 +163,8 @@ function EventCard({
           <span
             className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.06em]"
             style={{
-              background: `color-mix(in oklab, ${LOGO_BLUE} 18%, transparent)`,
-              color: LOGO_BLUE,
+              background: "color-mix(in oklab, var(--primary) 18%, transparent)",
+              color: "var(--primary)",
             }}
           >
             Teraz
