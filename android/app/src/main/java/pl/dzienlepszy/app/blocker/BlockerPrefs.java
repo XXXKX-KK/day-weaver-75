@@ -288,14 +288,25 @@ public final class BlockerPrefs {
         return prefs(context).getLong(KEY_UNLOCK_UNTIL, 0);
     }
 
-    public static boolean isUnlocked(Context context, String packageName) {
-        SharedPreferences p = prefs(context);
-        long until = p.getLong(KEY_UNLOCK_UNTIL, 0);
-        if (System.currentTimeMillis() >= until) return false;
-        String pkg = p.getString(KEY_UNLOCK_PACKAGE, "");
-        return packageName.equals(pkg);
+    /**
+     * True while a break is running. The break is a window of time, not a pass
+     * for one app: everything on the blocked list is open until it ends, and
+     * then the block comes back for all of them at once. Per-app unlocking made
+     * a phone-hop cost a second break, reset the five minutes and take the first
+     * app's break away — the opposite of one honest, bounded pause.
+     */
+    public static boolean isBreakActive(Context context) {
+        return System.currentTimeMillis() < getUnlockUntil(context);
     }
 
+    /** Which app the running break was started from. Diagnostics only — it has
+     *  no say in what the break covers; see {@link #isBreakActive}. */
+    public static String getUnlockPackage(Context context) {
+        return prefs(context).getString(KEY_UNLOCK_PACKAGE, "");
+    }
+
+    /** Opens the break window. {@code packageName} is only recorded as where it
+     *  started; the window itself covers every blocked app. */
     public static void setUnlock(Context context, String packageName) {
         prefs(context).edit()
                 .putLong(KEY_UNLOCK_UNTIL, System.currentTimeMillis() + BREAK_DURATION_MS)

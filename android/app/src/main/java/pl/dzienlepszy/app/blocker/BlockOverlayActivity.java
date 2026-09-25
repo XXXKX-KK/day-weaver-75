@@ -46,6 +46,16 @@ public class BlockOverlayActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        // A break is a window of time covering every blocked app, so while one
+        // is running there is nothing to block. The service already skips the
+        // launch; this is the backstop, because showing the screen here would
+        // offer a second break that resets the clock and burns the daily limit.
+        if (BlockerPrefs.isBreakActive(this)) {
+            finish();
+            return;
+        }
+
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         setContentView(R.layout.activity_block_overlay);
 
@@ -194,6 +204,13 @@ public class BlockOverlayActivity extends Activity {
     }
 
     private void startBreakCountdown() {
+        // Nothing to wait for if a break is already running: let the user
+        // through instead of charging them a second one.
+        if (BlockerPrefs.isBreakActive(this)) {
+            finish();
+            return;
+        }
+
         Button breakBtn = findViewById(R.id.block_break_button);
         breakBtn.setEnabled(false);
 
@@ -209,8 +226,12 @@ public class BlockOverlayActivity extends Activity {
 
             @Override
             public void onFinish() {
-                BlockerPrefs.incrementBreakUsed(BlockOverlayActivity.this);
-                BlockerPrefs.setUnlock(BlockOverlayActivity.this, blockedPackage);
+                // Re-checked after the wait: if a break opened meanwhile, this
+                // one must not extend it or spend a second slot from the limit.
+                if (!BlockerPrefs.isBreakActive(BlockOverlayActivity.this)) {
+                    BlockerPrefs.incrementBreakUsed(BlockOverlayActivity.this);
+                    BlockerPrefs.setUnlock(BlockOverlayActivity.this, blockedPackage);
+                }
                 finish();
             }
         }.start();

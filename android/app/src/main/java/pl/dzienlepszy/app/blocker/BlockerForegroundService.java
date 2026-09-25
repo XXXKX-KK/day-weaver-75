@@ -152,7 +152,10 @@ public class BlockerForegroundService extends Service {
         Set<String> blocked = BlockerPrefs.getBlockedPackages(this);
         if (!blocked.contains(pkg)) return;
 
-        if (BlockerPrefs.isUnlocked(this, pkg)) return;
+        // A running break covers every blocked app, not just the one it was
+        // started from — hopping from Facebook to Instagram is still the same
+        // break, and still ends at the same minute.
+        if (BlockerPrefs.isBreakActive(this)) return;
 
         launchOverlay(pkg);
     }
