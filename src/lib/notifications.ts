@@ -25,6 +25,58 @@ const ROUTINE_CHANNEL_ID = "dl-routine-reminders";
 /** localStorage flag for the Settings toggle (default on). */
 const ENABLED_KEY = "dl-notifications-enabled";
 
+/**
+ * The reminders this module actually schedules, each with its own switch.
+ * They are not three notifications: `morning` is its own alarm, while `undone`
+ * and `streak` are the two reasons the evening one has anything to say. With
+ * both off there is nothing to nag about, so the evening alarm is not set at
+ * all — the same rule the body-building code already followed.
+ */
+export type ReminderKind = "morning" | "undone" | "streak";
+
+export const REMINDER_KINDS: { kind: ReminderKind; title: string; description: string }[] = [
+  {
+    kind: "morning",
+    title: "Start dnia",
+    description: "Rano, o godzinie startu dnia",
+  },
+  {
+    kind: "undone",
+    title: "Niezrobione wieczorem",
+    description: "Wieczorem, ile zostało do zrobienia",
+  },
+  {
+    kind: "streak",
+    title: "Ochrona passy",
+    description: "Wieczorem, gdy passa jest zagrożona",
+  },
+];
+
+const KIND_KEY: Record<ReminderKind, string> = {
+  morning: "dl-reminder-morning",
+  undone: "dl-reminder-undone",
+  streak: "dl-reminder-streak",
+};
+
+/** Każdy rodzaj domyślnie włączony — wyłącza się świadomie, nie przypadkiem. */
+export function isReminderEnabled(kind: ReminderKind): boolean {
+  if (typeof window === "undefined") return true;
+  try {
+    return window.localStorage.getItem(KIND_KEY[kind]) !== "false";
+  } catch {
+    return true;
+  }
+}
+
+export function setReminderEnabled(kind: ReminderKind, enabled: boolean): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(KIND_KEY[kind], enabled ? "true" : "false");
+  } catch {
+    /* brak storage — ustawienie po prostu nie przetrwa restartu */
+  }
+}
+
 /** True only inside the native app; guards every plugin call (SSR/web-safe). */
 function isNative(): boolean {
   return typeof window !== "undefined" && Capacitor.isNativePlatform();
@@ -77,7 +129,7 @@ function buildNotifications(state: NotificationState): ScheduledNotification[] {
   const morning = parseHm(state.dayStartTime);
   const evening = parseHm(state.dayEndTime);
 
-  if (morning) {
+  if (morning && isReminderEnabled("morning")) {
     notifications.push({
       id: MORNING_ID,
       channelId: CHANNEL_ID,
@@ -88,11 +140,13 @@ function buildNotifications(state: NotificationState): ScheduledNotification[] {
   }
 
   if (evening) {
-    const streakActive = state.streak > 0 && !state.dayCompleted;
+    const wantUndone = isReminderEnabled("undone");
+    const wantStreak = isReminderEnabled("streak");
+    const streakActive = wantStreak && state.streak > 0 && !state.dayCompleted;
     const streakLine = `Nie strać swojej passy ${state.streak} dni!`;
     let body: string | null = null;
 
-    if (state.undoneCount > 0) {
+    if (wantUndone && state.undoneCount > 0) {
       body = `Masz jeszcze ${state.undoneCount} ${thingsWord(state.undoneCount)} do zrobienia.`;
       if (streakActive) body += ` ${streakLine}`;
     } else if (streakActive) {

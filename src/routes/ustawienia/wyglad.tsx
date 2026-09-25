@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useCallback, useState } from "react";
-import { Check, ChevronLeft, Globe, Lock, Plus } from "lucide-react";
+import { Check, ChevronLeft, Plus } from "lucide-react";
 import { Screen } from "@/components/ui-kit";
 import {
   ACCENTS,
@@ -22,12 +22,6 @@ export const Route = createFileRoute("/ustawienia/wyglad")({
   }),
   component: AppearanceScreen,
 });
-
-const LANGUAGES = [
-  { code: "pl", label: "Polski", flag: "\u{1F1F5}\u{1F1F1}", active: true },
-  { code: "en", label: "English", flag: "\u{1F1EC}\u{1F1E7}", active: false },
-  { code: "uk", label: "Українська", flag: "\u{1F1FA}\u{1F1E6}", active: false },
-];
 
 /* ── HSV ↔ Hex ── */
 
@@ -533,7 +527,7 @@ function AppearanceScreen() {
         className="mb-3 px-1 text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground"
         style={{ animation: "cascadeIn 0.5s ease-out 0.2s both" }}
       >
-        Kolor akcentu
+        Akcent
       </h2>
       <div
         className="mb-7 flex flex-wrap gap-4 px-1"
@@ -596,35 +590,6 @@ function AppearanceScreen() {
           )}
           <span className="text-[10px] text-muted-foreground">Własny</span>
         </button>
-      </div>
-
-      {/* JĘZYK — UNTOUCHED */}
-      <h2
-        className="mb-3 px-1 text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground"
-        style={{ animation: "cascadeIn 0.5s ease-out 0.3s both" }}
-      >
-        Język
-      </h2>
-      <div className="flex flex-col gap-3">
-        {LANGUAGES.map((lang, i) => (
-          <div
-            key={lang.code}
-            className="flex items-center gap-4 rounded-3xl glass px-4 py-4"
-            style={{ animation: `cascadeIn 0.5s ease-out ${0.35 + i * 0.06}s both` }}
-          >
-            <Globe className="h-5 w-5 shrink-0 text-muted-foreground" />
-            <span className="text-lg leading-none">{lang.flag}</span>
-            <span className="flex-1 text-sm font-semibold">{lang.label}</span>
-            {lang.active ? (
-              <span className="text-sm font-semibold text-primary">Aktywny</span>
-            ) : (
-              <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                <Lock className="h-3.5 w-3.5" />
-                wkrótce
-              </span>
-            )}
-          </div>
-        ))}
       </div>
 
       {pickerOpen && (

@@ -9,9 +9,11 @@ import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
+import android.os.PowerManager;
 import android.provider.Settings;
 import android.util.Base64;
 
+import androidx.core.app.NotificationManagerCompat;
 import androidx.core.content.ContextCompat;
 
 import com.getcapacitor.JSArray;
@@ -266,6 +268,60 @@ public class BlockerPlugin extends Plugin {
     @PluginMethod
     public void openUsageAccessSettings(PluginCall call) {
         Intent intent = new Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS);
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        getContext().startActivity(intent);
+        call.resolve();
+    }
+
+    /**
+     * Czy apka jest zwolniona z optymalizacji baterii. Bez tego system usypia
+     * usługę pilnującą blokady i blokada po prostu przestaje reagować.
+     * Sam odczyt nie wymaga żadnego uprawnienia.
+     */
+    @PluginMethod
+    public void isBatteryOptimizationIgnored(PluginCall call) {
+        Context context = getContext();
+        PowerManager pm = (PowerManager) context.getSystemService(Context.POWER_SERVICE);
+        JSObject result = new JSObject();
+        result.put("granted", pm != null && pm.isIgnoringBatteryOptimizations(context.getPackageName()));
+        call.resolve(result);
+    }
+
+    /**
+     * Systemowa lista optymalizacji baterii. Świadomie nie proszę oknem
+     * REQUEST_IGNORE_BATTERY_OPTIMIZATIONS — tamto wymaga osobnego uprawnienia
+     * w manifeście, a lista załatwia to samo bez dotykania manifestu.
+     */
+    @PluginMethod
+    public void openBatterySettings(PluginCall call) {
+        Intent intent = new Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS);
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        getContext().startActivity(intent);
+        call.resolve();
+    }
+
+    @PluginMethod
+    public void areNotificationsEnabled(PluginCall call) {
+        JSObject result = new JSObject();
+        result.put("granted", NotificationManagerCompat.from(getContext()).areNotificationsEnabled());
+        call.resolve(result);
+    }
+
+    @PluginMethod
+    public void openNotificationSettings(PluginCall call) {
+        Intent intent = new Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS);
+        intent.putExtra(Settings.EXTRA_APP_PACKAGE, getContext().getPackageName());
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        getContext().startActivity(intent);
+        call.resolve();
+    }
+
+    /** Ekran „O aplikacji" — stamtąd użytkownik dojdzie do uprawnień, np. kalendarza. */
+    @PluginMethod
+    public void openAppSettings(PluginCall call) {
+        Intent intent = new Intent(
+                Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                Uri.parse("package:" + getContext().getPackageName()));
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         getContext().startActivity(intent);
         call.resolve();

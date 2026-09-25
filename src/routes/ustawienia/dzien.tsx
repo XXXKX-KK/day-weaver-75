@@ -1,16 +1,21 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { ChevronLeft } from "lucide-react";
-import { Screen } from "@/components/ui-kit";
+import { PlayCircle, Sunrise, Sunset } from "lucide-react";
+import {
+  Screen,
+  SettingsGroup,
+  SettingsGroupLabel,
+  SettingsTile,
+  SubScreenHeader,
+} from "@/components/ui-kit";
 import { Switch } from "@/components/ui/switch";
 import { TimePicker } from "@/components/pickers";
 import { useProfile, useUpdateProfile } from "@/lib/profile";
-import { CalendarSettings } from "@/components/calendar-settings";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/ustawienia/dzien")({
   head: () => ({
-    meta: [{ title: "Dzień – godziny aktywności" }],
+    meta: [{ title: "Godziny dnia" }],
   }),
   component: DaySettingsScreen,
 });
@@ -46,72 +51,51 @@ function DaySettingsScreen() {
 
   return (
     <Screen>
-      <div
-        className="mb-5 flex items-center gap-3"
-        style={{ animation: "cascadeIn 0.5s ease-out both" }}
-      >
-        <Link
-          to="/ustawienia"
-          className="flex h-10 w-10 items-center justify-center rounded-2xl glass"
-          aria-label="Wróć"
-        >
-          <ChevronLeft className="h-5 w-5" />
-        </Link>
-        <h1 className="text-2xl font-bold leading-tight">Dzień</h1>
-      </div>
+      <SubScreenHeader title="Godziny dnia" />
 
       {isLoading ? (
         <p className="px-1 text-sm text-muted-foreground">Wczytywanie ustawień…</p>
       ) : (
         <>
-          <button
-            onClick={() => setPicker("start")}
-            className="mb-3 flex w-full items-center justify-between rounded-3xl glass px-4 py-4"
-            style={{ animation: "cascadeIn 0.5s ease-out 0.1s both" }}
-          >
-            <div className="text-left">
-              <p className="text-[15px] font-medium">Start dnia</p>
-              <p className="mt-0.5 text-[13px] text-muted-foreground">Kiedy zaczynasz dzień</p>
-            </div>
-            <span className="rounded-[10px] border border-foreground/[0.06] bg-foreground/[0.08] px-[14px] py-2">
-              <span className="text-[17px] font-semibold tabular-nums">
-                {dayStart || "—:—"}
-              </span>
-            </span>
-          </button>
-          <button
-            onClick={() => setPicker("end")}
-            className="mb-3 flex w-full items-center justify-between rounded-3xl glass px-4 py-4"
-            style={{ animation: "cascadeIn 0.5s ease-out 0.2s both" }}
-          >
-            <div className="text-left">
-              <p className="text-[15px] font-medium">Koniec dnia</p>
-              <p className="mt-0.5 text-[13px] text-muted-foreground">Kiedy kończysz dzień</p>
-            </div>
-            <span className="rounded-[10px] border border-foreground/[0.06] bg-foreground/[0.08] px-[14px] py-2">
-              <span className="text-[17px] font-semibold tabular-nums">
-                {dayEnd || "—:—"}
-              </span>
-            </span>
-          </button>
-
-          <div
-            className="flex items-center justify-between rounded-3xl glass px-4 py-4"
-            style={{ animation: "cascadeIn 0.5s ease-out 0.3s both" }}
-          >
-            <div>
-              <p className="text-[15px] font-medium">Autostart</p>
-              <p className="mt-0.5 text-[13px] text-muted-foreground">
-                Automatycznie rozpocznij dzień
-              </p>
-            </div>
-            <Switch
-              checked={profile?.autostart_day ?? false}
-              onCheckedChange={(v) => save({ autostart_day: v })}
+          <SettingsGroupLabel style={{ animation: "cascadeIn 0.5s ease-out 0.08s both" }}>
+            Dzień
+          </SettingsGroupLabel>
+          <SettingsGroup>
+            <SettingsTile
+              icon={Sunrise}
+              title="Start dnia"
+              subtitle={dayStart || "—:—"}
+              onClick={() => setPicker("start")}
+              right={<TimeChip value={dayStart} />}
+              style={{ animation: "cascadeIn 0.5s ease-out 0.12s both" }}
             />
-          </div>
+            <SettingsTile
+              icon={Sunset}
+              title="Koniec dnia"
+              subtitle={dayEnd || "—:—"}
+              onClick={() => setPicker("end")}
+              right={<TimeChip value={dayEnd} />}
+              style={{ animation: "cascadeIn 0.5s ease-out 0.18s both" }}
+            />
+          </SettingsGroup>
 
-          <CalendarSettings />
+          <SettingsGroupLabel style={{ animation: "cascadeIn 0.5s ease-out 0.24s both" }}>
+            Automatyzacja
+          </SettingsGroupLabel>
+          <SettingsGroup>
+            <SettingsTile
+              icon={PlayCircle}
+              title="Autostart dnia"
+              subtitle={profile?.autostart_day ? "Włączony" : "Wyłączony"}
+              right={
+                <Switch
+                  checked={profile?.autostart_day ?? false}
+                  onCheckedChange={(v) => save({ autostart_day: v })}
+                />
+              }
+              style={{ animation: "cascadeIn 0.5s ease-out 0.3s both" }}
+            />
+          </SettingsGroup>
 
           {picker && (
             <TimePicker
@@ -132,5 +116,14 @@ function DaySettingsScreen() {
         </>
       )}
     </Screen>
+  );
+}
+
+/** Godzina po prawej stronie kafelka — ten sam „chip" co wcześniej. */
+function TimeChip({ value }: { value: string }) {
+  return (
+    <span className="shrink-0 rounded-[10px] border border-foreground/[0.06] bg-foreground/[0.08] px-[14px] py-2">
+      <span className="text-[17px] font-semibold tabular-nums">{value || "—:—"}</span>
+    </span>
   );
 }

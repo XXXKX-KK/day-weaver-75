@@ -1,7 +1,7 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
-import { Check, ChevronLeft, Plus, Trash2 } from "lucide-react";
-import { Screen } from "@/components/ui-kit";
+import { Check, Plus, Trash2 } from "lucide-react";
+import { Screen, SubScreenHeader } from "@/components/ui-kit";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import { useProfile, useUpdateProfile } from "@/lib/profile";
@@ -14,7 +14,7 @@ import {
 import { Blocker, isNativeBlocker } from "@/lib/blocker";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/ustawienia/nakladka")({
+export const Route = createFileRoute("/skupienie/nakladka")({
   head: () => ({
     meta: [{ title: "Nakładka i skupienie" }],
   }),
@@ -33,19 +33,7 @@ function OverlayScreen() {
 
   return (
     <Screen>
-      <div
-        className="mb-5 flex items-center gap-3"
-        style={{ animation: "cascadeIn 0.5s ease-out both" }}
-      >
-        <Link
-          to="/ustawienia"
-          className="flex h-10 w-10 items-center justify-center rounded-2xl glass"
-          aria-label="Wróć"
-        >
-          <ChevronLeft className="h-5 w-5" />
-        </Link>
-        <h1 className="text-2xl font-bold leading-tight">Nakładka i skupienie</h1>
-      </div>
+      <SubScreenHeader title="Nakładka i notatki" back="/skupienie" />
 
       <CurrentTaskCard />
 

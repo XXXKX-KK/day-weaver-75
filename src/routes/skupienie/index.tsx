@@ -6,6 +6,7 @@ import {
   ShieldCheck,
   ShieldOff,
   Smartphone,
+  StickyNote,
   TriangleAlert,
 } from "lucide-react";
 import { Screen, ScreenHeader } from "@/components/ui-kit";
@@ -269,7 +270,26 @@ function FocusScreen() {
         </div>
       </Link>
 
-      {/* 4. Ustaw / Zmień PIN */}
+      {/* 4. Nakładka i notatki — przeniesione z Ustawień: to część skupienia,
+          a nie konfiguracji apki. */}
+      <Link
+        to="/skupienie/nakladka"
+        className="block"
+        style={{ animation: "cascadeIn 0.5s ease-out 0.35s both" }}
+      >
+        <div className="mb-3 flex items-center gap-4 rounded-3xl glass px-5 py-4">
+          <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-foreground/10">
+            <StickyNote className="h-4 w-4 text-muted-foreground" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold">Nakładka i notatki</p>
+            <p className="truncate text-xs text-muted-foreground">Co widzisz na ekranie blokady</p>
+          </div>
+          <ChevronRight className="h-5 w-5 shrink-0 text-muted-foreground" />
+        </div>
+      </Link>
+
+      {/* 5. Ustaw / Zmień PIN */}
       {native && (
         <div className="mb-3 flex items-center gap-4 rounded-3xl glass px-5 py-4" style={{ animation: "cascadeIn 0.5s ease-out 0.4s both" }}>
           <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-foreground/10">

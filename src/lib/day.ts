@@ -259,17 +259,6 @@ export async function syncIntoRunningDay(): Promise<PlanSync> {
   return "added";
 }
 
-export function useResetDay() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async () => {
-      const { error } = await supabase.from("days").delete().eq("date", todayLocalISO());
-      if (error) throw error;
-    },
-    onSuccess: () => invalidateDayAndProfile(queryClient),
-  });
-}
-
 const PROFILE_KEY = ["profile"] as const;
 
 /** Snapshots of the ['today'] and ['profile'] caches, for optimistic rollback. */

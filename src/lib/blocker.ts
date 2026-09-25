@@ -23,6 +23,16 @@ export interface BlockerPlugin {
   openUsageAccessSettings(): Promise<void>;
   isOverlayGranted(): Promise<{ granted: boolean }>;
   openOverlaySettings(): Promise<void>;
+  /** Czy apka jest zwolniona z optymalizacji baterii (bez tego system usypia usługę blokady). */
+  isBatteryOptimizationIgnored(): Promise<{ granted: boolean }>;
+  /** Systemowa lista optymalizacji baterii. */
+  openBatterySettings(): Promise<void>;
+  /** Czy powiadomienia apki są włączone w systemie. */
+  areNotificationsEnabled(): Promise<{ granted: boolean }>;
+  /** Ustawienia powiadomień tej apki. */
+  openNotificationSettings(): Promise<void>;
+  /** Ekran „O aplikacji" — wejście do uprawnień, np. kalendarza. */
+  openAppSettings(): Promise<void>;
   /** The task the user set manually on the Skupienie screen (shown by the overlay). */
   setCurrentTask(options: { title: string }): Promise<{ title: string }>;
   getCurrentTask(): Promise<{ title: string }>;

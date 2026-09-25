@@ -12,19 +12,21 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DzienRouteImport } from './routes/dzien'
 import { Route as StatystykiRouteImport } from './routes/statystyki'
+import { Route as UsunKontoRouteImport } from './routes/usun-konto'
 import { Route as WioskaRouteImport } from './routes/wioska'
 import { Route as ZadaniaRouteImport } from './routes/zadania'
 import { Route as SkupienieIndexRouteImport } from './routes/skupienie/index'
 import { Route as SkupienieAplikacjeRouteImport } from './routes/skupienie/aplikacje'
+import { Route as SkupienieNakladkaRouteImport } from './routes/skupienie/nakladka'
 import { Route as UstawieniaIndexRouteImport } from './routes/ustawienia/index'
 import { Route as UstawieniaDzienRouteImport } from './routes/ustawienia/dzien'
-import { Route as UstawieniaKontoRouteImport } from './routes/ustawienia/konto'
-import { Route as UstawieniaNakladkaRouteImport } from './routes/ustawienia/nakladka'
+import { Route as UstawieniaKalendarzRouteImport } from './routes/ustawienia/kalendarz'
 import { Route as UstawieniaPolitykaPrywatnosciRouteImport } from './routes/ustawienia/polityka-prywatnosci'
 import { Route as UstawieniaPowiadomieniaRouteImport } from './routes/ustawienia/powiadomienia'
 import { Route as UstawieniaProfilRouteImport } from './routes/ustawienia/profil'
 import { Route as UstawieniaRegulaminRouteImport } from './routes/ustawienia/regulamin'
 import { Route as UstawieniaUprawnieniaRouteImport } from './routes/ustawienia/uprawnienia'
+import { Route as UstawieniaUsunKontoRouteImport } from './routes/ustawienia/usun-konto'
 import { Route as UstawieniaWygladRouteImport } from './routes/ustawienia/wyglad'
 
 const IndexRoute = IndexRouteImport.update({
@@ -40,6 +42,11 @@ const DzienRoute = DzienRouteImport.update({
 const StatystykiRoute = StatystykiRouteImport.update({
   id: '/statystyki',
   path: '/statystyki',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const UsunKontoRoute = UsunKontoRouteImport.update({
+  id: '/usun-konto',
+  path: '/usun-konto',
   getParentRoute: () => rootRouteImport,
 } as any)
 const WioskaRoute = WioskaRouteImport.update({
@@ -62,6 +69,11 @@ const SkupienieAplikacjeRoute = SkupienieAplikacjeRouteImport.update({
   path: '/skupienie/aplikacje',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SkupienieNakladkaRoute = SkupienieNakladkaRouteImport.update({
+  id: '/skupienie/nakladka',
+  path: '/skupienie/nakladka',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const UstawieniaIndexRoute = UstawieniaIndexRouteImport.update({
   id: '/ustawienia/',
   path: '/ustawienia/',
@@ -72,14 +84,9 @@ const UstawieniaDzienRoute = UstawieniaDzienRouteImport.update({
   path: '/ustawienia/dzien',
   getParentRoute: () => rootRouteImport,
 } as any)
-const UstawieniaKontoRoute = UstawieniaKontoRouteImport.update({
-  id: '/ustawienia/konto',
-  path: '/ustawienia/konto',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const UstawieniaNakladkaRoute = UstawieniaNakladkaRouteImport.update({
-  id: '/ustawienia/nakladka',
-  path: '/ustawienia/nakladka',
+const UstawieniaKalendarzRoute = UstawieniaKalendarzRouteImport.update({
+  id: '/ustawienia/kalendarz',
+  path: '/ustawienia/kalendarz',
   getParentRoute: () => rootRouteImport,
 } as any)
 const UstawieniaPolitykaPrywatnosciRoute =
@@ -108,6 +115,11 @@ const UstawieniaUprawnieniaRoute = UstawieniaUprawnieniaRouteImport.update({
   path: '/ustawienia/uprawnienia',
   getParentRoute: () => rootRouteImport,
 } as any)
+const UstawieniaUsunKontoRoute = UstawieniaUsunKontoRouteImport.update({
+  id: '/ustawienia/usun-konto',
+  path: '/ustawienia/usun-konto',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const UstawieniaWygladRoute = UstawieniaWygladRouteImport.update({
   id: '/ustawienia/wyglad',
   path: '/ustawienia/wyglad',
@@ -118,17 +130,19 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/dzien': typeof DzienRoute
   '/statystyki': typeof StatystykiRoute
+  '/usun-konto': typeof UsunKontoRoute
   '/wioska': typeof WioskaRoute
   '/zadania': typeof ZadaniaRoute
   '/skupienie/aplikacje': typeof SkupienieAplikacjeRoute
+  '/skupienie/nakladka': typeof SkupienieNakladkaRoute
   '/ustawienia/dzien': typeof UstawieniaDzienRoute
-  '/ustawienia/konto': typeof UstawieniaKontoRoute
-  '/ustawienia/nakladka': typeof UstawieniaNakladkaRoute
+  '/ustawienia/kalendarz': typeof UstawieniaKalendarzRoute
   '/ustawienia/polityka-prywatnosci': typeof UstawieniaPolitykaPrywatnosciRoute
   '/ustawienia/powiadomienia': typeof UstawieniaPowiadomieniaRoute
   '/ustawienia/profil': typeof UstawieniaProfilRoute
   '/ustawienia/regulamin': typeof UstawieniaRegulaminRoute
   '/ustawienia/uprawnienia': typeof UstawieniaUprawnieniaRoute
+  '/ustawienia/usun-konto': typeof UstawieniaUsunKontoRoute
   '/ustawienia/wyglad': typeof UstawieniaWygladRoute
   '/skupienie/': typeof SkupienieIndexRoute
   '/ustawienia/': typeof UstawieniaIndexRoute
@@ -137,17 +151,19 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/dzien': typeof DzienRoute
   '/statystyki': typeof StatystykiRoute
+  '/usun-konto': typeof UsunKontoRoute
   '/wioska': typeof WioskaRoute
   '/zadania': typeof ZadaniaRoute
   '/skupienie/aplikacje': typeof SkupienieAplikacjeRoute
+  '/skupienie/nakladka': typeof SkupienieNakladkaRoute
   '/ustawienia/dzien': typeof UstawieniaDzienRoute
-  '/ustawienia/konto': typeof UstawieniaKontoRoute
-  '/ustawienia/nakladka': typeof UstawieniaNakladkaRoute
+  '/ustawienia/kalendarz': typeof UstawieniaKalendarzRoute
   '/ustawienia/polityka-prywatnosci': typeof UstawieniaPolitykaPrywatnosciRoute
   '/ustawienia/powiadomienia': typeof UstawieniaPowiadomieniaRoute
   '/ustawienia/profil': typeof UstawieniaProfilRoute
   '/ustawienia/regulamin': typeof UstawieniaRegulaminRoute
   '/ustawienia/uprawnienia': typeof UstawieniaUprawnieniaRoute
+  '/ustawienia/usun-konto': typeof UstawieniaUsunKontoRoute
   '/ustawienia/wyglad': typeof UstawieniaWygladRoute
   '/skupienie': typeof SkupienieIndexRoute
   '/ustawienia': typeof UstawieniaIndexRoute
@@ -157,17 +173,19 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/dzien': typeof DzienRoute
   '/statystyki': typeof StatystykiRoute
+  '/usun-konto': typeof UsunKontoRoute
   '/wioska': typeof WioskaRoute
   '/zadania': typeof ZadaniaRoute
   '/skupienie/aplikacje': typeof SkupienieAplikacjeRoute
+  '/skupienie/nakladka': typeof SkupienieNakladkaRoute
   '/ustawienia/dzien': typeof UstawieniaDzienRoute
-  '/ustawienia/konto': typeof UstawieniaKontoRoute
-  '/ustawienia/nakladka': typeof UstawieniaNakladkaRoute
+  '/ustawienia/kalendarz': typeof UstawieniaKalendarzRoute
   '/ustawienia/polityka-prywatnosci': typeof UstawieniaPolitykaPrywatnosciRoute
   '/ustawienia/powiadomienia': typeof UstawieniaPowiadomieniaRoute
   '/ustawienia/profil': typeof UstawieniaProfilRoute
   '/ustawienia/regulamin': typeof UstawieniaRegulaminRoute
   '/ustawienia/uprawnienia': typeof UstawieniaUprawnieniaRoute
+  '/ustawienia/usun-konto': typeof UstawieniaUsunKontoRoute
   '/ustawienia/wyglad': typeof UstawieniaWygladRoute
   '/skupienie/': typeof SkupienieIndexRoute
   '/ustawienia/': typeof UstawieniaIndexRoute
@@ -178,17 +196,19 @@ export interface FileRouteTypes {
     | '/'
     | '/dzien'
     | '/statystyki'
+    | '/usun-konto'
     | '/wioska'
     | '/zadania'
     | '/skupienie/aplikacje'
+    | '/skupienie/nakladka'
     | '/ustawienia/dzien'
-    | '/ustawienia/konto'
-    | '/ustawienia/nakladka'
+    | '/ustawienia/kalendarz'
     | '/ustawienia/polityka-prywatnosci'
     | '/ustawienia/powiadomienia'
     | '/ustawienia/profil'
     | '/ustawienia/regulamin'
     | '/ustawienia/uprawnienia'
+    | '/ustawienia/usun-konto'
     | '/ustawienia/wyglad'
     | '/skupienie/'
     | '/ustawienia/'
@@ -197,17 +217,19 @@ export interface FileRouteTypes {
     | '/'
     | '/dzien'
     | '/statystyki'
+    | '/usun-konto'
     | '/wioska'
     | '/zadania'
     | '/skupienie/aplikacje'
+    | '/skupienie/nakladka'
     | '/ustawienia/dzien'
-    | '/ustawienia/konto'
-    | '/ustawienia/nakladka'
+    | '/ustawienia/kalendarz'
     | '/ustawienia/polityka-prywatnosci'
     | '/ustawienia/powiadomienia'
     | '/ustawienia/profil'
     | '/ustawienia/regulamin'
     | '/ustawienia/uprawnienia'
+    | '/ustawienia/usun-konto'
     | '/ustawienia/wyglad'
     | '/skupienie'
     | '/ustawienia'
@@ -216,17 +238,19 @@ export interface FileRouteTypes {
     | '/'
     | '/dzien'
     | '/statystyki'
+    | '/usun-konto'
     | '/wioska'
     | '/zadania'
     | '/skupienie/aplikacje'
+    | '/skupienie/nakladka'
     | '/ustawienia/dzien'
-    | '/ustawienia/konto'
-    | '/ustawienia/nakladka'
+    | '/ustawienia/kalendarz'
     | '/ustawienia/polityka-prywatnosci'
     | '/ustawienia/powiadomienia'
     | '/ustawienia/profil'
     | '/ustawienia/regulamin'
     | '/ustawienia/uprawnienia'
+    | '/ustawienia/usun-konto'
     | '/ustawienia/wyglad'
     | '/skupienie/'
     | '/ustawienia/'
@@ -236,17 +260,19 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DzienRoute: typeof DzienRoute
   StatystykiRoute: typeof StatystykiRoute
+  UsunKontoRoute: typeof UsunKontoRoute
   WioskaRoute: typeof WioskaRoute
   ZadaniaRoute: typeof ZadaniaRoute
   SkupienieAplikacjeRoute: typeof SkupienieAplikacjeRoute
+  SkupienieNakladkaRoute: typeof SkupienieNakladkaRoute
   UstawieniaDzienRoute: typeof UstawieniaDzienRoute
-  UstawieniaKontoRoute: typeof UstawieniaKontoRoute
-  UstawieniaNakladkaRoute: typeof UstawieniaNakladkaRoute
+  UstawieniaKalendarzRoute: typeof UstawieniaKalendarzRoute
   UstawieniaPolitykaPrywatnosciRoute: typeof UstawieniaPolitykaPrywatnosciRoute
   UstawieniaPowiadomieniaRoute: typeof UstawieniaPowiadomieniaRoute
   UstawieniaProfilRoute: typeof UstawieniaProfilRoute
   UstawieniaRegulaminRoute: typeof UstawieniaRegulaminRoute
   UstawieniaUprawnieniaRoute: typeof UstawieniaUprawnieniaRoute
+  UstawieniaUsunKontoRoute: typeof UstawieniaUsunKontoRoute
   UstawieniaWygladRoute: typeof UstawieniaWygladRoute
   SkupienieIndexRoute: typeof SkupienieIndexRoute
   UstawieniaIndexRoute: typeof UstawieniaIndexRoute
@@ -273,6 +299,13 @@ declare module '@tanstack/react-router' {
       path: '/statystyki'
       fullPath: '/statystyki'
       preLoaderRoute: typeof StatystykiRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/usun-konto': {
+      id: '/usun-konto'
+      path: '/usun-konto'
+      fullPath: '/usun-konto'
+      preLoaderRoute: typeof UsunKontoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/wioska': {
@@ -303,6 +336,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SkupienieAplikacjeRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/skupienie/nakladka': {
+      id: '/skupienie/nakladka'
+      path: '/skupienie/nakladka'
+      fullPath: '/skupienie/nakladka'
+      preLoaderRoute: typeof SkupienieNakladkaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/ustawienia/': {
       id: '/ustawienia/'
       path: '/ustawienia'
@@ -317,18 +357,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof UstawieniaDzienRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/ustawienia/konto': {
-      id: '/ustawienia/konto'
-      path: '/ustawienia/konto'
-      fullPath: '/ustawienia/konto'
-      preLoaderRoute: typeof UstawieniaKontoRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/ustawienia/nakladka': {
-      id: '/ustawienia/nakladka'
-      path: '/ustawienia/nakladka'
-      fullPath: '/ustawienia/nakladka'
-      preLoaderRoute: typeof UstawieniaNakladkaRouteImport
+    '/ustawienia/kalendarz': {
+      id: '/ustawienia/kalendarz'
+      path: '/ustawienia/kalendarz'
+      fullPath: '/ustawienia/kalendarz'
+      preLoaderRoute: typeof UstawieniaKalendarzRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/ustawienia/polityka-prywatnosci': {
@@ -366,6 +399,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof UstawieniaUprawnieniaRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/ustawienia/usun-konto': {
+      id: '/ustawienia/usun-konto'
+      path: '/ustawienia/usun-konto'
+      fullPath: '/ustawienia/usun-konto'
+      preLoaderRoute: typeof UstawieniaUsunKontoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/ustawienia/wyglad': {
       id: '/ustawienia/wyglad'
       path: '/ustawienia/wyglad'
@@ -380,17 +420,19 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DzienRoute: DzienRoute,
   StatystykiRoute: StatystykiRoute,
+  UsunKontoRoute: UsunKontoRoute,
   WioskaRoute: WioskaRoute,
   ZadaniaRoute: ZadaniaRoute,
   SkupienieAplikacjeRoute: SkupienieAplikacjeRoute,
+  SkupienieNakladkaRoute: SkupienieNakladkaRoute,
   UstawieniaDzienRoute: UstawieniaDzienRoute,
-  UstawieniaKontoRoute: UstawieniaKontoRoute,
-  UstawieniaNakladkaRoute: UstawieniaNakladkaRoute,
+  UstawieniaKalendarzRoute: UstawieniaKalendarzRoute,
   UstawieniaPolitykaPrywatnosciRoute: UstawieniaPolitykaPrywatnosciRoute,
   UstawieniaPowiadomieniaRoute: UstawieniaPowiadomieniaRoute,
   UstawieniaProfilRoute: UstawieniaProfilRoute,
   UstawieniaRegulaminRoute: UstawieniaRegulaminRoute,
   UstawieniaUprawnieniaRoute: UstawieniaUprawnieniaRoute,
+  UstawieniaUsunKontoRoute: UstawieniaUsunKontoRoute,
   UstawieniaWygladRoute: UstawieniaWygladRoute,
   SkupienieIndexRoute: SkupienieIndexRoute,
   UstawieniaIndexRoute: UstawieniaIndexRoute,

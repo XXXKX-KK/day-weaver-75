@@ -17,6 +17,7 @@ import { applyAccent, readAccent } from "@/lib/accent";
 import { applyTheme, readTheme } from "@/lib/theme";
 import { AuthProvider, useAuth } from "@/lib/auth";
 import { AuthScreen } from "@/components/auth-screen";
+import { AccountDeletionPending } from "@/components/account-deletion-pending";
 import { TenaxShield } from "@/components/tenax-shield";
 import { SplashScreen } from "@/components/splash-screen";
 import { describeStartupError } from "@/lib/startup-error";
@@ -274,6 +275,12 @@ function AuthGate({ children }: { children: ReactNode }) {
   }
 
   if (!user) return <AuthScreen />;
+
+  // Konto zgłoszone do usunięcia nie wpada prosto do apki: najpierw mówimy, co
+  // się z nim stanie i kiedy, i dajemy jedno kliknięcie na powrót.
+  if (profile?.deletion_requested_at) {
+    return <AccountDeletionPending requestedAt={profile.deletion_requested_at} />;
+  }
 
   const showOnboarding = !wizardDismissed && (!profile || !profile.onboarding_done);
   const showCoachmark = !coachmarkDismissed && !!profile?.onboarding_done && !profile?.coachmark_done;

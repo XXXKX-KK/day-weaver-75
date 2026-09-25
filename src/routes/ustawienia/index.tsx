@@ -1,23 +1,33 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   Bell,
+  CalendarDays,
   ChevronRight,
   Clock,
   Compass,
-  FileText,
   Palette,
-  Shield,
   ShieldCheck,
   Sprout,
-  Target,
   User,
-  UserCircle,
 } from "lucide-react";
-import { Screen, ScreenHeader } from "@/components/ui-kit";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import {
+  Screen,
+  ScreenHeader,
+  SettingsGroup,
+  SettingsGroupLabel,
+  SettingsTile,
+} from "@/components/ui-kit";
 import { useAuth } from "@/lib/auth";
+import { useProfile } from "@/lib/profile";
 import { useOnboarding } from "@/lib/onboarding-context";
 import { useNavReady } from "@/lib/nav-ready";
+import { Blocker, isNativeBlocker } from "@/lib/blocker";
+import { useCalendarSettings } from "@/lib/calendar";
+import { APP_VERSION } from "@/lib/version";
+import { areNotificationsEnabled, isReminderEnabled, REMINDER_KINDS } from "@/lib/notifications";
+import { ACCENTS, readAccent } from "@/lib/accent";
+import { readTheme } from "@/lib/theme";
 
 export const Route = createFileRoute("/ustawienia/")({
   head: () => ({
@@ -25,27 +35,86 @@ export const Route = createFileRoute("/ustawienia/")({
       { title: "Ustawienia – konfiguracja aplikacji" },
       {
         name: "description",
-        content: "Profil, dzień, wygląd, powiadomienia, uprawnienia i konto.",
+        content: "Profil, plan dnia, skupienie, wygląd i Twój kierunek.",
       },
     ],
   }),
   component: SettingsHub,
 });
 
-const menuItems = [
-  { to: "/ustawienia/dzien", icon: Clock, title: "Dzień", subtitle: "Godziny aktywności" },
-  { to: "/ustawienia/nakladka", icon: Target, title: "Nakładka i skupienie", subtitle: "Notatki i fokus" },
-  { to: "/ustawienia/powiadomienia", icon: Bell, title: "Powiadomienia", subtitle: "Przypomnienia" },
-  { to: "/ustawienia/wyglad", icon: Palette, title: "Wygląd", subtitle: "Motyw, akcent, język" },
-  { to: "/ustawienia/uprawnienia", icon: ShieldCheck, title: "Uprawnienia", subtitle: "Dostęp i bateria" },
-  { to: "/ustawienia/konto", icon: UserCircle, title: "Konto", subtitle: "Email i dane" },
-] as const;
+const hhmm = (value: string | null | undefined) => (value ? value.slice(0, 5) : null);
+
+/** Ile wymaganych uprawnień blokady brakuje — null, dopóki nie wiadomo. */
+function useBlockerPermissions(): number | null {
+  const native = isNativeBlocker();
+  const [missing, setMissing] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!native) return;
+    let cancelled = false;
+    const check = async () => {
+      try {
+        const [usage, overlay, battery] = await Promise.all([
+          Blocker.isUsageAccessGranted(),
+          Blocker.isOverlayGranted(),
+          Blocker.isBatteryOptimizationIgnored(),
+        ]);
+        if (cancelled) return;
+        setMissing([usage, overlay, battery].filter((r) => !r.granted).length);
+      } catch {
+        /* brak odpowiedzi = nie udajemy, że wiemy */
+      }
+    };
+    void check();
+    const onVisible = () => {
+      if (document.visibilityState === "visible") void check();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      cancelled = true;
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [native]);
+
+  return missing;
+}
 
 function SettingsHub() {
   const { user } = useAuth();
+  const { data: profile } = useProfile();
   const { restartCoachmark, restartSurvey } = useOnboarding();
   const { markReady } = useNavReady();
+  const { enabled: calendarOn, supported: calendarSupported } = useCalendarSettings();
+  const missingPermissions = useBlockerPermissions();
   useEffect(markReady, [markReady]);
+
+  // localStorage i motyw czyta się dopiero po stronie klienta.
+  const [look, setLook] = useState<string>("");
+  const [reminders, setReminders] = useState<string>("");
+  useEffect(() => {
+    const accent = readAccent();
+    const accentLabel =
+      accent === "custom"
+        ? "własny"
+        : (ACCENTS.find((a) => a.key === accent)?.label.toLowerCase() ?? "");
+    setLook(`${readTheme() === "light" ? "Jasny" : "Ciemny"}, ${accentLabel}`);
+
+    if (!areNotificationsEnabled()) {
+      setReminders("Wyłączone");
+    } else {
+      const on = REMINDER_KINDS.filter((r) => isReminderEnabled(r.kind)).length;
+      setReminders(
+        on === REMINDER_KINDS.length
+          ? "Włączone"
+          : on === 0
+            ? "Wyłączone"
+            : `Włączone: ${on} z ${REMINDER_KINDS.length}`,
+      );
+    }
+  }, []);
+
+  const dayStart = hhmm(profile?.day_start_time);
+  const dayEnd = hhmm(profile?.day_end_time);
 
   return (
     <Screen>
@@ -55,11 +124,11 @@ function SettingsHub() {
 
       <Link
         to="/ustawienia/profil"
-        className="mb-3 block"
+        className="block"
         style={{ animation: "cascadeIn 0.5s ease-out 0.1s both" }}
       >
         <div className="flex items-center gap-4 rounded-3xl glass px-4 py-4">
-          <span className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-foreground/10 to-foreground/[0.03] border border-foreground/[0.08]">
+          <span className="flex h-12 w-12 items-center justify-center rounded-full border border-foreground/[0.08] bg-gradient-to-br from-foreground/10 to-foreground/[0.03]">
             <User className="h-5 w-5 text-muted-foreground" />
           </span>
           <div className="min-w-0 flex-1">
@@ -72,93 +141,112 @@ function SettingsHub() {
         </div>
       </Link>
 
-      <div className="flex flex-col gap-3">
-        {menuItems.map((item, i) => {
-          const Icon = item.icon;
-          return (
-            <Link
-              key={item.to}
-              to={item.to}
-              className="block"
-              style={{ animation: `cascadeIn 0.5s ease-out ${0.2 + i * 0.06}s both` }}
-            >
-              <div className="flex items-center gap-[14px] rounded-3xl glass px-4 py-[14px]">
-                <span className="flex h-9 w-9 items-center justify-center">
-                  <Icon className="h-[22px] w-[22px] text-muted-foreground" strokeWidth={1.4} />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="text-[16px] font-medium">{item.title}</p>
-                  <p className="mt-px text-[13px] text-muted-foreground">{item.subtitle}</p>
-                </div>
-                <ChevronRight className="h-[14px] w-[14px] shrink-0 text-foreground/[0.18]" />
-              </div>
-            </Link>
-          );
-        })}
-      </div>
+      <SettingsGroupLabel style={{ animation: "cascadeIn 0.5s ease-out 0.16s both" }}>
+        Plan dnia
+      </SettingsGroupLabel>
+      <SettingsGroup>
+        <SettingsTile
+          icon={Clock}
+          title="Godziny dnia"
+          subtitle={dayStart && dayEnd ? `${dayStart}–${dayEnd}` : "Nie ustawione"}
+          to="/ustawienia/dzien"
+          style={{ animation: "cascadeIn 0.5s ease-out 0.2s both" }}
+        />
+        {calendarSupported && (
+          <SettingsTile
+            icon={CalendarDays}
+            title="Kalendarz"
+            subtitle={calendarOn ? "Włączony" : "Wyłączony"}
+            to="/ustawienia/kalendarz"
+            style={{ animation: "cascadeIn 0.5s ease-out 0.26s both" }}
+          />
+        )}
+        <SettingsTile
+          icon={Bell}
+          title="Przypomnienia"
+          subtitle={reminders}
+          to="/ustawienia/powiadomienia"
+          style={{ animation: "cascadeIn 0.5s ease-out 0.32s both" }}
+        />
+      </SettingsGroup>
 
-      <button
-        type="button"
-        onClick={restartCoachmark}
-        className="mt-3 w-full"
-        style={{ animation: `cascadeIn 0.5s ease-out ${0.2 + menuItems.length * 0.06}s both` }}
-      >
-        <div className="flex items-center gap-[14px] rounded-3xl glass px-4 py-[14px]">
-          <span className="flex h-9 w-9 items-center justify-center">
-            <Compass className="h-[22px] w-[22px] text-muted-foreground" strokeWidth={1.4} />
-          </span>
-          <div className="min-w-0 flex-1 text-left">
-            <p className="text-[16px] font-medium">Pokaż samouczek jeszcze raz</p>
-            <p className="mt-px text-[13px] text-muted-foreground">Przejdź ponownie przewodnik po aplikacji</p>
-          </div>
-        </div>
-      </button>
+      {isNativeBlocker() && (
+        <>
+          <SettingsGroupLabel style={{ animation: "cascadeIn 0.5s ease-out 0.38s both" }}>
+            Skupienie
+          </SettingsGroupLabel>
+          <SettingsGroup>
+            <SettingsTile
+              icon={ShieldCheck}
+              title="Uprawnienia blokady"
+              subtitle={
+                missingPermissions === null
+                  ? "Sprawdzam…"
+                  : missingPermissions === 0
+                    ? "Wszystko działa"
+                    : `Brakuje: ${missingPermissions}`
+              }
+              subtitleColor={
+                missingPermissions === null
+                  ? undefined
+                  : missingPermissions === 0
+                    ? "var(--success)"
+                    : "var(--destructive)"
+              }
+              to="/ustawienia/uprawnienia"
+              style={{ animation: "cascadeIn 0.5s ease-out 0.42s both" }}
+            />
+          </SettingsGroup>
+        </>
+      )}
 
-      <button
-        type="button"
-        onClick={restartSurvey}
-        className="mt-3 w-full"
-        style={{ animation: `cascadeIn 0.5s ease-out ${0.2 + (menuItems.length + 1) * 0.06}s both` }}
-      >
-        <div className="flex items-center gap-[14px] rounded-3xl glass px-4 py-[14px]">
-          <span className="flex h-9 w-9 items-center justify-center">
-            <Sprout className="h-[22px] w-[22px] text-muted-foreground" strokeWidth={1.4} />
-          </span>
-          <div className="min-w-0 flex-1 text-left">
-            <p className="text-[16px] font-medium">Powtórz ankietę startową</p>
-            <p className="mt-px text-[13px] text-muted-foreground">Przestaw kierunek i dobierz nawyki od nowa</p>
-          </div>
-        </div>
-      </button>
+      <SettingsGroupLabel style={{ animation: "cascadeIn 0.5s ease-out 0.48s both" }}>
+        Wygląd
+      </SettingsGroupLabel>
+      <SettingsGroup>
+        <SettingsTile
+          icon={Palette}
+          title="Motyw i akcent"
+          subtitle={look}
+          to="/ustawienia/wyglad"
+          style={{ animation: "cascadeIn 0.5s ease-out 0.52s both" }}
+        />
+      </SettingsGroup>
+
+      <SettingsGroupLabel style={{ animation: "cascadeIn 0.5s ease-out 0.58s both" }}>
+        Twój kierunek
+      </SettingsGroupLabel>
+      <SettingsGroup>
+        <SettingsTile
+          icon={Sprout}
+          title="Powtórz ankietę startową"
+          subtitle="Przestaw kierunek i dobierz nawyki od nowa"
+          onClick={restartSurvey}
+          style={{ animation: "cascadeIn 0.5s ease-out 0.62s both" }}
+        />
+        <SettingsTile
+          icon={Compass}
+          title="Pokaż samouczek"
+          subtitle="Przejdź ponownie przewodnik po aplikacji"
+          onClick={restartCoachmark}
+          style={{ animation: "cascadeIn 0.5s ease-out 0.68s both" }}
+        />
+      </SettingsGroup>
 
       <div
-        className="mt-6 flex flex-col gap-3"
-        style={{ animation: `cascadeIn 0.5s ease-out ${0.2 + (menuItems.length + 1) * 0.06}s both` }}
+        className="mt-10 flex flex-col items-center gap-1 text-[13px] text-muted-foreground"
+        style={{ animation: "cascadeIn 0.5s ease-out 0.74s both" }}
       >
-        <Link to="/ustawienia/regulamin" className="block">
-          <div className="flex items-center gap-[14px] rounded-3xl glass px-4 py-[14px]">
-            <span className="flex h-9 w-9 items-center justify-center">
-              <FileText className="h-[22px] w-[22px] text-muted-foreground" strokeWidth={1.4} />
-            </span>
-            <div className="min-w-0 flex-1">
-              <p className="text-[16px] font-medium">Regulamin</p>
-              <p className="mt-px text-[13px] text-muted-foreground">Zasady korzystania z aplikacji</p>
-            </div>
-            <ChevronRight className="h-[14px] w-[14px] shrink-0 text-foreground/[0.18]" />
-          </div>
-        </Link>
-        <Link to="/ustawienia/polityka-prywatnosci" className="block">
-          <div className="flex items-center gap-[14px] rounded-3xl glass px-4 py-[14px]">
-            <span className="flex h-9 w-9 items-center justify-center">
-              <Shield className="h-[22px] w-[22px] text-muted-foreground" strokeWidth={1.4} />
-            </span>
-            <div className="min-w-0 flex-1">
-              <p className="text-[16px] font-medium">Polityka prywatności</p>
-              <p className="mt-px text-[13px] text-muted-foreground">Dane osobowe i uprawnienia</p>
-            </div>
-            <ChevronRight className="h-[14px] w-[14px] shrink-0 text-foreground/[0.18]" />
-          </div>
-        </Link>
+        <p>
+          <Link to="/ustawienia/regulamin" className="underline underline-offset-4">
+            Regulamin
+          </Link>
+          <span className="px-1.5">·</span>
+          <Link to="/ustawienia/polityka-prywatnosci" className="underline underline-offset-4">
+            Polityka prywatności
+          </Link>
+        </p>
+        <p className="text-muted-foreground/60">TENAX v{APP_VERSION}</p>
       </div>
     </Screen>
   );
