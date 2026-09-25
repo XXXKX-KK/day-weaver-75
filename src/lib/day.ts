@@ -77,7 +77,9 @@ export function useYesterday() {
     queryFn: async (): Promise<YesterdayData> => {
       const { data, error } = await supabase
         .from("days")
-        .select(`id, date, status, planned_count, completed_count, streak_counted, day_items(${DAY_ITEM_COLUMNS})`)
+        .select(
+          `id, date, status, planned_count, completed_count, streak_counted, day_items(${DAY_ITEM_COLUMNS})`,
+        )
         .lt("date", today)
         .order("date", { ascending: false })
         .limit(1)
@@ -90,18 +92,51 @@ export function useYesterday() {
   });
 }
 
+/** Any single day's plan, for the summary opened from the stats heatmap.
+ *  `day: null` means that date has no record at all — there was no plan. */
+export function useDaySummary(date: string | null) {
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: ["day-summary", user?.id, date],
+    enabled: isSupabaseConfigured && !!user && !!date,
+    queryFn: async (): Promise<YesterdayData> => {
+      const { data, error } = await supabase
+        .from("days")
+        .select(
+          `id, date, status, planned_count, completed_count, streak_counted, day_items(${DAY_ITEM_COLUMNS})`,
+        )
+        .eq("date", date)
+        .maybeSingle();
+      if (error) throw error;
+      if (!data) return { day: null, items: [] };
+      const { day_items, ...day } = data as DayRow & { day_items: DayItemRow[] };
+      return { day, items: sortItems((day_items ?? []) as DayItemRow[]) };
+    },
+  });
+}
+
 export function useAutoCloseYesterday() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (dayId: string) => {
+    mutationFn: async (day: { id: string; date: string }) => {
       const { error } = await supabase
         .from("days")
         .update({ status: "completed", completed_at: new Date().toISOString() })
-        .eq("id", dayId);
+        .eq("id", day.id);
       if (error) throw error;
+
+      // Closing a day settles whether it earned the streak, so the chain has to
+      // be recounted from it. Failing here must not fail the close itself —
+      // the day is shut either way and the streak is recomputed on the next
+      // growth item anyway.
+      const { error: streakError } = await supabase.rpc("recompute_streak", {
+        target_date: day.date,
+      });
+      if (streakError) console.error("recompute_streak after autoclose failed", streakError);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: YESTERDAY_KEY });
+      queryClient.invalidateQueries({ queryKey: PROFILE_KEY });
     },
   });
 }
@@ -155,7 +190,9 @@ export function useToday() {
       // RLS limits this to the caller's own row. maybeSingle → null before start.
       const { data, error } = await supabase
         .from("days")
-        .select(`id, date, status, planned_count, completed_count, streak_counted, day_items(${DAY_ITEM_COLUMNS})`)
+        .select(
+          `id, date, status, planned_count, completed_count, streak_counted, day_items(${DAY_ITEM_COLUMNS})`,
+        )
         .eq("date", date)
         .maybeSingle();
       if (error) throw error;
@@ -384,13 +421,7 @@ export function useToggleDayItemSubtask() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   return useMutation({
-    mutationFn: async ({
-      item,
-      subtask,
-    }: {
-      item: DayItemRow;
-      subtask: DayItemSubtaskRow;
-    }) => {
+    mutationFn: async ({ item, subtask }: { item: DayItemRow; subtask: DayItemSubtaskRow }) => {
       const next = !subtask.is_done;
       const xpValue = xpValueForItem(item);
       const share = shareForSubtask(item, item.day_item_subtasks, subtask.id);
@@ -406,7 +437,11 @@ export function useToggleDayItemSubtask() {
       const allSubsDone =
         next && item.day_item_subtasks.every((s) => (s.id === subtask.id ? true : s.is_done));
 
-      const parentStatus: DayItemStatus = allSubsDone ? "done" : item.status === "done" && !next ? "pending" : item.status;
+      const parentStatus: DayItemStatus = allSubsDone
+        ? "done"
+        : item.status === "done" && !next
+          ? "pending"
+          : item.status;
       const parentAwarded = allSubsDone ? xpValue : newAwarded;
       const actualDelta = parentAwarded - item.xp_awarded;
 
@@ -416,7 +451,10 @@ export function useToggleDayItemSubtask() {
           xp_value: xpValue,
           xp_awarded: parentAwarded,
           ...(parentStatus !== item.status
-            ? { status: parentStatus, completed_at: parentStatus === "done" ? new Date().toISOString() : null }
+            ? {
+                status: parentStatus,
+                completed_at: parentStatus === "done" ? new Date().toISOString() : null,
+              }
             : {}),
         })
         .eq("id", item.id);
@@ -447,7 +485,11 @@ export function useToggleDayItemSubtask() {
 
       const allSubsDone =
         next && item.day_item_subtasks.every((s) => (s.id === subtask.id ? true : s.is_done));
-      const parentStatus: DayItemStatus = allSubsDone ? "done" : item.status === "done" && !next ? "pending" : item.status;
+      const parentStatus: DayItemStatus = allSubsDone
+        ? "done"
+        : item.status === "done" && !next
+          ? "pending"
+          : item.status;
       const parentAwarded = allSubsDone ? xpValue : newAwarded;
 
       queryClient.setQueriesData<TodayData>({ queryKey: TODAY_KEY }, (old) =>

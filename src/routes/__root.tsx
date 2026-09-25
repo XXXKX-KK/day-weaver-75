@@ -20,7 +20,8 @@ import { AuthScreen } from "@/components/auth-screen";
 import { TenaxShield } from "@/components/tenax-shield";
 import { SplashScreen } from "@/components/splash-screen";
 import { describeStartupError } from "@/lib/startup-error";
-import { useToday } from "@/lib/day";
+import { logClientError, installGlobalErrorLogging } from "@/lib/client-errors";
+import { useToday, useYesterday } from "@/lib/day";
 import { BlockedAppsSync } from "@/components/blocked-apps-sync";
 import { CurrentTaskSync } from "@/components/current-task-sync";
 import { NotificationsSync } from "@/components/notifications-sync";
@@ -62,6 +63,7 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
 
   useEffect(() => {
     reportLovableError(error, { boundary: "tanstack_root_error_component" });
+    logClientError(error, "root_error_component");
     if (retried.current) return undefined;
     retried.current = true;
     const t = setTimeout(() => {
@@ -183,6 +185,8 @@ function RootComponent() {
     applyAccent(readAccent());
   }, []);
 
+  useEffect(() => installGlobalErrorLogging(), []);
+
   // Android back gesture: navigate back instead of exiting the app.
   useEffect(() => {
     let handle: { remove: () => void } | undefined;
@@ -225,6 +229,7 @@ function AuthGate({ children }: { children: ReactNode }) {
   const profileQ = useProfile();
   const { data: profile, isLoading: profileLoading } = profileQ;
   const todayQ = useToday();
+  const yesterdayQ = useYesterday();
   const updateProfile = useUpdateProfile();
   const navigate = useNavigate();
   const [wizardDismissed, setWizardDismissed] = useState(false);
@@ -256,6 +261,7 @@ function AuthGate({ children }: { children: ReactNode }) {
           session: !loading,
           profile: !user || !profileLoading,
           today: !user || !todayQ.isLoading,
+          yesterday: !user || !yesterdayQ.isLoading,
         }}
         error={startupError ? describeStartupError(startupError) : null}
         onRetry={() => {

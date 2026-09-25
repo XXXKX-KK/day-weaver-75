@@ -3,6 +3,9 @@ import StatystykiScreen from "@/components/statystyki/StatystykiScreen";
 import type { StatsSummary, DayProgress } from "@/components/statystyki/types";
 import { useDailyProgress } from "@/lib/stats";
 import { useGamification } from "@/lib/gamification";
+import { useState } from "react";
+import { useDaySummary } from "@/lib/day";
+import { PodsumowanieScreen } from "@/components/podsumowanie-screen";
 
 export const Route = createFileRoute("/statystyki")({
   head: () => ({
@@ -14,7 +17,13 @@ export const Route = createFileRoute("/statystyki")({
   component: StatsRoute,
 });
 
-function buildSummary(days: DayProgress[], level: number, streak: number, totalXp: number, toNext: number): StatsSummary {
+function buildSummary(
+  days: DayProgress[],
+  level: number,
+  streak: number,
+  totalXp: number,
+  toNext: number,
+): StatsSummary {
   let longest = 0;
   let run = 0;
   for (const d of days) {
@@ -45,6 +54,7 @@ function buildSummary(days: DayProgress[], level: number, streak: number, totalX
 function StatsRoute() {
   const daysQ = useDailyProgress();
   const { level, streak, totalXp, toNext } = useGamification();
+  const [openDay, setOpenDay] = useState<string | null>(null);
 
   if (daysQ.isLoading) {
     return (
@@ -80,5 +90,36 @@ function StatsRoute() {
 
   const summary = buildSummary(days, level, streak, totalXp, toNext);
 
-  return <StatystykiScreen summary={summary} viewState="loaded" />;
+  return (
+    <>
+      <StatystykiScreen summary={summary} viewState="loaded" onOpenDay={setOpenDay} />
+      {openDay && <DaySummaryOverlay date={openDay} onClose={() => setOpenDay(null)} />}
+    </>
+  );
+}
+
+/** The summary for one day picked off the heatmap. Loads that day's items on
+ *  demand — the stats series only carries counts, not task titles. */
+function DaySummaryOverlay({ date, onClose }: { date: string; onClose: () => void }) {
+  const { data, isLoading } = useDaySummary(date);
+
+  if (isLoading) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-background">
+        <p className="text-sm text-muted-foreground">Wczytywanie…</p>
+      </div>
+    );
+  }
+
+  const tasks = (data?.items ?? []).map((it) => ({
+    id: it.id,
+    title: it.title,
+    done: it.status === "done",
+  }));
+
+  return (
+    <div className="fixed inset-0 z-50">
+      <PodsumowanieScreen tasks={tasks} date={date} noPlan={!data?.day} onClose={onClose} />
+    </div>
+  );
 }

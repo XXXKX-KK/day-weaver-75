@@ -13,6 +13,8 @@ export interface StatystykiScreenProps {
   summary?: StatsSummary;
   viewState?: ViewState;
   defaultView?: TabView;
+  /** Tapping a day in the grid asks the route to open that day's summary. */
+  onOpenDay?: (iso: string) => void;
 }
 
 const LEVEL_COLORS = ['#181b21', '#0e4429', '#196c3a', '#26a641', '#39d353'];
@@ -47,20 +49,11 @@ function smoothPath(pts: { x: number; y: number }[]): string {
   return d;
 }
 
-interface Selected {
-  label: string;
-  pctInt: number;
-  xp: number;
-  x: number;
-  y: number;
-  w: number;
-  caret: number;
-}
-
 export default function StatystykiScreen({
   summary = MOCK_SUMMARY,
   viewState = 'loaded',
   defaultView = 'postep',
+  onOpenDay,
 }: StatystykiScreenProps) {
   const prefersReduced =
     typeof window !== 'undefined' &&
@@ -69,7 +62,6 @@ export default function StatystykiScreen({
 
   const [view, setView] = useState<TabView>(defaultView);
   const [range, setRange] = useState<RangeKey>('30');
-  const [sel, setSel] = useState<Selected | null>(null);
   const [counts, setCounts] = useState({ streak: 0, longest: 0, level: 0, days: 0 });
 
   const gridRef = useRef<HTMLDivElement | null>(null);
@@ -142,21 +134,7 @@ export default function StatystykiScreen({
   }, [view, isReady]);
 
   const changeView = (v: TabView) => {
-    setSel(null);
     setView(v);
-  };
-
-  const selectDay = (cd: { label: string; pctInt: number; xp: number }, e: React.MouseEvent) => {
-    const card = gridRef.current;
-    if (!card) return;
-    const cr = card.getBoundingClientRect();
-    const rr = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    const cx = rr.left - cr.left + rr.width / 2;
-    const top = rr.top - cr.top + rr.height;
-    const w = 156;
-    let left = cx - w / 2;
-    left = Math.max(8, Math.min(left, cr.width - w - 8));
-    setSel({ ...cd, x: left, y: top, w, caret: cx - left });
   };
 
   // -------- pochodne dane widoku „Postęp" --------
@@ -216,7 +194,7 @@ export default function StatystykiScreen({
       border?: string;
       clickable?: boolean;
       today?: boolean;
-      cd?: { label: string; pctInt: number; xp: number };
+      cd?: { label: string; pctInt: number; xp: number; iso: string };
       cur?: boolean;
     }
     const rows: { day: number; cells: Cell[] }[] = [];
@@ -246,7 +224,7 @@ export default function StatystykiScreen({
             clickable: true,
             today: isToday,
             cur,
-            cd: { label: fmtFull(isoStr), pctInt: Math.round(pct * 100), xp: rec.xp },
+            cd: { label: fmtFull(isoStr), pctInt: Math.round(pct * 100), xp: rec.xp, iso: isoStr },
           });
         } else {
           cells.push({
@@ -255,7 +233,7 @@ export default function StatystykiScreen({
             clickable: true,
             today: isToday,
             cur,
-            cd: { label: fmtFull(isoStr), pctInt: 0, xp: 0 },
+            cd: { label: fmtFull(isoStr), pctInt: 0, xp: 0, iso: isoStr },
           });
         }
       }
@@ -482,11 +460,20 @@ export default function StatystykiScreen({
                         cell.empty ? (
                           <div key={ci} className="aspect-square w-full" />
                         ) : (
-                          <div
+                          <button
                             key={ci}
+                            type="button"
                             {...(cell.today ? { 'data-today': '1' } : {})}
-                            onClick={cell.clickable && cell.cd ? (e) => selectDay(cell.cd!, e) : undefined}
-                            className={`aspect-square w-full rounded-[3px] ${anim('animate-[cellIn_.35s_ease_both]')}`}
+                            disabled={!cell.clickable || !cell.cd}
+                            aria-label={
+                              cell.cd
+                                ? `${cell.cd.label}, ukończono ${cell.cd.pctInt}%, ${cell.cd.xp} XP`
+                                : undefined
+                            }
+                            onClick={cell.cd ? () => onOpenDay?.(cell.cd!.iso) : undefined}
+                            className={`aspect-square w-full rounded-[3px] transition-transform ${
+                              cell.clickable ? 'active:scale-[0.82]' : ''
+                            } ${anim('animate-[cellIn_.35s_ease_both]')}`}
                             style={{
                               background: cell.bg,
                               border: cell.border,
@@ -497,7 +484,8 @@ export default function StatystykiScreen({
                               animationDelay: prefersReduced ? '0ms' : `${Math.min(650, ri * 20 + ci * 6)}ms`,
                             }}
                           />
-                        )
+                        ),
+
                       )}
                     </RowFragment>
                   ))}
@@ -521,32 +509,8 @@ export default function StatystykiScreen({
                 </div>
               </div>
 
-              {/* Dymek */}
-              {sel && (
-                <>
-                  <div onClick={() => setSel(null)} className="fixed inset-0 z-40" />
-                  <div
-                    className={`absolute z-50 rounded-xl bg-foreground/5 px-[13px] py-[11px] shadow-[0_16px_40px_rgba(0,0,0,.6)] backdrop-blur-xl ${anim('animate-[popIn_.18s_ease_both]')}`}
-                    style={{ left: sel.x, top: sel.y + 10, width: sel.w }}
-                  >
-                    <div
-                      className="absolute h-[11px] w-[11px] rotate-45 bg-foreground/5"
-                      style={{ top: -6, left: sel.caret - 6 }}
-                    />
-                    <div className="text-[12.5px] font-bold capitalize text-foreground">{sel.label}</div>
-                    <div className="mt-2 flex justify-between gap-[14px]">
-                      <div>
-                        <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Zrobione</div>
-                        <div className="text-[15px] font-extrabold tabular-nums text-success">{sel.pctInt}%</div>
-                      </div>
-                      <div>
-                        <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">XP</div>
-                        <div className="text-[15px] font-extrabold tabular-nums text-primary">+{sel.xp}</div>
-                      </div>
-                    </div>
-                  </div>
-                </>
-              )}
+              {/* Tapping a day now opens its full summary instead of a tooltip —
+                  one affordance per cell, and it shows the actual task lists. */}
             </div>
           </div>
         )}

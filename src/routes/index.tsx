@@ -83,6 +83,11 @@ function useYesterdaySummary() {
   const [showYesterday, setShowYesterday] = useState(false);
   const [yesterdayTasks, setYesterdayTasks] = useState<{ id: string; title: string; done: boolean }[]>([]);
   const ranForDate = useRef<string | null>(null);
+  // React Query hands back a new mutation object whenever its state moves, so
+  // it can't sit in the dependency list — the effect would re-enter on every
+  // transition of the very mutation it starts.
+  const autoCloseRef = useRef(autoClose);
+  autoCloseRef.current = autoClose;
 
   useEffect(() => {
     if (isLoading || !yesterday?.day) return;
@@ -92,7 +97,7 @@ function useYesterdaySummary() {
     const day = yesterday.day;
 
     if (day.status !== "completed") {
-      autoClose.mutate(day.id);
+      autoCloseRef.current.mutate({ id: day.id, date: day.date });
     }
 
     let lastSeen: string | null = null;
@@ -104,7 +109,7 @@ function useYesterdaySummary() {
       );
       setShowYesterday(true);
     }
-  }, [isLoading, yesterday, autoClose]);
+  }, [isLoading, yesterday]);
 
   const dismiss = () => {
     if (yesterday?.day) {

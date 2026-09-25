@@ -21,13 +21,17 @@ export type SplashStage = {
   session: boolean;
   profile: boolean;
   today: boolean;
+  /** Also waited on so yesterday's summary can open straight off the splash,
+   *  instead of Dziś flashing underneath it for a frame. */
+  yesterday: boolean;
 };
 
-const STAGE_ORDER: (keyof SplashStage)[] = ["session", "profile", "today"];
+const STAGE_ORDER: (keyof SplashStage)[] = ["session", "profile", "today", "yesterday"];
 const WEIGHTS: Record<keyof SplashStage, number> = {
-  session: 25,
-  profile: 40,
-  today: 35,
+  session: 20,
+  profile: 30,
+  today: 30,
+  yesterday: 20,
 };
 
 /** How much has genuinely finished. */
