@@ -8,32 +8,19 @@ import { isNativeBlocker, Blocker, type InstalledApp } from "@/lib/blocker";
 import { useSetAppBlocked } from "@/lib/blocked-apps";
 import { useUpdateProfile } from "@/lib/profile";
 import { toast } from "sonner";
-import type { GrowthArea } from "@/lib/store";
 import { Input } from "@/components/ui/input";
 import {
   type SurveyAnswers,
   type Distraction,
-  type Level,
   DEFAULT_ANSWERS,
-  MAX_AREAS,
-  AREA_OPTIONS,
-  LEVEL_OPTIONS,
-  LEVEL_QUESTION,
   MAINTENANCE_TILES,
   DISTRACTION_OPTIONS,
-  STARTER_HABITS,
-  ANCHOR_REF_WAKE_UP,
-  ANCHOR_REF_AFTER_WORK,
-  tileAnchorRef,
   selectedTiles,
-  growthHabitsFor,
-  anchorTitleFor,
   buildStarterPlan,
   packagesForDistractions,
 } from "@/lib/day-survey";
 
-export const PROMISE_HEADING =
-  "TENAX nie pozwoli Ci scrollować, dopóki nie zrobisz czegoś dla siebie.";
+export const PROMISE_HEADING = "Skup się na tym, co naprawdę chcesz zrobić.";
 
 export function SetupWizard({ onComplete }: { onComplete: () => void }) {
   const [step, setStep] = useState(0);
@@ -159,7 +146,7 @@ function StepPromise({ onNext }: { onNext: () => void }) {
         className="mb-10 max-w-[280px] text-[15px] leading-relaxed text-muted-foreground transition-opacity duration-300"
         style={{ opacity: typeDone ? 1 : 0 }}
       >
-        Wybierzesz jedną rzecz, która Cię pcha do przodu. Reszta poczeka.
+        Zapisz, co masz zrobić. Resztę pilnuje blokada.
       </p>
       <button
         onClick={onNext}
@@ -177,25 +164,15 @@ function StepPromise({ onNext }: { onNext: () => void }) {
   );
 }
 
-/** The survey is a list of screens derived from the answers themselves — pick
- *  two areas and you get two level questions and two anchor questions. */
-type SurveyScreen =
-  | { kind: "areas" }
-  | { kind: "level"; area: GrowthArea }
-  | { kind: "tiles" }
-  | { kind: "anchor"; area: GrowthArea }
-  | { kind: "preview" };
+/**
+ * Two screens, fixed. They used to be derived from the answers — pick two areas
+ * and the survey grew by four screens mid-flow, so the counter jumped from
+ * "1 z 5" to "4 z 7" while the user was reading it. Now the count is known
+ * before the first question and never moves.
+ */
+type SurveyScreen = { kind: "tiles" } | { kind: "preview" };
 
-function surveyScreens(answers: SurveyAnswers): SurveyScreen[] {
-  const levelled = answers.areas.filter((a) => answers.levels[a]);
-  return [
-    { kind: "areas" },
-    ...answers.areas.map((area) => ({ kind: "level" as const, area })),
-    { kind: "tiles" },
-    ...levelled.map((area) => ({ kind: "anchor" as const, area })),
-    { kind: "preview" },
-  ];
-}
+const SURVEY_SCREENS: SurveyScreen[] = [{ kind: "tiles" }, { kind: "preview" }];
 
 function StepSurvey({
   answers,
@@ -207,9 +184,9 @@ function StepSurvey({
   onDone: () => void;
 }) {
   const [index, setIndex] = useState(0);
-  const screens = surveyScreens(answers);
+  const screens = SURVEY_SCREENS;
   const clamped = Math.min(index, screens.length - 1);
-  const screen = screens[clamped] ?? { kind: "areas" as const };
+  const screen = screens[clamped] ?? { kind: "tiles" as const };
 
   const next = () => setIndex(Math.min(clamped + 1, screens.length - 1));
   const back = () => setIndex(Math.max(clamped - 1, 0));
@@ -234,79 +211,11 @@ function StepSurvey({
         {clamped + 1} z {screens.length}
       </p>
 
-      {screen.kind === "areas" && (
-        <QuestionAreas answers={answers} setAnswers={setAnswers} onNext={next} />
-      )}
-      {screen.kind === "level" && (
-        <QuestionLevel
-          area={screen.area}
-          value={answers.levels[screen.area]}
-          onPick={(level) => {
-            setAnswers((a) => ({ ...a, levels: { ...a.levels, [screen.area]: level } }));
-            next();
-          }}
-        />
-      )}
       {screen.kind === "tiles" && (
         <QuestionTiles answers={answers} setAnswers={setAnswers} onNext={next} />
       )}
-      {screen.kind === "anchor" && (
-        <QuestionAnchor
-          area={screen.area}
-          answers={answers}
-          onPick={(ref) => {
-            setAnswers((a) => ({ ...a, anchors: { ...a.anchors, [screen.area]: ref } }));
-            next();
-          }}
-          onSkip={next}
-        />
-      )}
       {screen.kind === "preview" && <PreviewPlan answers={answers} onDone={onDone} />}
     </div>
-  );
-}
-
-function OptionButton({
-  active,
-  label,
-  hint,
-  onClick,
-  delay,
-}: {
-  active: boolean;
-  label: string;
-  hint?: string;
-  onClick: () => void;
-  delay: number;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="flex items-center gap-4 rounded-3xl glass px-4 py-4 text-left transition-colors"
-      style={{
-        animation: `cascadeIn 0.5s ease-out ${delay}s both`,
-        border: active ? "1.5px solid var(--primary)" : "1.5px solid transparent",
-      }}
-    >
-      <span className="flex-1">
-        <span className="block text-[15px] font-semibold">{label}</span>
-        {hint && (
-          <span className="mt-0.5 block text-[13px] text-muted-foreground">{hint}</span>
-        )}
-      </span>
-      <div
-        className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full transition-colors"
-        style={{
-          backgroundColor: active ? "var(--primary)" : "transparent",
-          border: active
-            ? "none"
-            : "1.5px solid color-mix(in oklab, var(--foreground) 20%, transparent)",
-        }}
-      >
-        {active && <Check className="h-3.5 w-3.5 text-primary-foreground" strokeWidth={3} />}
-      </div>
-    </button>
   );
 }
 
@@ -330,107 +239,6 @@ function PrimaryButton({
     >
       {children}
     </button>
-  );
-}
-
-function QuestionAreas({
-  answers,
-  setAnswers,
-  onNext,
-}: {
-  answers: SurveyAnswers;
-  setAnswers: React.Dispatch<React.SetStateAction<SurveyAnswers>>;
-  onNext: () => void;
-}) {
-  const toggle = (area: GrowthArea) => {
-    setAnswers((a) => {
-      if (a.areas.includes(area)) {
-        const areas = a.areas.filter((x) => x !== area);
-        const levels = { ...a.levels };
-        const anchors = { ...a.anchors };
-        delete levels[area];
-        delete anchors[area];
-        return { ...a, areas, levels, anchors };
-      }
-      if (a.areas.length >= MAX_AREAS) {
-        toast("Dwa wystarczą. Zacznij od nich.");
-        return a;
-      }
-      return { ...a, areas: [...a.areas, area] };
-    });
-  };
-
-  return (
-    <>
-      <h1
-        className="mb-2 text-2xl font-extrabold leading-tight"
-        style={{ animation: "cascadeIn 0.5s ease-out 0.05s both" }}
-      >
-        Nad czym pracujesz najpierw?
-      </h1>
-      <p
-        className="mb-6 text-sm leading-relaxed text-muted-foreground"
-        style={{ animation: "cascadeIn 0.5s ease-out 0.1s both" }}
-      >
-        Wybierz maksymalnie dwa. Mniej na start znaczy więcej po miesiącu. Resztę
-        dołożysz, jak te wejdą w krew.
-      </p>
-      <div className="flex flex-col gap-3">
-        {AREA_OPTIONS.map((o, i) => (
-          <OptionButton
-            key={o.value}
-            active={answers.areas.includes(o.value)}
-            label={o.label}
-            hint={o.hint}
-            onClick={() => toggle(o.value)}
-            delay={0.15 + i * 0.06}
-          />
-        ))}
-      </div>
-      <PrimaryButton onClick={onNext} disabled={answers.areas.length === 0} delay={0.4}>
-        Dalej
-        <ChevronRight className="ml-2 h-5 w-5" />
-      </PrimaryButton>
-    </>
-  );
-}
-
-function QuestionLevel({
-  area,
-  value,
-  onPick,
-}: {
-  area: GrowthArea;
-  value: Level | undefined;
-  onPick: (level: Level) => void;
-}) {
-  return (
-    <>
-      <h1
-        className="mb-2 text-2xl font-extrabold leading-tight"
-        style={{ animation: "cascadeIn 0.5s ease-out 0.05s both" }}
-      >
-        {LEVEL_QUESTION[area]}
-      </h1>
-      <p
-        className="mb-6 text-sm text-muted-foreground"
-        style={{ animation: "cascadeIn 0.5s ease-out 0.1s both" }}
-      >
-        Powiedz jak jest, nie jak chciałbyś, żeby było. Od tego zależy, od czego zaczniesz.
-      </p>
-      <div className="flex flex-col gap-3">
-        {LEVEL_OPTIONS[area].map((o, i) => (
-          <OptionButton
-            key={o.value}
-            active={value === o.value}
-            label={o.label}
-            hint={STARTER_HABITS[area][o.value].title}
-            onClick={() => onPick(o.value)}
-            delay={0.15 + i * 0.06}
-          />
-        ))}
-      </div>
-    </>
   );
 }
 
@@ -555,64 +363,6 @@ function QuestionTiles({
   );
 }
 
-function QuestionAnchor({
-  area,
-  answers,
-  onPick,
-  onSkip,
-}: {
-  area: GrowthArea;
-  answers: SurveyAnswers;
-  onPick: (ref: string) => void;
-  onSkip: () => void;
-}) {
-  const level = answers.levels[area];
-  const habit = level ? STARTER_HABITS[area][level] : null;
-  const tiles = selectedTiles(answers);
-  const current = answers.anchors[area];
-
-  const options = [
-    ...tiles.map((t) => ({ ref: tileAnchorRef(t.key), label: t.title })),
-    { ref: ANCHOR_REF_WAKE_UP, label: "Rano, zaraz po wstaniu" },
-    { ref: ANCHOR_REF_AFTER_WORK, label: "Po powrocie z pracy" },
-  ];
-
-  return (
-    <>
-      <h1
-        className="mb-2 text-2xl font-extrabold leading-tight"
-        style={{ animation: "cascadeIn 0.5s ease-out 0.05s both" }}
-      >
-        Po czym zrobisz „{habit?.title ?? ""}"?
-      </h1>
-      <p
-        className="mb-6 text-sm text-muted-foreground"
-        style={{ animation: "cascadeIn 0.5s ease-out 0.1s both" }}
-      >
-        Nawyk doczepiony do czegoś, co już robisz, ma dużo większą szansę przetrwać.
-      </p>
-      <div className="flex flex-col gap-3">
-        {options.map((o, i) => (
-          <OptionButton
-            key={o.ref}
-            active={current === o.ref}
-            label={o.label}
-            onClick={() => onPick(o.ref)}
-            delay={0.15 + i * 0.05}
-          />
-        ))}
-      </div>
-      <button
-        type="button"
-        onClick={onSkip}
-        className="mt-6 h-10 w-full text-sm font-medium text-muted-foreground"
-      >
-        Bez kotwicy
-      </button>
-    </>
-  );
-}
-
 function PreviewPlan({
   answers,
   onDone,
@@ -625,7 +375,6 @@ function PreviewPlan({
   const createPlan = useCreateStarterPlan();
 
   const tiles = selectedTiles(answers);
-  const habits = growthHabitsFor(answers);
 
   const toggle = (key: string) =>
     setExcluded((prev) => {
@@ -639,9 +388,9 @@ function PreviewPlan({
     const plan = buildStarterPlan(answers);
     const filtered = {
       maintenance: plan.maintenance.filter((m) => !excluded.has(`tile:${m.key}`)),
-      growth: plan.growth.filter((g) => !excluded.has(`growth:${g.area}`)),
+      growth: [],
     };
-    if (filtered.maintenance.length === 0 && filtered.growth.length === 0) {
+    if (filtered.maintenance.length === 0) {
       onDone();
       return;
     }
@@ -655,17 +404,7 @@ function PreviewPlan({
     }
   };
 
-  const rows = [
-    ...habits.map(({ area, habit }) => {
-      const anchor = anchorTitleFor(answers, area);
-      return {
-        key: `growth:${area}`,
-        title: anchor ? `${anchor}: ${habit.title}` : habit.title,
-        badge: "Rozwój",
-      };
-    }),
-    ...tiles.map((t) => ({ key: `tile:${t.key}`, title: t.title, badge: "Rutyna" })),
-  ];
+  const rows = tiles.map((t) => ({ key: `tile:${t.key}`, title: t.title, badge: "Rutyna" }));
 
   return (
     <>
@@ -683,6 +422,15 @@ function PreviewPlan({
       </p>
 
       <div className="flex flex-col gap-2">
+        {rows.length === 0 && (
+          <p
+            className="rounded-3xl glass px-4 py-5 text-center text-[14px] text-muted-foreground"
+            style={{ animation: "cascadeIn 0.5s ease-out 0.15s both" }}
+          >
+            Nic nie wybrałeś — zaczniesz z pustym planem. Rutyny i zadania dodasz
+            w każdej chwili w zakładce Zadania.
+          </p>
+        )}
         {rows.map((row, i) => {
           const active = !excluded.has(row.key);
           return (
@@ -942,7 +690,7 @@ function StepDone({ onFinish }: { onFinish: () => void }) {
         className="mb-10 max-w-[280px] text-[15px] leading-relaxed text-muted-foreground"
         style={{ animation: "cascadeIn 0.5s ease-out 0.2s both" }}
       >
-        Rozpocznij dzień i odhacz to jedno, co robisz dla siebie. Reszta jest dodatkiem.
+        Rozpocznij dzień, a plan poprowadzi Cię pozycja po pozycji. Blokada pilnuje reszty.
       </p>
       <button
         onClick={handleFinish}

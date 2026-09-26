@@ -28,12 +28,17 @@ Tailwind v4, Capacitor 8 (Android), Supabase (Postgres + RLS + Auth).
 - Pozycja Rozwoju może mieć kotwicę: `anchor_routine_id` (konkretna rutyna)
   albo `anchor_label` (`wake_up` / `after_work`). Przy składaniu dnia ląduje
   bezpośrednio po swojej kotwicy.
-- XP: Rozwój `10 + priorytet`, utrzymanie i zadania stałe `2`.
-- Passa: dzień zaliczony = wszystkie pozycje Rozwoju zaplanowane na ten dzień
-  zrobione. Dzień bez Rozwoju jest **neutralny** — nie przerywa passy i jej nie
-  podbija. Liczy to `recompute_streak()` po stronie bazy, bo reguła sięga wstecz.
-- `profiles.streak_base` / `streak_base_date` zamrażają passę sprzed
-  wprowadzenia Rozwoju, żeby nie przeliczać historii wstecz.
+- Rozwój jest **opcjonalną sekcją**, nie silnikiem apki: nie ma osobnego wpływu
+  na passę, XP ani blokadę. Apka to planer (ClickUp) plus blokada (Scrolli).
+- XP: każda pozycja `10 + priorytet` — rutyna, zadanie i nawyk Rozwoju tak samo.
+- Passa: dzień zaliczony = zrobione **≥ 45%** wszystkich pozycji planu (rutyny,
+  zadania i Rozwój razem). Dzień z pustym planem jest **neutralny** — nie
+  przerywa passy i jej nie podbija; dzień bez rozpoczętego planu ją przerywa.
+  Dzień raz zaliczony (`days.streak_counted`) zostaje zaliczony, nawet gdy
+  później odznaczysz pozycje. Liczy to `recompute_streak()` po stronie bazy, bo
+  reguła sięga wstecz.
+- `profiles.streak_base` / `streak_base_date` zamrażają passę z dnia zmiany
+  reguły, żeby nikomu nie spadła przy wdrożeniu i żeby nie przeliczać historii.
 
 ## Kalendarz
 

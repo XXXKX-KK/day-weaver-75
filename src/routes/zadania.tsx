@@ -325,7 +325,7 @@ function TasksScreen() {
           tab === "growth" ? (
             <GlassyEmptyState
               title="Brak nawyków Rozwoju"
-              description="Dodaj jedną rzecz, która robi z Ciebie lepszą wersję. To ona napędza passę."
+              description="Miejsce na rzeczy, które robisz dla siebie. Liczą się do planu tak samo jak reszta."
             />
           ) : (
             <GlassyEmptyState

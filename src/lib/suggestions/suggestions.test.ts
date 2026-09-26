@@ -259,6 +259,11 @@ describe("PODCZEPIENIE", () => {
     );
     expect(suggestion?.action).toMatchObject({ title: "Trening 20 min" });
   });
+
+  // Ankieta w wersji 3 nie pyta juz o obszary — bez nich regula ma milczec.
+  it("stays quiet when the survey has no areas", () => {
+    expect(attachRule.evaluate(ctx({ stats: [prysznic] }))).toHaveLength(0);
+  });
 });
 
 describe("LUKA", () => {
@@ -283,6 +288,10 @@ describe("LUKA", () => {
       done14: 2,
     });
     expect(gapRule.evaluate(ctx({ stats: [reading], surveyAreas: ["mind"] }))).toHaveLength(0);
+  });
+
+  it("stays quiet when the survey has no areas", () => {
+    expect(gapRule.evaluate(ctx())).toHaveLength(0);
   });
 });
 

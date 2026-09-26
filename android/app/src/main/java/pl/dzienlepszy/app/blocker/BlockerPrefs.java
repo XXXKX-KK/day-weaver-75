@@ -40,9 +40,6 @@ public final class BlockerPrefs {
     public static final String KEY_BREAK_USED_DATE = "break_used_date";
     public static final String KEY_UNLOCK_UNTIL = "unlock_until";
     public static final String KEY_UNLOCK_PACKAGE = "unlock_package";
-    public static final String KEY_GROWTH_PLANNED_DATE = "growth_planned_date";
-    public static final String KEY_GROWTH_DONE_DATE = "growth_done_date";
-    public static final String KEY_GROWTH_TASKS = "growth_tasks";
 
     public static final int DEFAULT_BREAK_DELAY = 15;
     public static final int DEFAULT_BREAK_DAILY_LIMIT = 3;
@@ -136,50 +133,6 @@ public final class BlockerPrefs {
             // Corrupt value → treat as empty.
         }
         return titles;
-    }
-
-    // ── Growth gate ──
-
-    /**
-     * Mirrors today's Rozwój state. The React layer stamps today's date into
-     * {@link #KEY_GROWTH_PLANNED_DATE} when the running day has at least one
-     * growth item, and into {@link #KEY_GROWTH_DONE_DATE} once one of them is
-     * ticked.
-     *
-     * Dates rather than booleans on purpose: a value left over from yesterday
-     * simply stops matching when the day rolls over, so the gate opens by itself
-     * instead of stranding the user behind a stale plan if the app never gets a
-     * chance to clear it.
-     */
-    public static void setGrowthState(
-            Context context, boolean plannedToday, boolean doneToday, List<String> titles) {
-        String today = todayDate();
-        SharedPreferences.Editor editor = prefs(context).edit();
-        if (plannedToday) {
-            editor.putString(KEY_GROWTH_PLANNED_DATE, today);
-        } else {
-            editor.remove(KEY_GROWTH_PLANNED_DATE);
-        }
-        if (doneToday) {
-            editor.putString(KEY_GROWTH_DONE_DATE, today);
-        } else {
-            editor.remove(KEY_GROWTH_DONE_DATE);
-        }
-        editor.putString(KEY_GROWTH_TASKS, encodeTitles(titles));
-        editor.apply();
-    }
-
-    /** True while today has Rozwój planned and none of it is done yet. */
-    public static boolean requiresGrowthFirst(Context context) {
-        String today = todayDate();
-        SharedPreferences p = prefs(context);
-        if (!today.equals(p.getString(KEY_GROWTH_PLANNED_DATE, ""))) return false;
-        return !today.equals(p.getString(KEY_GROWTH_DONE_DATE, ""));
-    }
-
-    /** Today's Rozwój titles, shown by the overlay while the gate is closed. */
-    public static List<String> getGrowthTasks(Context context) {
-        return decodeTitles(prefs(context).getString(KEY_GROWTH_TASKS, ""));
     }
 
     /**

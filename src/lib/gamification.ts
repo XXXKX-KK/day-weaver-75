@@ -1,5 +1,5 @@
 import { useProfile } from "@/lib/profile";
-import type { Priority, RoutineKind } from "@/lib/store";
+import type { Priority } from "@/lib/store";
 
 /**
  * Pure gamification rules — XP values, level thresholds and subtask splitting.
@@ -48,17 +48,13 @@ export function levelFromXp(totalXp: number): LevelInfo {
 
 const PRIORITY_XP: Record<Priority, number> = { high: 10, normal: 5, low: 0 };
 
-/** Upkeep — maintenance routines and one-off tasks — is worth a flat token
- *  amount. Brushing your teeth should not move the level bar like a workout. */
-const MAINTENANCE_XP = 2;
-
-/** What a day item is worth. Growth keeps the old curve (base 10 + priority);
- *  everything else pays the flat maintenance rate. */
-export function xpValueForItem(item: {
-  priority: Priority;
-  kind?: RoutineKind;
-}): number {
-  if (item.kind !== "growth") return MAINTENANCE_XP;
+/**
+ * What a day item is worth: base ten plus the priority bonus, the same for a
+ * routine, a task and a Rozwój habit. Upkeep briefly paid a flat 2 XP, which
+ * made a full day of small things look like nothing — the planner counts what
+ * the user actually planned, and everything planned counts.
+ */
+export function xpValueForItem(item: { priority: Priority }): number {
   return 10 + PRIORITY_XP[item.priority];
 }
 
@@ -82,7 +78,7 @@ export function subtaskXpShares(xpValue: number, n: number): number[] {
 
 /** XP a specific subtask is worth, by its position in the item's subtask list. */
 export function shareForSubtask(
-  item: { priority: Priority; kind?: RoutineKind },
+  item: { priority: Priority },
   subtasks: { id: string }[],
   subtaskId: string,
 ): number {

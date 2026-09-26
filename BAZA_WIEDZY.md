@@ -462,33 +462,41 @@ Szacowany wolumen danych: ~30 pozycji dnia × 365 dni ≈ 11 tys. wierszy roczni
 
 ---
 
-## 18. Sekcja Rozwój (Etap 1)
+## 18. Sekcja Rozwój (opcja, nie silnik)
 
-Dane autora z 30 dni pokazały, że rzeczy „do pamiętania" (zęby, perfumy,
-suplementy) robione są w ~100%, a rzeczy rozwojowe (trening) leżą. Poprzedni
-system XP i passy nagradzał jedno i drugie tak samo, więc apka potrafiła
-pokazać świetny wynik za dzień, w którym nic się nie posunęło do przodu.
+Decyzja właściciela z 26.09.2026: TENAX to planer (ClickUp) plus blokada
+(Scrolli). Rozwój przestaje sterować apką — zostaje jako sekcja, do której
+użytkownik sam dodaje nawyki, bez osobnego wpływu na passę, XP i blokadę.
+Kolumny `kind`, `area` i kotwice zostają w bazie; nic nie jest usuwane ani
+przeliczane wstecz.
 
 **Podział.** `routines.kind` rozdziela powtarzalne pozycje na `maintenance`
-(utrzymanie) i `growth` (Rozwój: trening, czytanie, nauka, umiejętności).
-Pozycje Rozwoju mają `area` (`body` / `mind` / `money` / `discipline`).
-Zadania (`tasks`) zostają jednorazowe i zawsze utrzymaniowe.
+(utrzymanie) i `growth` (Rozwój). Pozycje Rozwoju mają `area`
+(`body` / `mind` / `money` / `discipline`). Zadania (`tasks`) zostają
+jednorazowe i zawsze utrzymaniowe.
 
 **Kotwice.** Pozycja Rozwoju może wisieć na `anchor_routine_id` (konkretna
 rutyna) albo `anchor_label` (`wake_up` / `after_work`). `start_day()` układa ją
 bezpośrednio po kotwicy, a UI pokazuje podpis „Po: [nazwa kotwicy]".
 
-**XP.** Rozwój `10 + priorytet` (bez zmian). Utrzymanie i zadania: stałe `2`.
+**XP.** Każda pozycja `10 + priorytet` — rutyna, zadanie i nawyk Rozwoju tak
+samo. Krótki epizod ze stałymi `2` XP za utrzymanie jest skasowany; istniejącej
+historii XP nie przeliczamy.
 
-**Passa.** Dzień zaliczony = wszystkie pozycje Rozwoju zaplanowane na ten dzień
-zrobione. Dzień bez żadnej pozycji Rozwoju jest neutralny — nie przerywa passy
-i jej nie podbija. Liczy to `recompute_streak()` w bazie, bo reguła sięga wstecz
-przez dni neutralne. Istniejąca historia nie jest przeliczana: stan passy z dnia
-migracji zamrażają `profiles.streak_base` i `streak_base_date`.
+**Passa.** Dzień zaliczony = zrobione ≥ 45% wszystkich pozycji planu, bez
+rozróżniania `kind`. Dzień z pustym planem jest neutralny (nie przerywa i nie
+podbija), dzień bieżący poniżej progu też nie przerywa, a dzień bez
+rozpoczętego planu przerywa. Dzień raz zaliczony zostaje zaliczony —
+`days.streak_counted` jest tylko zapalane, nigdy gaszone. Liczy to
+`recompute_streak()` w bazie (migracja 21), bo reguła sięga wstecz.
+`profiles.streak_base` / `streak_base_date` zamrażają stan z dnia zmiany reguły,
+więc nikomu passa przy wdrożeniu nie spada.
 
-**Ankieta.** `profiles.survey` (jsonb, `version: 2`) trzyma wybrane obszary,
-poziomy, kafelki utrzymania, kotwice i rozpraszacze. Opcja „Powtórz ankietę
-startową" siedzi w Ustawieniach.
+**Ankieta.** `profiles.survey` (jsonb, `version: 3`) trzyma już tylko kafelki
+utrzymania, własne kafelki i rozpraszacze. Pola `areas` / `levels` / `anchors`
+z wersji 2 są czytane (używają ich reguły sugestii LUKA i PODCZEPIENIE), ale
+nigdy więcej zapisywane — bez nich obie reguły po prostu milczą. Onboarding:
+obietnica → kafelki → podgląd → blokada apek (tylko Android).
 
 ---
 

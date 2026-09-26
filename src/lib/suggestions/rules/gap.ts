@@ -8,10 +8,14 @@ export const GAP_RULE_ID = "gap";
  * LUKA — an area the user named in the survey that has had nothing in the plan.
  * The opening move is the same starter habit the survey would have given them,
  * because a concrete small thing beats renewing the intention.
+ *
+ * The survey stopped asking about areas (version 3), so for anyone who signed
+ * up after that there is nothing to compare against and the rule stays quiet.
  */
 export const gapRule: SuggestionRule = {
   id: GAP_RULE_ID,
   evaluate(ctx) {
+    if (ctx.surveyAreas.length === 0) return [];
     return ctx.surveyAreas
       .filter(
         (area) =>

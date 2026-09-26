@@ -168,31 +168,6 @@ public class BlockerPlugin extends Plugin {
         call.resolve();
     }
 
-    /**
-     * Mirrors today's Rozwój state so the overlay can withhold breaks until the
-     * user has done one thing for themselves. Called on day start and whenever a
-     * growth item is ticked.
-     */
-    @PluginMethod
-    public void setGrowthState(PluginCall call) {
-        boolean planned = Boolean.TRUE.equals(call.getBoolean("planned", false));
-        boolean done = Boolean.TRUE.equals(call.getBoolean("done", false));
-        JSArray titles = call.getArray("titles");
-        List<String> list = new ArrayList<>();
-        if (titles != null) {
-            try {
-                for (String title : titles.<String>toList()) {
-                    if (title != null && !title.trim().isEmpty()) list.add(title.trim());
-                }
-            } catch (JSONException e) {
-                call.reject("Invalid 'titles' array", e);
-                return;
-            }
-        }
-        BlockerPrefs.setGrowthState(getContext(), planned, done, list);
-        call.resolve();
-    }
-
     @PluginMethod
     public void setAccentColor(PluginCall call) {
         String key = call.getString("key", "");

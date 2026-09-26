@@ -17,10 +17,14 @@ function smallHabit(ctx: SuggestionContext, area: GrowthArea) {
  * PODCZEPIENIE — the user has a routine they never miss and an area they said
  * they care about. Hanging one on the other borrows the reliability instead of
  * asking for fresh willpower.
+ *
+ * The survey stopped asking about areas (version 3), so for anyone who signed
+ * up after that there is nothing to hang and the rule stays quiet.
  */
 export const attachRule: SuggestionRule = {
   id: ATTACH_RULE_ID,
   evaluate(ctx) {
+    if (ctx.surveyAreas.length === 0) return [];
     const solid = ctx.stats.filter(
       (s) =>
         s.kind === "maintenance" &&

@@ -128,7 +128,7 @@ export function useAutoCloseYesterday() {
       // Closing a day settles whether it earned the streak, so the chain has to
       // be recounted from it. Failing here must not fail the close itself —
       // the day is shut either way and the streak is recomputed on the next
-      // growth item anyway.
+      // item the user ticks anyway.
       const { error: streakError } = await supabase.rpc("recompute_streak", {
         target_date: day.date,
       });
@@ -304,9 +304,10 @@ async function persistXpDelta(queryClient: QueryClient, delta: number) {
 /**
  * Recompute the streak server-side.
  *
- * The rule spans past days — a day with no growth item is neutral and must not
- * break the chain — so it can't be derived from today's items alone. The DB
- * walks the history, stops at the pre-Rozwój baseline and returns the result.
+ * The rule spans past days — a day with an empty plan is neutral and must not
+ * break the chain, and a day that once passed 45% stays passed — so it can't be
+ * derived from today's items alone. The DB walks the history, stops at the
+ * frozen baseline and returns the result.
  */
 async function syncStreak(queryClient: QueryClient) {
   const { data, error } = await supabase.rpc("recompute_streak", {
@@ -331,8 +332,8 @@ type SetItemStatusInput = {
  * xp_awarded tracks the item's running contribution; days.completed_count is
  * maintained by a DB trigger — never set it here.
  *
- * Streak: only growth items move it, and the rule spans past days, so it is
- * recomputed server-side rather than nudged from here.
+ * Streak: every item counts towards the 45% threshold, and the rule spans past
+ * days, so it is recomputed server-side rather than nudged from here.
  */
 export function useSetItemStatus() {
   const queryClient = useQueryClient();
@@ -368,8 +369,9 @@ export function useSetItemStatus() {
 
       if (user) await persistXpDelta(queryClient, delta);
 
-      // Only growth moves the streak; upkeep never does.
-      if (user && item.kind === "growth") await syncStreak(queryClient);
+      // Any item can tip the day over the threshold, so the streak is
+      // recomputed after every toggle.
+      if (user) await syncStreak(queryClient);
     },
     onMutate: async ({ item }: SetItemStatusInput) => {
       await queryClient.cancelQueries({ queryKey: TODAY_KEY });
@@ -460,7 +462,7 @@ export function useToggleDayItemSubtask() {
       if (user) await persistXpDelta(queryClient, actualDelta);
 
       // The streak only shifts when the parent item itself flips done/undone.
-      if (user && item.kind === "growth" && parentStatus !== item.status) {
+      if (user && parentStatus !== item.status) {
         await syncStreak(queryClient);
       }
     },
@@ -608,20 +610,6 @@ export function useCurrentTaskNativeSync() {
     return [];
   }, [undoneTitles, profile?.focus_notes_enabled, focusNotes]);
 
-  // Drives the overlay's "najpierw jedna rzecz dla siebie" gate. A day that
-  // isn't running, or has nothing from Rozwój in it, leaves the gate open.
-  const growthState = useMemo(() => {
-    if (!data || data.status !== "in_progress") {
-      return { planned: false, done: false, titles: [] as string[] };
-    }
-    const growth = data.items.filter((i) => i.kind === "growth");
-    return {
-      planned: growth.length > 0,
-      done: growth.some((i) => i.status === "done"),
-      titles: growth.filter((i) => i.status !== "done").map((i) => i.title),
-    };
-  }, [data]);
-
   useEffect(() => {
     if (!native || data === undefined) return;
     Blocker.setDayTasks({ titles: titlesToSync }).catch((e) =>
@@ -630,8 +618,5 @@ export function useCurrentTaskNativeSync() {
     Blocker.setCurrentTask({ title: titlesToSync[0] ?? "" }).catch((e) =>
       console.error("sync current task -> prefs failed", e),
     );
-    Blocker.setGrowthState(growthState).catch((e) =>
-      console.error("sync growth state -> prefs failed", e),
-    );
-  }, [native, data, titlesToSync, growthState]);
+  }, [native, data, titlesToSync]);
 }

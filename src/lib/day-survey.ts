@@ -1,19 +1,24 @@
 import type { StarterPlan } from "@/lib/routines";
-import type { AnchorLabel, GrowthArea, Priority } from "@/lib/store";
+import type { GrowthArea, Priority } from "@/lib/store";
 
 /**
- * The starter survey. It asks what the user wants to become, not how their
- * calendar looks — the answers turn straight into one or two growth habits plus
- * the upkeep they already do, instead of generic "deep work" blocks nobody ran.
+ * The starter survey. It asks the two things onboarding actually needs: what
+ * the user keeps forgetting day to day, and what pulls them off the phone. The
+ * answers turn straight into upkeep routines plus a pre-ticked block list.
  *
- * The answers are persisted to profiles.survey so later suggestion rules can
- * read what the user picked. `version` guards that shape.
+ * Direction-of-growth questions (area, level, anchor) are gone — the app is a
+ * planner with a blocker, not a coach. Rozwój stays as a section the user can
+ * add to by hand, so the types below still carry the old fields as optional:
+ * surveys saved under version 2 keep parsing, and the suggestion rules that
+ * read them go quiet on their own when they are missing.
+ *
+ * The answers are persisted to profiles.survey; `version` guards that shape.
  */
 
-export const SURVEY_VERSION = 2;
+export const SURVEY_VERSION = 3;
 
-/** How far along the user already is in an area. Labels differ per area, the
- *  scale doesn't. */
+/** How far along the user already is in an area. Only read from surveys saved
+ *  under version 2 — nothing asks for it any more. */
 export type Level = "none" | "irregular" | "regular";
 
 export type Distraction = "social" | "video" | "games" | "other";
@@ -23,25 +28,20 @@ export type CustomTile = { title: string; weekdays: number[] };
 /** Shape stored in profiles.survey. Snake_case because it's data at rest. */
 export type SurveyAnswers = {
   version: number;
-  /** At most two — the whole point of the first question. */
-  areas: GrowthArea[];
-  levels: Partial<Record<GrowthArea, Level>>;
   maintenance_tiles: string[];
   custom_tiles: CustomTile[];
-  /** Area → anchor ref: "tile:<key>" | "label:wake_up" | "label:after_work". */
-  anchors: Partial<Record<GrowthArea, string>>;
   distractions: Distraction[];
+  /** Version 2 only. Never written any more, still read by the suggestion
+   *  rules for accounts that answered the old survey. */
+  areas?: GrowthArea[];
+  levels?: Partial<Record<GrowthArea, Level>>;
+  anchors?: Partial<Record<GrowthArea, string>>;
 };
-
-export const MAX_AREAS = 2;
 
 export const DEFAULT_ANSWERS: SurveyAnswers = {
   version: SURVEY_VERSION,
-  areas: [],
-  levels: {},
   maintenance_tiles: [],
   custom_tiles: [],
-  anchors: {},
   distractions: [],
 };
 
@@ -49,47 +49,10 @@ const ALL_DAYS = [1, 2, 3, 4, 5, 6, 7];
 const MON_WED_FRI = [1, 3, 5];
 const WORKDAYS = [1, 2, 3, 4, 5];
 
-export const AREA_OPTIONS: { value: GrowthArea; label: string; hint: string }[] = [
-  { value: "body", label: "Ciało", hint: "trening, forma" },
-  { value: "mind", label: "Głowa", hint: "czytanie, nauka" },
-  { value: "money", label: "Pieniądze", hint: "nowa umiejętność, dodatkowy zarobek" },
-  { value: "discipline", label: "Dyscyplina", hint: "sen, poranek, telefon" },
-];
-
-export const LEVEL_QUESTION: Record<GrowthArea, string> = {
-  body: "Jak jest teraz z treningiem?",
-  mind: "Jak jest teraz z czytaniem?",
-  money: "Jak jest teraz z zarabianiem i umiejętnościami?",
-  discipline: "Jak jest teraz z dyscypliną?",
-};
-
-export const LEVEL_OPTIONS: Record<GrowthArea, { value: Level; label: string }[]> = {
-  body: [
-    { value: "none", label: "Nie trenuję" },
-    { value: "irregular", label: "Nieregularnie" },
-    { value: "regular", label: "Regularnie" },
-  ],
-  mind: [
-    { value: "none", label: "Nie czytam" },
-    { value: "irregular", label: "Czasem" },
-    { value: "regular", label: "Regularnie" },
-  ],
-  money: [
-    { value: "none", label: "Nic nie robię w tym kierunku" },
-    { value: "irregular", label: "Coś zaczynam" },
-    { value: "regular", label: "Mam projekt" },
-  ],
-  discipline: [
-    { value: "none", label: "Telefon rządzi" },
-    { value: "irregular", label: "Bywa różnie" },
-    { value: "regular", label: "Ogarniam" },
-  ],
-};
-
 export type StarterHabit = { title: string; weekdays: number[] };
 
-/** The one growth habit each answer opens with. Deliberately small — the level
- *  sets the size, not the ambition. */
+/** Small opening habits per area. Onboarding no longer offers them; they are
+ *  what the suggestion rules propose when they have an area to work with. */
 export const STARTER_HABITS: Record<GrowthArea, Record<Level, StarterHabit>> = {
   body: {
     none: { title: "10 pompek", weekdays: ALL_DAYS },
@@ -195,24 +158,6 @@ export function packagesForDistractions(picked: Distraction[]): Set<string> {
   return out;
 }
 
-export const ANCHOR_REF_WAKE_UP = "label:wake_up";
-export const ANCHOR_REF_AFTER_WORK = "label:after_work";
-
-export function tileAnchorRef(tileKey: string): string {
-  return `tile:${tileKey}`;
-}
-
-function parseAnchor(ref: string | undefined): {
-  anchorKey?: string;
-  anchor_label?: AnchorLabel;
-} {
-  if (!ref) return {};
-  if (ref.startsWith("tile:")) return { anchorKey: ref.slice("tile:".length) };
-  if (ref === ANCHOR_REF_WAKE_UP) return { anchor_label: "wake_up" };
-  if (ref === ANCHOR_REF_AFTER_WORK) return { anchor_label: "after_work" };
-  return {};
-}
-
 /** Every tile the user ends up with, preset or hand-written, in one list. */
 export function selectedTiles(answers: SurveyAnswers): MaintenanceTile[] {
   const preset = MAINTENANCE_TILES.filter((t) => answers.maintenance_tiles.includes(t.key));
@@ -224,32 +169,8 @@ export function selectedTiles(answers: SurveyAnswers): MaintenanceTile[] {
   return [...preset, ...custom];
 }
 
-/** Human-readable anchor for the preview screen ("Po prysznicu: 10 pompek"). */
-export function anchorTitleFor(
-  answers: SurveyAnswers,
-  area: GrowthArea,
-): string | null {
-  const ref = answers.anchors[area];
-  if (!ref) return null;
-  if (ref === ANCHOR_REF_WAKE_UP) return "Rano, zaraz po wstaniu";
-  if (ref === ANCHOR_REF_AFTER_WORK) return "Po powrocie z pracy";
-  const key = ref.startsWith("tile:") ? ref.slice("tile:".length) : null;
-  if (!key) return null;
-  return selectedTiles(answers).find((t) => t.key === key)?.title ?? null;
-}
-
-/** The growth habit the answers add up to, per picked area. */
-export function growthHabitsFor(
-  answers: SurveyAnswers,
-): { area: GrowthArea; habit: StarterHabit }[] {
-  return answers.areas.flatMap((area) => {
-    const level = answers.levels[area];
-    if (!level) return [];
-    return [{ area, habit: STARTER_HABITS[area][level] }];
-  });
-}
-
-/** Turn the answers into the rows onboarding will insert. */
+/** Turn the answers into the rows onboarding will insert. Upkeep only —
+ *  onboarding no longer puts anything from Rozwój into the plan. */
 export function buildStarterPlan(answers: SurveyAnswers): StarterPlan {
   const normal: Priority = "normal";
 
@@ -261,14 +182,5 @@ export function buildStarterPlan(answers: SurveyAnswers): StarterPlan {
     subtasks: [],
   }));
 
-  const growth = growthHabitsFor(answers).map(({ area, habit }) => ({
-    title: habit.title,
-    priority: normal,
-    weekdays: habit.weekdays,
-    subtasks: [],
-    area,
-    ...parseAnchor(answers.anchors[area]),
-  }));
-
-  return { maintenance, growth };
+  return { maintenance, growth: [] };
 }
