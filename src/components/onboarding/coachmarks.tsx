@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { createPortal } from "react-dom";
 import { useUpdateProfile } from "@/lib/profile";
@@ -10,10 +10,15 @@ interface Rect {
   height: number;
 }
 
-const PAD = 6;
 const TOOLTIP_WIDTH = 280;
+/** Margines od krawędzi ekranu (poza bezpiecznym obszarem, ten dokłada CSS). */
 const MARGIN = 12;
-const TOOLTIP_HEIGHT_EST = 190;
+/** Odstęp między pierścieniem podświetlenia a dymkiem. */
+const GAP = 14;
+/** Szczelina między elementem a pierścieniem i grubość samego pierścienia. */
+const RING_GAP = 3;
+const RING_WIDTH = 1.5;
+const ARROW = 13;
 
 interface StepDef {
   id: number;
@@ -28,21 +33,20 @@ const STEPS: StepDef[] = [
     route: "/",
     targetIds: ["start-day"],
     content:
-      "Tu zaczynasz dzień — jednym przyciskiem odhaczasz rutyny i zadania po kolei.",
+      "Tu zaczynasz dzień. Jeden przycisk układa plan z rutyn i zadań, a potem prowadzi Cię po kolei.",
   },
   {
     id: 2,
     route: "/",
     targetIds: ["progress", "streak"],
-    content:
-      "Tu widzisz swój poziom i passę — dotknij, żeby zobaczyć statystyki i siatkę nawyków.",
+    content: "Tu widzisz poziom i passę. Dotknij, żeby zobaczyć statystyki i siatkę dni.",
   },
   {
     id: 3,
     route: "/",
     targetIds: ["nav-skupienie"],
     content:
-      "A tutaj włączasz blokadę rozpraszaczy, żeby nic nie przerwało Ci planu.",
+      "Tu włączasz blokadę rozpraszaczy. Wybierasz aplikacje, które mają poczekać, aż skończysz.",
   },
 ];
 
@@ -59,7 +63,10 @@ function getElRect(targetId: string): { rect: Rect; borderRadius: string } | nul
 
 function unionRects(rects: Rect[]): Rect {
   if (rects.length === 1) return rects[0]!;
-  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  let minX = Infinity,
+    minY = Infinity,
+    maxX = -Infinity,
+    maxY = -Infinity;
   for (const r of rects) {
     minX = Math.min(minX, r.left);
     minY = Math.min(minY, r.top);
@@ -69,28 +76,43 @@ function unionRects(rects: Rect[]): Rect {
   return { top: minY, left: minX, width: maxX - minX, height: maxY - minY };
 }
 
+/**
+ * Zaokrąglenie pierścienia. Przy jednym celu bierzemy je wprost z elementu
+ * (pigułka zostaje pigułką, karta kartą). Przy kilku celach — wspólne, jeśli
+ * wszystkie mają to samo; inaczej łagodny kompromis, bo prostokąt obejmujący
+ * dwie różne rzeczy i tak nie jest kształtem żadnej z nich.
+ */
+function ringRadius(items: { borderRadius: string }[]): string {
+  if (items.length === 0) return "16px";
+  const first = items[0]!.borderRadius;
+  return items.every((i) => i.borderRadius === first) ? first : "16px";
+}
+
 interface TargetInfo {
   rects: { rect: Rect; borderRadius: string }[];
   union: Rect;
   borderRadius: string;
 }
 
-const GLASS_BG = "rgba(255,255,255,0.08)";
-const GLASS_BORDER = "1.5px solid var(--primary)";
-const GLASS_BACKDROP = "blur(20px) saturate(1.4)";
-const GLASS_SHADOW = "0 18px 40px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06)";
+const clamp = (v: number, min: number, max: number) =>
+  Math.min(Math.max(v, min), Math.max(min, max));
 
 export function Coachmarks({ onDone }: { onDone: () => void }) {
   const [stepIndex, setStepIndex] = useState(0);
   const [target, setTarget] = useState<TargetInfo | null>(null);
   const [searchDone, setSearchDone] = useState(false);
   const [mounted, setMounted] = useState(false);
+  /** Prawdziwa wysokość dymka. Liczona z pomiaru, nie z szacunku — przy
+   *  szacunku dymek potrafił wjechać na podświetlenie albo za ekran. */
+  const [cardHeight, setCardHeight] = useState(0);
+  const cardRef = useRef<HTMLDivElement | null>(null);
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const updateProfile = useUpdateProfile();
 
   const step = STEPS[stepIndex];
   const isLast = stepIndex + 1 >= STEPS.length;
+  const showSpotlight = !!target && searchDone && !!step && pathname === step.route;
 
   useEffect(() => setMounted(true), []);
 
@@ -139,9 +161,11 @@ export function Coachmarks({ onDone }: { onDone: () => void }) {
             if (info) fresh.push(info);
           }
           if (fresh.length > 0) {
-            const u = unionRects(fresh.map((f) => f.rect));
-            const br = fresh.length === 1 ? fresh[0]!.borderRadius : "16px";
-            setTarget({ rects: fresh, union: u, borderRadius: br });
+            setTarget({
+              rects: fresh,
+              union: unionRects(fresh.map((f) => f.rect)),
+              borderRadius: ringRadius(fresh),
+            });
           }
           setSearchDone(true);
         }, 80);
@@ -177,9 +201,11 @@ export function Coachmarks({ onDone }: { onDone: () => void }) {
         if (info) results.push(info);
       }
       if (results.length > 0) {
-        const u = unionRects(results.map((r) => r.rect));
-        const br = results.length === 1 ? results[0]!.borderRadius : "16px";
-        setTarget({ rects: results, union: u, borderRadius: br });
+        setTarget({
+          rects: results,
+          union: unionRects(results.map((r) => r.rect)),
+          borderRadius: ringRadius(results),
+        });
       }
     }
     window.addEventListener("resize", update);
@@ -189,6 +215,18 @@ export function Coachmarks({ onDone }: { onDone: () => void }) {
       window.removeEventListener("scroll", update, true);
     };
   }, [step]);
+
+  // Pomiar dymka. ResizeObserver, bo tekst kroku zmienia wysokość, a przy
+  // wąskim ekranie zawija się na inną liczbę linii.
+  useLayoutEffect(() => {
+    const el = cardRef.current;
+    if (!el) return;
+    const measure = () => setCardHeight(el.offsetHeight);
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [mounted, stepIndex, showSpotlight]);
 
   function finish() {
     updateProfile.mutate({ coachmark_done: true });
@@ -207,45 +245,41 @@ export function Coachmarks({ onDone }: { onDone: () => void }) {
 
   if (!mounted || !step) return null;
 
-  const showSpotlight = !!target && searchDone && pathname === step.route;
   const vh = window.innerHeight;
   const vw = window.innerWidth;
-
   const rect = target?.union;
 
-  let tooltipTop: number;
-  let arrowAbove: boolean;
-  if (showSpotlight && rect) {
-    const belowTop = rect.top + rect.height + PAD * 2 + 10;
-    if (belowTop + TOOLTIP_HEIGHT_EST <= vh - MARGIN) {
-      tooltipTop = belowTop;
-      arrowAbove = false;
-    } else {
-      tooltipTop = rect.top - PAD - 10 - TOOLTIP_HEIGHT_EST;
-      arrowAbove = true;
-    }
-    tooltipTop = Math.max(
-      MARGIN,
-      Math.min(tooltipTop, vh - TOOLTIP_HEIGHT_EST - MARGIN),
-    );
-  } else {
-    tooltipTop = vh / 2 - TOOLTIP_HEIGHT_EST / 2;
-    arrowAbove = false;
-  }
+  // Zewnętrzna krawędź pierścienia — od niej liczy się odstęp dymka, więc
+  // dymek nie ma jak wejść na podświetlenie.
+  const ringOut = RING_GAP + RING_WIDTH;
+  const spotTop = rect ? rect.top - ringOut : 0;
+  const spotBottom = rect ? rect.top + rect.height + ringOut : 0;
 
-  const tooltipLeft = showSpotlight && rect
-    ? Math.min(
-        Math.max(MARGIN, rect.left + rect.width / 2 - TOOLTIP_WIDTH / 2),
-        vw - TOOLTIP_WIDTH - MARGIN,
-      )
-    : vw / 2 - TOOLTIP_WIDTH / 2;
+  const roomBelow = vh - spotBottom - GAP - MARGIN;
+  const roomAbove = spotTop - GAP - MARGIN;
+  const below = !rect || cardHeight <= roomBelow || roomBelow >= roomAbove;
 
-  const arrowTargets = showSpotlight && target
-    ? target.rects.map((t) => {
-        const cx = t.rect.left + t.rect.width / 2;
-        return Math.min(Math.max(16, cx - tooltipLeft), TOOLTIP_WIDTH - 16);
-      })
-    : [TOOLTIP_WIDTH / 2];
+  const tooltipTop =
+    showSpotlight && rect
+      ? below
+        ? spotBottom + GAP
+        : spotTop - GAP - cardHeight
+      : vh / 2 - cardHeight / 2;
+
+  const tooltipLeft =
+    showSpotlight && rect
+      ? clamp(rect.left + rect.width / 2 - TOOLTIP_WIDTH / 2, MARGIN, vw - TOOLTIP_WIDTH - MARGIN)
+      : vw / 2 - TOOLTIP_WIDTH / 2;
+
+  // Jeden dziobek na krok, wycelowany w środek całego podświetlenia — także
+  // wtedy, gdy krok obejmuje dwa elementy naraz.
+  const arrowLeft =
+    showSpotlight && rect
+      ? clamp(rect.left + rect.width / 2 - tooltipLeft, 18, TOOLTIP_WIDTH - 18)
+      : TOOLTIP_WIDTH / 2;
+
+  const surface = "var(--popover)";
+  const edge = `${RING_WIDTH}px solid var(--primary)`;
 
   const overlay = (
     <>
@@ -255,13 +289,14 @@ export function Coachmarks({ onDone }: { onDone: () => void }) {
         <div
           className="fixed z-[95] transition-all duration-200 ease-out"
           style={{
-            top: rect.top - PAD,
-            left: rect.left - PAD,
-            width: rect.width + PAD * 2,
-            height: rect.height + PAD * 2,
+            top: rect.top,
+            left: rect.left,
+            width: rect.width,
+            height: rect.height,
+            // Pierścień idzie po kształcie elementu, ze szczeliną w kolorze tła:
+            // najpierw przerwa, potem akcent, na końcu przyciemnienie reszty.
             borderRadius: target.borderRadius,
-            border: "2px solid var(--primary)",
-            boxShadow: "0 0 0 9999px rgba(0,0,0,0.65)",
+            boxShadow: `0 0 0 ${RING_GAP}px var(--background), 0 0 0 ${ringOut}px var(--primary), 0 0 0 9999px rgba(0,0,0,0.65)`,
             pointerEvents: "none",
           }}
         />
@@ -270,43 +305,34 @@ export function Coachmarks({ onDone }: { onDone: () => void }) {
       )}
 
       <div
+        ref={cardRef}
         className="fixed z-[96] rounded-2xl p-4 text-card-foreground transition-all duration-200 ease-out"
         style={{
-          top: tooltipTop,
+          // JS liczy miejsce, a CSS pilnuje bezpiecznego obszaru: clamp z env()
+          // rozstrzyga się dopiero przy malowaniu, więc zna prawdziwy notch.
+          top: `clamp(calc(env(safe-area-inset-top, 0px) + ${MARGIN}px), ${Math.round(tooltipTop)}px, calc(100dvh - env(safe-area-inset-bottom, 0px) - ${MARGIN}px - ${cardHeight}px))`,
           left: tooltipLeft,
           width: TOOLTIP_WIDTH,
-          background: GLASS_BG,
-          border: GLASS_BORDER,
-          backdropFilter: GLASS_BACKDROP,
-          WebkitBackdropFilter: GLASS_BACKDROP,
-          boxShadow: GLASS_SHADOW,
+          background: surface,
+          border: edge,
+          boxShadow: "0 18px 40px rgba(0,0,0,0.5)",
         }}
       >
-        {showSpotlight &&
-          arrowTargets.map((arrowLeft, i) => (
-            <div
-              key={i}
-              className="absolute h-3 w-3 rotate-45"
-              style={{
-                background: GLASS_BG,
-                backdropFilter: GLASS_BACKDROP,
-                WebkitBackdropFilter: GLASS_BACKDROP,
-                ...(arrowAbove
-                  ? {
-                      left: arrowLeft - 6,
-                      bottom: -7,
-                      borderRight: GLASS_BORDER,
-                      borderBottom: GLASS_BORDER,
-                    }
-                  : {
-                      left: arrowLeft - 6,
-                      top: -7,
-                      borderLeft: GLASS_BORDER,
-                      borderTop: GLASS_BORDER,
-                    }),
-              }}
-            />
-          ))}
+        {showSpotlight && (
+          <span
+            aria-hidden
+            className="absolute h-[13px] w-[13px] rotate-45"
+            style={{
+              left: arrowLeft - ARROW / 2,
+              // Wchodzi pod krawędź dymka i zamalowuje jej odcinek swoim tłem,
+              // więc dziobek i ramka czytają się jako jeden kształt.
+              ...(below
+                ? { top: -ARROW / 2 - 1, borderLeft: edge, borderTop: edge }
+                : { bottom: -ARROW / 2 - 1, borderRight: edge, borderBottom: edge }),
+              background: surface,
+            }}
+          />
+        )}
 
         <p className="relative text-[14px] leading-snug">{step.content}</p>
 
@@ -321,14 +347,27 @@ export function Coachmarks({ onDone }: { onDone: () => void }) {
           <button
             type="button"
             onClick={next}
-            className="accent-gradient min-h-[40px] rounded-full px-4 text-[13.5px] font-bold text-primary-foreground transition-transform active:scale-[0.97]"
+            className="min-h-[40px] rounded-full px-4 text-[13.5px] font-bold text-primary-foreground transition-transform active:scale-[0.97]"
+            style={{ background: "var(--primary)" }}
           >
             {isLast ? "Gotowe" : "Dalej"}
           </button>
         </div>
 
-        <div className="mt-2.5 text-center text-[11px] text-muted-foreground">
-          {step.id} z {STEPS.length}
+        <div className="mt-3 flex items-center justify-center gap-1.5">
+          {STEPS.map((s, i) => (
+            <span
+              key={s.id}
+              className="h-1.5 rounded-full transition-all duration-200"
+              style={{
+                width: i === stepIndex ? 18 : 6,
+                background:
+                  i === stepIndex
+                    ? "var(--primary)"
+                    : "color-mix(in oklab, var(--foreground) 22%, transparent)",
+              }}
+            />
+          ))}
         </div>
       </div>
     </>

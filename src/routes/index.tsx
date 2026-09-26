@@ -136,6 +136,24 @@ function Today() {
     if (!isLoading && !isError) markReady();
   }, [isLoading, isError, markReady]);
 
+  // Wszystkie hooki muszą stać przed pierwszym warunkowym returnem. Te trzy
+  // siedziały niżej, za stanem ładowania: przy zimnym starcie pierwszy render
+  // kończył się na wcześniejszym returnie i wykonywał ich mniej niż kolejny,
+  // co React zgłasza jako #310 („Rendered more hooks than during the previous
+  // render") i cały ekran leciał w ErrorComponent.
+  const { data: allTasks } = useTasks();
+  const { data: profile } = useProfile();
+
+  /** Akcja kontaktu per zadanie. Musi działać także bez danych — przy pierwszym
+   *  renderze `allTasks` jest jeszcze puste, a hook i tak musi się wykonać. */
+  const contactActionMap = useMemo<Record<string, ContactActionType | null>>(() => {
+    const map: Record<string, ContactActionType | null> = {};
+    for (const t of allTasks ?? []) {
+      map[t.id] = t.contact_action;
+    }
+    return map;
+  }, [allTasks]);
+
   const lastDateRef = useRef(todayLocalISO());
   useEffect(() => {
     const onVisible = () => {
@@ -224,21 +242,11 @@ function Today() {
     );
   }
 
-  const { data: allTasks } = useTasks();
-  const { data: profile } = useProfile();
   const showEndDay = isEveningWindow(profile?.day_end_time);
   const items = today.items;
   const done = items.filter((i) => i.status === "done").length;
   const total = items.length;
   const percent = total ? Math.round((done / total) * 100) : 0;
-
-  const contactActionMap = useMemo<Record<string, ContactActionType | null>>(() => {
-    const map: Record<string, ContactActionType | null> = {};
-    for (const t of allTasks ?? []) {
-      map[t.id] = t.contact_action;
-    }
-    return map;
-  }, [allTasks]);
 
   if (today.status === "completed") {
     const unfinished = items.filter((i) => i.status !== "done");

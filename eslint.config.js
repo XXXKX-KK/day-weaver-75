@@ -20,6 +20,10 @@ export default tseslint.config(
     },
     rules: {
       ...reactHooks.configs.recommended.rules,
+      // Twardo błąd, nie ostrzeżenie: hook za warunkowym returnem wywalił cały
+      // ekran Dziś przy zimnym starcie (React #310). Lint ma to łapać, zanim
+      // trafi na telefon.
+      "react-hooks/rules-of-hooks": "error",
       "no-restricted-imports": [
         "error",
         {
