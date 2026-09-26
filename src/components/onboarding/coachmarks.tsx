@@ -1,7 +1,17 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { createPortal } from "react-dom";
 import { useUpdateProfile } from "@/lib/profile";
+import { GlassPopover } from "@/components/ui/glass-popover";
+
+/**
+ * Samouczek: przyciemniony ekran, podświetlony cel i jedna tafla z tekstem.
+ *
+ * Tafla to ten sam `GlassPopover`, co karta dnia w Statystykach — jeden dziobek
+ * wycięty z tafli, pozycja z pomiaru, obwódka w kolorze akcentu. Tu dochodzi
+ * tylko podświetlenie celu: pierścień o zaokrągleniu wziętym z samego elementu,
+ * ze szczeliną, żeby było widać, co jest pokazywane.
+ */
 
 interface Rect {
   top: number;
@@ -11,14 +21,12 @@ interface Rect {
 }
 
 const TOOLTIP_WIDTH = 280;
-/** Margines od krawędzi ekranu (poza bezpiecznym obszarem, ten dokłada CSS). */
-const MARGIN = 12;
-/** Odstęp między pierścieniem podświetlenia a dymkiem. */
-const GAP = 14;
 /** Szczelina między elementem a pierścieniem i grubość samego pierścienia. */
 const RING_GAP = 3;
 const RING_WIDTH = 1.5;
-const ARROW = 13;
+/** Odstęp między pierścieniem a taflą — ten sam co w karcie dnia. */
+const GAP = 15;
+const MARGIN = 12;
 
 interface StepDef {
   id: number;
@@ -46,7 +54,7 @@ const STEPS: StepDef[] = [
     route: "/",
     targetIds: ["nav-skupienie"],
     content:
-      "Tu włączasz blokadę rozpraszaczy. Wybierasz aplikacje, które mają poczekać, aż skończysz.",
+      "Tu włączasz blokadę rozpraszaczy. Wybierasz aplikacje, które mają poczekać, aż skończysz pracę.",
   },
 ];
 
@@ -89,23 +97,15 @@ function ringRadius(items: { borderRadius: string }[]): string {
 }
 
 interface TargetInfo {
-  rects: { rect: Rect; borderRadius: string }[];
   union: Rect;
   borderRadius: string;
 }
-
-const clamp = (v: number, min: number, max: number) =>
-  Math.min(Math.max(v, min), Math.max(min, max));
 
 export function Coachmarks({ onDone }: { onDone: () => void }) {
   const [stepIndex, setStepIndex] = useState(0);
   const [target, setTarget] = useState<TargetInfo | null>(null);
   const [searchDone, setSearchDone] = useState(false);
   const [mounted, setMounted] = useState(false);
-  /** Prawdziwa wysokość dymka. Liczona z pomiaru, nie z szacunku — przy
-   *  szacunku dymek potrafił wjechać na podświetlenie albo za ekran. */
-  const [cardHeight, setCardHeight] = useState(0);
-  const cardRef = useRef<HTMLDivElement | null>(null);
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const updateProfile = useUpdateProfile();
@@ -143,26 +143,25 @@ export function Coachmarks({ onDone }: { onDone: () => void }) {
     setTarget(null);
     setSearchDone(false);
 
-    function tryLocate() {
-      if (cancelled) return;
-      const results: { rect: Rect; borderRadius: string }[] = [];
+    function collect(): { rect: Rect; borderRadius: string }[] {
+      const out: { rect: Rect; borderRadius: string }[] = [];
       for (const id of ids) {
         const info = getElRect(id);
-        if (info) results.push(info);
+        if (info) out.push(info);
       }
-      if (results.length > 0) {
+      return out;
+    }
+
+    function tryLocate() {
+      if (cancelled) return;
+      if (collect().length > 0) {
         const firstEl = document.querySelector(`[data-tour="${ids[0]}"]`);
         if (firstEl) firstEl.scrollIntoView({ block: "center", behavior: "auto" });
         setTimeout(() => {
           if (cancelled) return;
-          const fresh: { rect: Rect; borderRadius: string }[] = [];
-          for (const id of ids) {
-            const info = getElRect(id);
-            if (info) fresh.push(info);
-          }
+          const fresh = collect();
           if (fresh.length > 0) {
             setTarget({
-              rects: fresh,
               union: unionRects(fresh.map((f) => f.rect)),
               borderRadius: ringRadius(fresh),
             });
@@ -202,7 +201,6 @@ export function Coachmarks({ onDone }: { onDone: () => void }) {
       }
       if (results.length > 0) {
         setTarget({
-          rects: results,
           union: unionRects(results.map((r) => r.rect)),
           borderRadius: ringRadius(results),
         });
@@ -215,18 +213,6 @@ export function Coachmarks({ onDone }: { onDone: () => void }) {
       window.removeEventListener("scroll", update, true);
     };
   }, [step]);
-
-  // Pomiar dymka. ResizeObserver, bo tekst kroku zmienia wysokość, a przy
-  // wąskim ekranie zawija się na inną liczbę linii.
-  useLayoutEffect(() => {
-    const el = cardRef.current;
-    if (!el) return;
-    const measure = () => setCardHeight(el.offsetHeight);
-    measure();
-    const ro = new ResizeObserver(measure);
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, [mounted, stepIndex, showSpotlight]);
 
   function finish() {
     updateProfile.mutate({ coachmark_done: true });
@@ -245,41 +231,18 @@ export function Coachmarks({ onDone }: { onDone: () => void }) {
 
   if (!mounted || !step) return null;
 
-  const vh = window.innerHeight;
-  const vw = window.innerWidth;
   const rect = target?.union;
-
-  // Zewnętrzna krawędź pierścienia — od niej liczy się odstęp dymka, więc
-  // dymek nie ma jak wejść na podświetlenie.
+  // Tafla trzyma się zewnętrznej krawędzi pierścienia, nie samego elementu,
+  // więc dziobek nigdy nie wchodzi w podświetlenie.
   const ringOut = RING_GAP + RING_WIDTH;
-  const spotTop = rect ? rect.top - ringOut : 0;
-  const spotBottom = rect ? rect.top + rect.height + ringOut : 0;
-
-  const roomBelow = vh - spotBottom - GAP - MARGIN;
-  const roomAbove = spotTop - GAP - MARGIN;
-  const below = !rect || cardHeight <= roomBelow || roomBelow >= roomAbove;
-
-  const tooltipTop =
-    showSpotlight && rect
-      ? below
-        ? spotBottom + GAP
-        : spotTop - GAP - cardHeight
-      : vh / 2 - cardHeight / 2;
-
-  const tooltipLeft =
-    showSpotlight && rect
-      ? clamp(rect.left + rect.width / 2 - TOOLTIP_WIDTH / 2, MARGIN, vw - TOOLTIP_WIDTH - MARGIN)
-      : vw / 2 - TOOLTIP_WIDTH / 2;
-
-  // Jeden dziobek na krok, wycelowany w środek całego podświetlenia — także
-  // wtedy, gdy krok obejmuje dwa elementy naraz.
-  const arrowLeft =
-    showSpotlight && rect
-      ? clamp(rect.left + rect.width / 2 - tooltipLeft, 18, TOOLTIP_WIDTH - 18)
-      : TOOLTIP_WIDTH / 2;
-
-  const surface = "var(--popover)";
-  const edge = `${RING_WIDTH}px solid var(--primary)`;
+  const popoverAnchor = rect
+    ? {
+        top: rect.top - ringOut,
+        left: rect.left - ringOut,
+        width: rect.width + ringOut * 2,
+        height: rect.height + ringOut * 2,
+      }
+    : null;
 
   const overlay = (
     <>
@@ -304,72 +267,57 @@ export function Coachmarks({ onDone }: { onDone: () => void }) {
         <div className="fixed inset-0 z-[95] bg-black/65" />
       )}
 
-      <div
-        ref={cardRef}
-        className="fixed z-[96] rounded-2xl p-4 text-card-foreground transition-all duration-200 ease-out"
-        style={{
-          // JS liczy miejsce, a CSS pilnuje bezpiecznego obszaru: clamp z env()
-          // rozstrzyga się dopiero przy malowaniu, więc zna prawdziwy notch.
-          top: `clamp(calc(env(safe-area-inset-top, 0px) + ${MARGIN}px), ${Math.round(tooltipTop)}px, calc(100dvh - env(safe-area-inset-bottom, 0px) - ${MARGIN}px - ${cardHeight}px))`,
-          left: tooltipLeft,
-          width: TOOLTIP_WIDTH,
-          background: surface,
-          border: edge,
-          boxShadow: "0 18px 40px rgba(0,0,0,0.5)",
-        }}
-      >
-        {showSpotlight && (
-          <span
-            aria-hidden
-            className="absolute h-[13px] w-[13px] rotate-45"
-            style={{
-              left: arrowLeft - ARROW / 2,
-              // Wchodzi pod krawędź dymka i zamalowuje jej odcinek swoim tłem,
-              // więc dziobek i ramka czytają się jako jeden kształt.
-              ...(below
-                ? { top: -ARROW / 2 - 1, borderLeft: edge, borderTop: edge }
-                : { bottom: -ARROW / 2 - 1, borderRight: edge, borderBottom: edge }),
-              background: surface,
-            }}
-          />
-        )}
+      {showSpotlight && popoverAnchor && (
+        <GlassPopover
+          anchor={popoverAnchor}
+          width={TOOLTIP_WIDTH}
+          maxHeight={320}
+          minHeight={80}
+          gap={GAP}
+          margins={{ side: MARGIN, top: MARGIN, bottom: MARGIN }}
+          zIndex={96}
+          role="dialog"
+          aria-live="polite"
+        >
+          <div className="px-4 pb-3 pt-3">
+            <p className="text-[14px] leading-snug text-foreground">{step.content}</p>
 
-        <p className="relative text-[14px] leading-snug">{step.content}</p>
+            <div className="mt-4 flex items-center justify-between">
+              <button
+                type="button"
+                onClick={finish}
+                className="min-h-[40px] px-2 text-[13px] text-muted-foreground"
+              >
+                Pomiń
+              </button>
+              <button
+                type="button"
+                onClick={next}
+                className="min-h-[40px] rounded-full px-4 text-[13.5px] font-bold text-primary-foreground transition-transform active:scale-[0.97]"
+                style={{ background: "var(--primary)" }}
+              >
+                {isLast ? "Gotowe" : "Dalej"}
+              </button>
+            </div>
 
-        <div className="mt-4 flex items-center justify-between">
-          <button
-            type="button"
-            onClick={finish}
-            className="min-h-[40px] px-2 text-[13px] text-muted-foreground"
-          >
-            Pomiń
-          </button>
-          <button
-            type="button"
-            onClick={next}
-            className="min-h-[40px] rounded-full px-4 text-[13.5px] font-bold text-primary-foreground transition-transform active:scale-[0.97]"
-            style={{ background: "var(--primary)" }}
-          >
-            {isLast ? "Gotowe" : "Dalej"}
-          </button>
-        </div>
-
-        <div className="mt-3 flex items-center justify-center gap-1.5">
-          {STEPS.map((s, i) => (
-            <span
-              key={s.id}
-              className="h-1.5 rounded-full transition-all duration-200"
-              style={{
-                width: i === stepIndex ? 18 : 6,
-                background:
-                  i === stepIndex
-                    ? "var(--primary)"
-                    : "color-mix(in oklab, var(--foreground) 22%, transparent)",
-              }}
-            />
-          ))}
-        </div>
-      </div>
+            <div className="mt-3 flex items-center justify-center gap-1.5">
+              {STEPS.map((s, i) => (
+                <span
+                  key={s.id}
+                  className="h-1.5 rounded-full transition-all duration-200"
+                  style={{
+                    width: i === stepIndex ? 18 : 6,
+                    background:
+                      i === stepIndex
+                        ? "var(--primary)"
+                        : "color-mix(in oklab, var(--foreground) 22%, transparent)",
+                  }}
+                />
+              ))}
+            </div>
+          </div>
+        </GlassPopover>
+      )}
     </>
   );
 
