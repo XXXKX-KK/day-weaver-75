@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 import { Capacitor } from "@capacitor/core";
 import { LocalNotifications } from "@capacitor/local-notifications";
 import { useProfile } from "@/lib/profile";
-import { useToday } from "@/lib/day";
+import { useToday, type TodayData } from "@/lib/day";
 import { useRoutines, type RoutineRow } from "@/lib/routines";
 
 /**
@@ -108,6 +108,26 @@ function thingsWord(n: number): string {
   return n === 1 ? "rzecz" : "rzeczy";
 }
 
+/** Prog passy — ta sama wartosc co w recompute_streak() po stronie bazy. */
+const STREAK_THRESHOLD = 0.45;
+
+/**
+ * Czy dzisiejszy dzien zaliczyl juz passe.
+ *
+ * Flaga z bazy jest zrodlem prawdy (raz zaliczony dzien zostaje zaliczony,
+ * nawet po odznaczeniu pozycji), ale prog liczymy tez lokalnie: dzieki temu
+ * tresc wieczornego przypomnienia zmienia sie w chwili przekroczenia 45%, a nie
+ * dopiero po powrocie recompute_streak() i odswiezeniu dnia.
+ */
+export function isDayStreakCounted(today: TodayData | undefined): boolean {
+  if (!today?.day) return false;
+  if (today.day.streak_counted) return true;
+  const total = today.items.length;
+  if (total === 0) return false;
+  const done = today.items.filter((i) => i.status === "done").length;
+  return done / total >= STREAK_THRESHOLD;
+}
+
 export type NotificationState = {
   dayStartTime: string | null;
   dayEndTime: string | null;
@@ -115,16 +135,17 @@ export type NotificationState = {
   undoneCount: number;
   /** profiles.streak_count. */
   streak: number;
-  /** Whether today's plan is already completed. */
-  dayCompleted: boolean;
+  /** Whether today already crossed the 45% threshold — see isDayStreakCounted. */
+  streakCounted: boolean;
 };
 
 type ScheduledNotification = Parameters<
   typeof LocalNotifications.schedule
 >[0]["notifications"][number];
 
-/** Build the (0–2) notifications for the current state. */
-function buildNotifications(state: NotificationState): ScheduledNotification[] {
+/** Build the (0–2) notifications for the current state. Exported for tests —
+ *  the scheduling around it needs a device, the copy rules do not. */
+export function buildNotifications(state: NotificationState): ScheduledNotification[] {
   const notifications: ScheduledNotification[] = [];
   const morning = parseHm(state.dayStartTime);
   const evening = parseHm(state.dayEndTime);
@@ -142,18 +163,25 @@ function buildNotifications(state: NotificationState): ScheduledNotification[] {
   if (evening) {
     const wantUndone = isReminderEnabled("undone");
     const wantStreak = isReminderEnabled("streak");
-    const streakActive = wantStreak && state.streak > 0 && !state.dayCompleted;
+    // Straszenie passa ma sens tylko wtedy, gdy dzien faktycznie jej jeszcze nie
+    // zaliczyl. Po przekroczeniu 45% passa jest juz w kieszeni — zostaje samo
+    // przypomnienie o niedokonczonych pozycjach.
+    const streakAtRisk = wantStreak && state.streak > 0 && !state.streakCounted;
     const streakLine = `Nie strać swojej passy ${state.streak} dni!`;
     let body: string | null = null;
 
-    if (wantUndone && state.undoneCount > 0) {
-      body = `Masz jeszcze ${state.undoneCount} ${thingsWord(state.undoneCount)} do zrobienia.`;
-      if (streakActive) body += ` ${streakLine}`;
-    } else if (streakActive) {
-      body = streakLine;
+    // Nic do zrobienia (albo dzien zamkniety) → nie ma o czym przypominac.
+    if (state.undoneCount > 0) {
+      const lines: string[] = [];
+      if (wantUndone) {
+        lines.push(
+          `Masz jeszcze ${state.undoneCount} ${thingsWord(state.undoneCount)} do zrobienia.`,
+        );
+      }
+      if (streakAtRisk) lines.push(streakLine);
+      body = lines.join(" ") || null;
     }
 
-    // No unfinished work and no streak to protect → nothing worth nagging about.
     if (body) {
       notifications.push({
         id: EVENING_ID,
@@ -446,7 +474,7 @@ export function useNotificationsSync(): void {
   const dayStartTime = profile?.day_start_time ?? null;
   const dayEndTime = profile?.day_end_time ?? null;
   const streak = profile?.streak_count ?? 0;
-  const dayCompleted = today?.status === "completed";
+  const streakCounted = isDayStreakCounted(today);
   const undoneCount =
     today?.status === "in_progress" ? today.items.filter((i) => i.status !== "done").length : 0;
 
@@ -454,7 +482,7 @@ export function useNotificationsSync(): void {
     if (!isNative()) return;
     // Wait until the profile has loaded so we don't schedule with null hours.
     if (!profile) return;
-    void refreshNotifications({ dayStartTime, dayEndTime, undoneCount, streak, dayCompleted });
+    void refreshNotifications({ dayStartTime, dayEndTime, undoneCount, streak, streakCounted });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dayStartTime, dayEndTime, undoneCount, streak, dayCompleted, !!profile]);
+  }, [dayStartTime, dayEndTime, undoneCount, streak, streakCounted, !!profile]);
 }

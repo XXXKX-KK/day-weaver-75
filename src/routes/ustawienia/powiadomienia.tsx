@@ -16,6 +16,7 @@ import {
   cancelReminders,
   isReminderEnabled,
   refreshNotifications,
+  isDayStreakCounted,
   REMINDER_KINDS,
   setNotificationsEnabledLocal,
   setReminderEnabled,
@@ -64,7 +65,7 @@ function NotificationsScreen() {
       undoneCount:
         today?.status === "in_progress" ? today.items.filter((i) => i.status !== "done").length : 0,
       streak: profile?.streak_count ?? 0,
-      dayCompleted: today?.status === "completed",
+      streakCounted: isDayStreakCounted(today),
     });
 
   const toggleMaster = (enabled: boolean) => {
